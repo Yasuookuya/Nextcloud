@@ -5,9 +5,12 @@ set -e
 export POSTGRES_HOST=${POSTGRES_HOST:-"postgres-n76t.railway.internal"}
 export POSTGRES_PORT=${POSTGRES_PORT:-"5432"}
 export POSTGRES_USER=${POSTGRES_USER:-"postgres"}
+export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-"uejIXoiQzAqOoFZFBOqZCnjovieZlgui"}
 export POSTGRES_DB=${POSTGRES_DB:-"railway"}
 
 export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
+
+export PGSSLMODE=disable
 
 export REDIS_HOST=${REDIS_HOST:-"redis-svle.railway.internal"}
 export REDIS_PORT=${REDIS_PORT:-"6379"}
