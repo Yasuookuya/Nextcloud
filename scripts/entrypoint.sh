@@ -156,12 +156,19 @@ else
   echo "Generated temp password: $NEXTCLOUD_ADMIN_PASSWORD (change immediately!)"
 fi
 
-# Run original entrypoint in foreground (handles base setup, no & to avoid conflict)
-echo "🌟 Running original Nextcloud FPM entrypoint (foreground)..."
-/entrypoint.sh php-fpm  # Foreground to ensure completion before Supervisor
+# Run original entrypoint in background (handles install)
+echo "🌟 Running original Nextcloud FPM entrypoint (background)..."
+/entrypoint.sh php-fpm &
 
-# Force installation via occ if not installed (fallback)
-if [ ! -f "/var/www/html/config/config.php" ]; then
+# Wait for installation to complete (poll for config.php)
+echo "⌛ Waiting for installation to complete..."
+until [ -f "/var/www/html/config/config.php" ]; do
+  sleep 5
+done
+echo "✅ Installation detected (config.php exists)"
+
+# Force occ install if still needed (fallback)
+if su www-data -s /bin/bash -c "php occ status" | grep -q "installed: false"; then
   echo "🔧 Forcing Nextcloud installation via occ..."
   su www-data -s /bin/bash -c "php occ maintenance:install \
     --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST:$POSTGRES_PORT \
@@ -169,6 +176,10 @@ if [ ! -f "/var/www/html/config/config.php" ]; then
     --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD \
     --data-dir $NEXTCLOUD_DATA_DIR"
 fi
+
+# Kill background php-fpm to avoid conflict with Supervisor
+pkill -f "php-fpm" || true
+echo "✅ Background php-fpm stopped"
 
 # Post-install (now runs after install complete)
 if [ -f "/var/www/html/config/config.php" ]; then
