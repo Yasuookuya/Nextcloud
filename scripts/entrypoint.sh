@@ -163,12 +163,17 @@ else
   echo "Generated temp password: $NEXTCLOUD_ADMIN_PASSWORD (change immediately!)"
 fi
 
-# Skip occ install - use web wizard instead (avoids DB privilege issue)
-echo "🌟 Skipping occ install - using web wizard for fresh setup (avoids DB privilege issues)"
-rm -f /var/www/html/config/config.php  # Force fresh (delete persistent config)
+# Skip original entrypoint entirely (avoids parameter error, custom handles)
+echo "🌟 Skipping original entrypoint (using custom setup for wizard)"
 
-# Run original entrypoint for base setup (no php-fpm to avoid conflict)
- /entrypoint.sh  # Background not needed for wizard
+# Force fresh wizard
+rm -f /var/www/html/config/config.php
+echo "🔧 config.php deleted - fresh wizard ready"
+
+# Diagnostics
+echo "🔍 POST-SETUP DIAGNOSTIC:"
+ls -la /var/www/html/config/ || echo "No config dir"
+su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null || echo 'occ status: Not installed (wizard needed)'"
 
 # Post-install (now runs after install complete)
 if [ -f "/var/www/html/config/config.php" ]; then
