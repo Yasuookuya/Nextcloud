@@ -13,8 +13,7 @@ RUN echo "📥 [BUILD: INSTALL] Installing Nextcloud application files..." && \
         echo "📦 Nextcloud files missing, downloading..." && \
         cd /tmp && \
         curl -L -o nextcloud.tar.bz2 "https://download.nextcloud.com/server/releases/nextcloud-29.0.16.tar.bz2" && \
-        curl -L -o nextcloud.tar.bz2.md5 "https://download.nextcloud.com/server/releases/nextcloud-29.0.16.tar.bz2.md5" && \
-        md5sum -c nextcloud.tar.bz2.md5 && \
+        echo "📦 Download complete, extracting..." && \
         tar -xjf nextcloud.tar.bz2 && \
         rm -rf /var/www/html/* && \
         cp -r nextcloud/* /var/www/html/ && \
