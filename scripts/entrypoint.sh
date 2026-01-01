@@ -106,43 +106,60 @@ if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
     # Generate template first, then subst env vars
     cat > /var/www/html/config/config.php.template << 'EOF'
 <?php
-$CONFIG = array (
+CONFIG_VAR = array (
   'dbtype' => 'pgsql',
-  'dbhost' => '${POSTGRES_HOST}',
-  'dbport' => '${POSTGRES_PORT}',
+  'dbhost' => 'POSTGRES_HOST_VAR',
+  'dbport' => 'POSTGRES_PORT_VAR',
   'dbtableprefix' => 'oc_',
-  'dbname' => '${POSTGRES_DB}',
-  'dbuser' => '${POSTGRES_USER}',
-  'dbpassword' => '${POSTGRES_PASSWORD}',
+  'dbname' => 'POSTGRES_DB_VAR',
+  'dbuser' => 'POSTGRES_USER_VAR',
+  'dbpassword' => 'POSTGRES_PASSWORD_VAR',
   'installed' => true,
-  'instanceid' => '${INSTANCEID}',
-  'passwordsalt' => '${PASSWORDSALT}',
-  'secret' => '${SECRET}',
+  'instanceid' => 'INSTANCEID_VAR',
+  'passwordsalt' => 'PASSWORDSALT_VAR',
+  'secret' => 'SECRET_VAR',
   'trusted_domains' =>
   array (
-    0 => '${RAILWAY_PUBLIC_DOMAIN}',
+    0 => 'RAILWAY_PUBLIC_DOMAIN_VAR',
     1 => 'localhost',
     2 => '::1',
-    3 => '${RAILWAY_PRIVATE_DOMAIN}',
-    4 => '${RAILWAY_STATIC_URL}',
+    3 => 'RAILWAY_PRIVATE_DOMAIN_VAR',
+    4 => 'RAILWAY_STATIC_URL_VAR',
   ),
   'datadirectory' => '/var/www/html/data',
-  'overwrite.cli.url' => 'https://${RAILWAY_PUBLIC_DOMAIN}',
-  'overwriteprotocol' => '${OVERWRITEPROTOCOL}',
+  'overwrite.cli.url' => 'https://RAILWAY_PUBLIC_DOMAIN_VAR',
+  'overwriteprotocol' => 'OVERWRITEPROTOCOL_VAR',
   'memcache.local' => '\\OC\\Memcache\\Redis',
   'memcache.locking' => '\\OC\\Memcache\\Redis',
   'redis' =>
   array (
-    'host' => '${REDIS_HOST}',
-    'port' => '${REDIS_PORT}',
-    'password' => '${REDIS_PASSWORD}',
+    'host' => 'REDIS_HOST_VAR',
+    'port' => 'REDIS_PORT_VAR',
+    'password' => 'REDIS_PASSWORD_VAR',
   ),
   'maintenance' => false,
   'update_check_disabled' => false,
 );
 EOF
-    # Use a more robust approach for envsubst - specify exact variables to substitute
-    envsubst '$CONFIG $POSTGRES_HOST $POSTGRES_PORT $POSTGRES_DB $POSTGRES_USER $POSTGRES_PASSWORD $INSTANCEID $PASSWORDSALT $SECRET $RAILWAY_PUBLIC_DOMAIN $RAILWAY_PRIVATE_DOMAIN $RAILWAY_STATIC_URL $OVERWRITEPROTOCOL $REDIS_HOST $REDIS_PORT $REDIS_PASSWORD' < /var/www/html/config/config.php.template > /var/www/html/config/config.php
+    # Use sed to replace placeholders with actual values
+    sed \
+      -e "s/CONFIG_VAR/\$CONFIG/g" \
+      -e "s/POSTGRES_HOST_VAR/${POSTGRES_HOST}/g" \
+      -e "s/POSTGRES_PORT_VAR/${POSTGRES_PORT}/g" \
+      -e "s/POSTGRES_DB_VAR/${POSTGRES_DB}/g" \
+      -e "s/POSTGRES_USER_VAR/${POSTGRES_USER}/g" \
+      -e "s/POSTGRES_PASSWORD_VAR/${POSTGRES_PASSWORD}/g" \
+      -e "s/INSTANCEID_VAR/${INSTANCEID}/g" \
+      -e "s/PASSWORDSALT_VAR/${PASSWORDSALT}/g" \
+      -e "s/SECRET_VAR/${SECRET}/g" \
+      -e "s/RAILWAY_PUBLIC_DOMAIN_VAR/${RAILWAY_PUBLIC_DOMAIN}/g" \
+      -e "s/RAILWAY_PRIVATE_DOMAIN_VAR/${RAILWAY_PRIVATE_DOMAIN}/g" \
+      -e "s/RAILWAY_STATIC_URL_VAR/${RAILWAY_STATIC_URL}/g" \
+      -e "s/OVERWRITEPROTOCOL_VAR/${OVERWRITEPROTOCOL}/g" \
+      -e "s/REDIS_HOST_VAR/${REDIS_HOST}/g" \
+      -e "s/REDIS_PORT_VAR/${REDIS_PORT}/g" \
+      -e "s/REDIS_PASSWORD_VAR/${REDIS_PASSWORD}/g" \
+      /var/www/html/config/config.php.template > /var/www/html/config/config.php
     rm /var/www/html/config/config.php.template
     # CRITICAL: Lint the generated config
     if ! php -l /var/www/html/config/config.php; then
