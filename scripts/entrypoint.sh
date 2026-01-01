@@ -2,7 +2,7 @@
 set -e
 
 # Source Railway configuration
-source /var/www/html/railway.sh
+source /var/www/html/scripts/railway.sh
 
 echo "🚀 Starting NextCloud Railway deployment..."
 echo "🐛 DEBUG: PID $$"
