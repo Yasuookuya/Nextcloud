@@ -205,25 +205,22 @@ echo "🔍 POST-WAITS DIAGNOSTIC:"
 ls -la /var/www/html/config/ || echo "No config dir"
 su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null" || echo "occ status failed (no config yet)"
 
-# Fix nginx pid dir
-mkdir -p /var/run/nginx /var/log/nginx
-chown www-data:www-data /var/run/nginx /var/log/nginx
+mkdir -p /var/run/nginx /var/log/nginx /var/lib/nginx/logs
+chown -R www-data:www-data /var/run/nginx /var/log/nginx
 
-# Subst PORT (Railway sets PORT=8080)
+# ONLY envsubst PORT (no sed pid hacks - config now clean)
 if envsubst '${PORT}' < /etc/nginx/nginx.conf > /tmp/nginx.conf.tmp 2>/dev/null; then
   mv /tmp/nginx.conf.tmp /etc/nginx/nginx.conf
   echo "✅ Nginx: PORT=${PORT} substituted"
-else
-  echo "⚠️ envsubst failed, using 80"
 fi
 
-# Fix nginx log dirs and duplicate pid
-mkdir -p /var/lib/nginx/logs /var/log/nginx && chown -R www-data:www-data /var/lib/nginx /var/log/nginx
-sed -i '/pid .*;/d' /etc/nginx/nginx.conf  # Remove duplicate pid directives
-sed -i '1i pid /run/nginx.pid;' /etc/nginx/nginx.conf  # Add pid directive at top
+# Add SINGLE pid at top if missing (idempotent)
+if ! grep -q '^pid ' /etc/nginx/nginx.conf; then
+  sed -i '1i pid /run/nginx.pid;' /etc/nginx/nginx.conf
+  echo "✅ Added pid directive"
+fi
 
-# Validate Nginx (Railway expects port 80)
-nginx -t && echo "✅ Nginx config OK (listen ${PORT:-80})" || { echo "❌ Nginx test failed:"; nginx -t; exit 1; }
+nginx -t && echo "✅ Nginx config OK (listen ${PORT:-8080})" || { echo "❌ Nginx failed"; nginx -t; exit 1; }
 
 # Railway Deployment Info
 echo "🌐 Railway Deployment Info:"
@@ -237,16 +234,29 @@ timeout 5 bash -c "curl -f -s http://localhost/status.php && echo '✅ Status OK
 
 echo "📋 Logs: nginx=/var/log/nginx/error.log, supervisor=/var/log/supervisor/"
 
-# Run original entrypoint to initialize Nextcloud code
-echo "🌟 Running original entrypoint (initializes Nextcloud)..."
-/entrypoint.sh php-fpm &
+# PRESERVE config if exists (don't delete!)
+if [ -f "/var/www/html/config/config.php" ]; then
+  echo "✅ Config exists + DB populated → Skipping install, running upgrade/post-setup."
+  su www-data -s /bin/bash -c "php occ maintenance:mode --on"  # Safe mode for upgrade
+  su www-data -s /bin/bash -c "php occ upgrade"  # Run upgrade (handles apps)
+  su www-data -s /bin/bash -c "php occ maintenance:mode --off"
 
-# Wait for init (code download)
-sleep 30
-pkill -f php-fpm || true
+  # Redis/memcache (idempotent)
+  su www-data -s /bin/bash -c "php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis"
+  su www-data -s /bin/bash -c "php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis"
+  su www-data -s /bin/bash -c "php occ config:system:set redis host --value=${REDIS_HOST}"
+  su www-data -s /bin/bash -c "php occ config:system:set redis port --value=${REDIS_PORT}"
+  [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "php occ config:system:set redis password --value=${REDIS_PASSWORD}"
 
-# Delete config for wizard
-rm -f /var/www/html/config/config.php
+  # Scans + cron
+  su www-data -s /bin/bash -c "php occ files:scan --all"
+  su www-data -s /bin/bash -c "php occ groupfolders:scan --all || true"
+  su www-data -s /bin/bash -c "php occ background-job:cron"
+
+  echo "✅ Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
+else
+  echo "⚠️ No config/DB → Run web installer."
+fi
 
 # Chown
 chown -R www-data:www-data /var/www/html
@@ -255,24 +265,8 @@ chown -R www-data:www-data /var/www/html
 ls -la /var/www/html
 psql "$DATABASE_URL" -c "\dp oc_migrations"
 
-# Post-install (now runs after install complete)
+# Run fix-warnings if config exists
 if [ -f "/var/www/html/config/config.php" ]; then
-  # ... existing occ commands for Redis, cron, and call fix-warnings.sh ...
-  echo "🔧 Running post-install fixes..."
-  su www-data -s /bin/bash -c "php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis"
-  su www-data -s /bin/bash -c "php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis"
-  su www-data -s /bin/bash -c "php occ config:system:set redis host --value=${REDIS_HOST}"
-  su www-data -s /bin/bash -c "php occ config:system:set redis port --value=${REDIS_PORT}"
-  if [ -n "$REDIS_PASSWORD" ]; then
-    su www-data -s /bin/bash -c "php occ config:system:set redis password --value=${REDIS_PASSWORD}"
-  fi
-  su www-data -s /bin/bash -c "php occ background-job:cron"  # Set up cron mode
-
-  # Community fix: Scan files and group folders to sync existing data
-  echo "🧹 Scanning files and group folders (to recover existing data)..."
-  su www-data -s /bin/bash -c "php occ files:scan --all"
-  su www-data -s /bin/bash -c "php occ groupfolders:scan --all"
-
   /usr/local/bin/fix-warnings.sh  # Run any warning fixes
 fi
 
