@@ -144,9 +144,9 @@ RUN echo "🎉 [BUILD: SUMMARY] Docker build completed successfully!" && \
     echo "  - Health Check: Configured" && \
     echo "  - Ready for Railway deployment! 🚀"
 
-EXPOSE 8080
+EXPOSE ${PORT:-8080}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8080/status.php >/dev/null 2>&1 || curl -f http://localhost:8080 >/dev/null 2>&1 || exit 1
+  CMD curl -f http://localhost:${PORT:-8080}/status.php >/dev/null 2>&1 || curl -f http://localhost:${PORT:-8080}/ >/dev/null 2>&1 || exit 1
 
 ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]
