@@ -4,18 +4,27 @@ set -e
 echo "🚀 Starting NextCloud Railway deployment..."
 echo "🐛 DEBUG: PID $$"
 
-# Diagnostics: Print env
-echo "🔍 ENV DIAGNOSTIC:"
-env | grep -E "(POSTGRES|REDIS|NEXTCLOUD|DATABASE_URL|RAILWAY)" | sort
+echo "=== STEP 1: ENV ==="
+env | grep -E "(PORT|POSTGRES|REDIS|NEXTCLOUD|DATABASE_URL|RAILWAY)" | sort
 
-# Diagnostics: Check DB connection and tables/owners
-echo "🔍 DB DIAGNOSTIC:"
+echo "=== STEP 2: DB DIAG ==="
 echo "Tables:"
 psql "$DATABASE_URL" -c "\dt" || echo "No tables or connection issue"
 echo "Table owners (for oc_*):"
 psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
 echo "oc_migrations perms:"
 psql "$DATABASE_URL" -c "\dp oc_migrations" || echo "No oc_migrations or perm error"
+
+echo "=== STEP 3: FILES/PERMS ==="
+ls -la /var/www/html
+ls -la /var/www/html/data || mkdir -p /var/www/html/data
+chown -R www-data:www-data /var/www/html /run/nginx /var/log/nginx /var/run/nginx
+
+echo "=== STEP 4: PROCESSES ==="
+ps aux
+
+echo "=== STEP 5: NET ==="
+netstat -tlnp || ss -tlnp
 
 # Check for environment variables - we need at least some PostgreSQL config
 # Check for Railway's PG* variables OR POSTGRES_* variables OR DATABASE_URL
