@@ -103,7 +103,7 @@ $CONFIG = array (
   'update_check_disabled' => ${NEXTCLOUD_UPDATE_CHECK:-false},
 );
 EOF
-    envsubst < /var/www/html/config/config.php.template > /var/www/html/config/config.php
+    envsubst '${POSTGRES_HOST} ${POSTGRES_PORT} ${POSTGRES_DB} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${INSTANCEID} ${PASSWORDSALT} ${SECRET} ${RAILWAY_PUBLIC_DOMAIN} ${RAILWAY_PRIVATE_DOMAIN} ${RAILWAY_STATIC_URL} ${OVERWRITEPROTOCOL} ${REDIS_HOST} ${REDIS_PORT} ${REDIS_PASSWORD} ${NEXTCLOUD_UPDATE_CHECK}' < /var/www/html/config/config.php.template > /var/www/html/config/config.php
     rm /var/www/html/config/config.php.template
     # CRITICAL: Lint the generated config
     if ! php -l /var/www/html/config/config.php; then
