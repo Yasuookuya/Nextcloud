@@ -320,17 +320,8 @@ fi
 
 nginx -t && echo "✅ Nginx config OK (listen ${PORT:-8080})" || { echo "❌ Nginx failed"; nginx -t; exit 1; }
 
-# Start nginx temporarily to serve deployment status page during installation
-echo "🌐 [PHASE: INSTALL] Starting nginx to serve deployment status page..."
-nginx -g "daemon off;" &
-NGINX_PID=$!
-echo "✅ [PHASE: INSTALL] Nginx started with PID $NGINX_PID"
-
-# Wait for nginx to be ready and test deployment status page accessibility
-echo "🔍 [PHASE: INSTALL] Testing deployment status page..."
-timeout 15 bash -c 'until curl -f -s http://localhost:${PORT:-8080}/deployment-status.html > /dev/null 2>&1; do sleep 1; done' && \
-  echo "✅ [PHASE: INSTALL] Deployment status page accessible" || \
-  { echo "❌ [PHASE: INSTALL] Deployment status page not accessible - nginx may have failed to start"; kill $NGINX_PID 2>/dev/null || true; exit 1; }
+# Skip temporary nginx test - let supervisor handle it
+echo "🌐 [PHASE: INSTALL] Skipping temporary nginx test - will be handled by supervisor"
 
 # Railway Deployment Info
 echo "🌐 Railway Deployment Info:"
@@ -370,44 +361,71 @@ if [ -f "/var/www/html/config/config.php" ]; then
     OCC_STATUS=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status" 2>&1 || echo "OCC_FAILED")
     echo "🔍 [PHASE: INSTALL/UPGRADE] OCC status output: $OCC_STATUS"
 
+    # Debug: Check config.php syntax and database connection
+    echo "🔍 [PHASE: INSTALL/UPGRADE] Debugging config.php..."
+    if [ -f "/var/www/html/config/config.php" ]; then
+      php -l /var/www/html/config/config.php && echo "✅ Config.php syntax OK" || echo "❌ Config.php syntax error"
+      echo "📄 Config.php contents (first 10 lines):"
+      head -10 /var/www/html/config/config.php
+    fi
+
+    # Debug: Test database connection directly
+    echo "🔍 [PHASE: INSTALL/UPGRADE] Testing database connection..."
+    DB_TEST=$(psql "$DATABASE_URL" -c "SELECT version();" 2>&1 || echo "DB_CONNECT_FAILED")
+    if [[ "$DB_TEST" == *"DB_CONNECT_FAILED"* ]]; then
+      echo "❌ Database connection failed: $DB_TEST"
+      echo "🔧 Attempting to fix database connection..."
+      # Try alternative connection method
+      export PGPASSWORD="$POSTGRES_PASSWORD"
+      DB_TEST_ALT=$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version();" 2>&1 || echo "DB_CONNECT_ALT_FAILED")
+      if [[ "$DB_TEST_ALT" == *"DB_CONNECT_ALT_FAILED"* ]]; then
+        echo "❌ Alternative database connection also failed: $DB_TEST_ALT"
+        exit 1
+      else
+        echo "✅ Alternative database connection successful"
+      fi
+    else
+      echo "✅ Database connection successful"
+    fi
+
     # Check if database tables exist
     TABLE_COUNT=$(psql "$DATABASE_URL" -c "\dt oc_*" 2>/dev/null | grep -c "table" || echo "0")
-    if [ "$TABLE_COUNT" -eq "0" ]; then
-      echo "📦 [PHASE: INSTALL/UPGRADE] No Nextcloud tables found - performing fresh installation."
-      # Fresh installation
+    echo "🔍 [PHASE: INSTALL/UPGRADE] Found $TABLE_COUNT Nextcloud tables"
+
+    # Force fresh installation if OCC status fails consistently
+    if [ "$TABLE_COUNT" -eq "0" ] || [[ "$OCC_STATUS" == *"Memcache"* ]] || [[ "$OCC_STATUS" == *"not available"* ]]; then
+      echo "📦 [PHASE: INSTALL/UPGRADE] Performing fresh installation (no tables or cache issues detected)"
+
+      # Clean up any existing broken config that might interfere
+      if [ -f "/var/www/html/config/config.php" ]; then
+        echo "🧹 [PHASE: INSTALL/UPGRADE] Removing potentially broken config.php"
+        rm -f /var/www/html/config/config.php
+      fi
+
+      # Fresh installation with explicit data directory
+      mkdir -p /var/www/html/data
+      chown www-data:www-data /var/www/html/data
+
       INSTALL_CMD="cd /var/www/html && php occ maintenance:install --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST --database-port $POSTGRES_PORT --database-user $POSTGRES_USER --database-pass $POSTGRES_PASSWORD --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD --data-dir /var/www/html/data"
       echo "🏗️ [PHASE: INSTALL/UPGRADE] Running: $INSTALL_CMD"
+
       if su www-data -s /bin/bash -c "$INSTALL_CMD" 2>&1; then
         echo "✅ [PHASE: INSTALL/UPGRADE] Fresh installation completed successfully."
-        CONFIG_READABLE=true
+
+        # Verify installation worked
+        if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1; then
+          echo "✅ [PHASE: INSTALL/UPGRADE] Installation verified - OCC status OK"
+          CONFIG_READABLE=true
+        else
+          echo "❌ [PHASE: INSTALL/UPGRADE] Installation verification failed"
+          exit 1
+        fi
       else
         echo "❌ [PHASE: INSTALL/UPGRADE] Fresh installation failed!"
         exit 1
       fi
     else
-      echo "🔧 [PHASE: INSTALL/UPGRADE] Database tables exist but config issues - attempting repair."
-      CONFIG_READABLE=false
-    fi
-  fi
-
-  # Maintenance mode
-  echo "🔧 [PHASE: UPGRADE] Enabling maintenance mode..."
-  MAINT_ON=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on" 2>&1 || echo "FAILED")
-  if [[ "$MAINT_ON" == *"FAILED"* ]]; then
-    echo "⚠️ [PHASE: UPGRADE] Maintenance mode enable failed: $MAINT_ON"
-  else
-    echo "✅ [PHASE: UPGRADE] Maintenance mode enabled."
-  fi
-
-  # Upgrade
-  echo "⬆️ [PHASE: UPGRADE] Running database upgrade..."
-  UPGRADE=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --force" 2>&1 || echo "FAILED")
-  if [[ "$UPGRADE" == *"FAILED"* ]]; then
-    echo "⚠️ [PHASE: UPGRADE] Upgrade failed: $UPGRADE"
-  else
-    echo "✅ [PHASE: UPGRADE] Upgrade completed."
-  fi
-
+      echo "🔧 [PHASE: INSTALL/UPGRADE] Database tables exist and no cache issues - attempting upgrade."
   # Maintenance mode off
   echo "🔧 [PHASE: UPGRADE] Disabling maintenance mode..."
   MAINT_OFF=$(su www-data -s /bin/bash -c "php occ maintenance:mode --off" 2>&1 || echo "FAILED")
@@ -507,16 +525,6 @@ if [ -f "/var/www/html/config/config.php" ]; then
   fi
 else
   echo "❌ [PHASE: FINAL] Config file missing - deployment incomplete"
-fi
-
-# Stop temporary nginx before starting supervisor
-echo "🛑 [PHASE: FINAL] Stopping temporary nginx..."
-if [ -n "$NGINX_PID" ] && kill -0 "$NGINX_PID" 2>/dev/null; then
-  kill "$NGINX_PID" 2>/dev/null || true
-  wait "$NGINX_PID" 2>/dev/null || true
-  echo "✅ [PHASE: FINAL] Temporary nginx stopped"
-else
-  echo "ℹ️ [PHASE: FINAL] Temporary nginx already stopped"
 fi
 
 echo "🚀 [PHASE: FINAL] Supervisor starting..."

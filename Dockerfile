@@ -25,7 +25,7 @@ RUN echo "📥 [BUILD: INSTALL] Installing Nextcloud application files..." && \
 
 # [BUILD: DEPENDENCIES] Install additional tools
 RUN echo "📥 [BUILD: DEPENDENCIES] Installing additional packages..." && \
-    apk add --no-cache gettext nginx supervisor curl postgresql-client procps net-tools bind-tools bash redis iproute2 bind && \
+    apk add --no-cache gettext nginx supervisor curl postgresql-client procps net-tools bind-tools bash redis iproute2 bind php82-redis && \
     echo "✅ [BUILD: DEPENDENCIES] Package installation complete"
 
 # [BUILD: DIAGNOSTICS] Tool version checks
@@ -146,7 +146,7 @@ RUN echo "🎉 [BUILD: SUMMARY] Docker build completed successfully!" && \
 
 EXPOSE ${PORT:-8080}
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:${PORT:-8080}/status.php >/dev/null 2>&1 || curl -f http://localhost:${PORT:-8080}/ >/dev/null 2>&1 || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
+  CMD curl -f --max-time 10 http://localhost:${PORT:-8080}/status.php >/dev/null 2>&1 || curl -f --max-time 10 http://localhost:${PORT:-8080}/ >/dev/null 2>&1 || exit 1
 
 ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]
