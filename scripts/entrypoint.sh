@@ -165,7 +165,8 @@ fi
 
 # Fix permissions (critical for nginx/www-data)
 echo "🔧 Fixing permissions..."
-chown -R www-data:www-data /var/www/html
+mkdir -p /var/run/nginx /var/log/nginx
+chown -R www-data:www-data /var/www/html /var/run/nginx /var/log/nginx
 chmod -R 755 /var/www/html
 ls -la /var/www/html  # Diagnostic: Check index.php exists
 
