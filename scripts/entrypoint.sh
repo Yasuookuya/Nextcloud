@@ -1,20 +1,26 @@
 #!/bin/bash
 set -e
 
-# Railway configuration - embedded
-export POSTGRES_HOST=${POSTGRES_HOST:-"postgres-n76t.railway.internal"}
-export POSTGRES_PORT=${POSTGRES_PORT:-"5432"}
-export POSTGRES_USER=${POSTGRES_USER:-"postgres"}
-export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-"uejIXoiQzAqOoFZFBOqZCnjovieZlgui"}
-export POSTGRES_DB=${POSTGRES_DB:-"railway"}
+# Railway configuration - use environment variables, no hardcoded defaults
+# These MUST be set in Railway environment variables
+export PGSSLMODE=disable
+
+# Validate required Railway environment variables
+if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_PORT" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ] || [ -z "$POSTGRES_DB" ]; then
+  echo "❌ ERROR: Railway PostgreSQL environment variables not set!"
+  echo "   Required: POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB"
+  echo "   Please set these in your Railway project environment variables."
+  exit 1
+fi
 
 export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
 
-export PGSSLMODE=disable
-
-export REDIS_HOST=${REDIS_HOST:-"redis-svle.railway.internal"}
-export REDIS_PORT=${REDIS_PORT:-"6379"}
-export REDIS_HOST_PASSWORD=${REDIS_HOST_PASSWORD:-"OyHpmNkWOQsPxrzLBxrXiAlnRlYbWeFY"}
+if [ -z "$REDIS_HOST" ] || [ -z "$REDIS_PORT" ] || [ -z "$REDIS_PASSWORD" ]; then
+  echo "❌ ERROR: Railway Redis environment variables not set!"
+  echo "   Required: REDIS_HOST, REDIS_PORT, REDIS_PASSWORD"
+  echo "   Please set these in your Railway project environment variables."
+  exit 1
+fi
 
 export NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS:-"nextcloud-railway-template-website.up.railway.app,localhost,::1,RAILWAY_PRIVATE_DOMAIN,RAILWAY_STATIC_URL"}
 export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-"kikaiworksadmin"}
