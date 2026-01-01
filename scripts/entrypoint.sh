@@ -360,6 +360,13 @@ if [ -f "/var/www/html/config/config.php" ]; then
     echo "🔄 [PHASE: INSTALL/UPGRADE] Config readable but upgrade needed."
     echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade with timeout protection..."
 
+    # Make config.php writable for upgrade process
+    echo "🔧 [PHASE: UPGRADE] Making config.php writable for upgrade..."
+    chmod 644 /var/www/html/config/config.php
+    if [ -f "/var/www/html/data/config.php" ]; then
+      chmod 644 /var/www/html/data/config.php
+    fi
+
     # Run upgrade with timeout and better error handling
     timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1
     UPGRADE_EXIT_CODE=$?
@@ -368,12 +375,24 @@ if [ -f "/var/www/html/config/config.php" ]; then
 
     if [ $UPGRADE_EXIT_CODE -eq 0 ]; then
       echo "✅ [PHASE: UPGRADE] Upgrade completed successfully."
+      # Make config.php read-only again for security
+      echo "🔒 [PHASE: UPGRADE] Making config.php read-only again..."
+      chmod 444 /var/www/html/config/config.php
+      if [ -f "/var/www/html/data/config.php" ]; then
+        chmod 444 /var/www/html/data/config.php
+      fi
     elif [ $UPGRADE_EXIT_CODE -eq 124 ]; then
       echo "⏰ [PHASE: UPGRADE] Upgrade timed out after 10 minutes - checking status..."
       # Check if upgrade actually completed despite timeout
       sleep 5
       if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" | grep -q '"installed":true' 2>/dev/null; then
         echo "✅ [PHASE: UPGRADE] Upgrade actually completed (timeout was just slow output)."
+        # Make config.php read-only again for security
+        echo "🔒 [PHASE: UPGRADE] Making config.php read-only again..."
+        chmod 444 /var/www/html/config/config.php
+        if [ -f "/var/www/html/data/config.php" ]; then
+          chmod 444 /var/www/html/data/config.php
+        fi
       else
         echo "❌ [PHASE: UPGRADE] Upgrade timed out and appears incomplete."
         exit 1
