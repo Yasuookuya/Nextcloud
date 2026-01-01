@@ -46,6 +46,12 @@ env | grep -E "(PORT|POSTGRES|REDIS|NEXTCLOUD|DATABASE_URL|RAILWAY)" | sort
 echo "=== STEP 2: DB DIAG ==="
 echo "Tables:"
 psql "$DATABASE_URL" -c "\dt" || echo "No tables or connection issue"
+
+# Grant permissions to postgres user if tables exist (fix for existing DB)
+if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
+  echo "Granting permissions to postgres user on existing tables..."
+  psql "$DATABASE_URL" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres; GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;" || echo "Grant failed, continuing..."
+fi
 echo "Table owners (for oc_*):"
 psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
 echo "oc_migrations perms:"
