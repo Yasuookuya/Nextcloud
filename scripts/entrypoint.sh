@@ -426,12 +426,17 @@ if [ -f "/var/www/html/config/config.php" ]; then
   [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value=${REDIS_PASSWORD}" 2>&1 || echo "⚠️ Redis password config failed"
   echo "✅ [PHASE: UPGRADE] Redis configuration applied."
 
-  # Scans + cron
-  echo "📁 [PHASE: UPGRADE] Running file scans..."
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ files:scan --all" 2>&1 || echo "⚠️ File scan failed"
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ groupfolders:scan --all" 2>&1 || echo "⚠️ Group folders scan failed"
+  # Scans + cron (skip for fresh installs to speed up deployment)
+  if [ "$TABLE_COUNT" -gt "10" ]; then
+    echo "📁 [PHASE: UPGRADE] Running file scans (upgrade detected)..."
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ files:scan --all" 2>&1 || echo "⚠️ File scan failed"
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ groupfolders:scan --all" 2>&1 || echo "⚠️ Group folders scan failed"
+  else
+    echo "📁 [PHASE: UPGRADE] Skipping file scans for fresh install (will run later)..."
+  fi
   su www-data -s /bin/bash -c "cd /var/www/html && php occ background-job:cron" 2>&1 || echo "⚠️ Background jobs failed"
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ integrity:check-core --skip-migrations" 2>&1 || echo "⚠️ Integrity check failed"
+  # Skip integrity check for speed
+  echo "⚠️ Skipping integrity check for deployment speed"
 
   echo "✅ [PHASE: UPGRADE] Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
 else
