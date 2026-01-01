@@ -49,7 +49,8 @@ psql "$DATABASE_URL" -c "\dt" || echo "No tables or connection issue"
 
 # Grant permissions to postgres user if tables exist (fix for existing DB)
 if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
-  echo "Granting permissions to postgres user on existing tables..."
+  echo "Reassigning ownership and granting permissions to postgres user on existing tables..."
+  psql "$DATABASE_URL" -c "REASSIGN OWNED BY oc_admin TO postgres;" 2>/dev/null || echo "Reassign failed, continuing..."
   psql "$DATABASE_URL" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres; GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;" || echo "Grant failed, continuing..."
 fi
 echo "Table owners (for oc_*):"
