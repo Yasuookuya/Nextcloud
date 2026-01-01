@@ -57,6 +57,14 @@ if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
     INSTANCEID="oc$(openssl rand -hex 10)"
     PASSWORDSALT="$(openssl rand -hex 10)"
     SECRET="$(openssl rand -hex 10)"
+    # Explicit exports for all template vars (safe, idempotent)
+    export RAILWAY_PUBLIC_DOMAIN=${RAILWAY_PUBLIC_DOMAIN:-"nextcloud-railway-template-website.up.railway.app"}
+    export RAILWAY_PRIVATE_DOMAIN=${RAILWAY_PRIVATE_DOMAIN:-"nextcloud-railway-template.railway.internal"}
+    export RAILWAY_STATIC_URL=${RAILWAY_STATIC_URL:-"nextcloud-railway-template-website.up.railway.app"}
+    export REDIS_PASSWORD="${REDIS_HOST_PASSWORD:-}"
+    export OVERWRITEPROTOCOL=${OVERWRITEPROTOCOL:-"https"}
+    # Export instance-specific vars for envsubst
+    export INSTANCEID PASSWORDSALT SECRET
     # Generate template first, then subst env vars
     cat > /var/www/html/config/config.php.template << 'EOF'
 <?php
@@ -89,18 +97,23 @@ $CONFIG = array (
   array (
     'host' => '${REDIS_HOST}',
     'port' => '${REDIS_PORT}',
-    'password' => '${REDIS_HOST_PASSWORD}',
+    'password' => '${REDIS_PASSWORD}',
   ),
   'maintenance' => false,
-  'update_check_disabled' => false,
+  'update_check_disabled' => ${NEXTCLOUD_UPDATE_CHECK:-false},
 );
 EOF
-    # Export instance-specific vars for envsubst
-    export INSTANCEID PASSWORDSALT SECRET
     envsubst < /var/www/html/config/config.php.template > /var/www/html/config/config.php
     rm /var/www/html/config/config.php.template
+    # CRITICAL: Lint the generated config
+    if ! php -l /var/www/html/config/config.php; then
+      echo "❌ Config.php syntax error! Contents:"
+      cat /var/www/html/config/config.php
+      exit 1
+    fi
+    echo "✅ Config.php lint OK"
     chown www-data:www-data /var/www/html/config/config.php
-    echo "Config.php created with env var expansion, skipping install."
+    echo "Config.php created with env var expansion + lint, skipping install."
 fi
 echo "Table owners (for oc_*):"
 psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
