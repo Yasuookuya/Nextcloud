@@ -76,7 +76,7 @@ $CONFIG = array (
   'secret' => '${SECRET}',
   'trusted_domains' =>
   array (
-    0 => '${NEXTCLOUD_TRUSTED_DOMAINS%%,*}',  # First domain
+    0 => '${RAILWAY_PUBLIC_DOMAIN}',
     1 => 'localhost',
     2 => '::1',
     3 => '${RAILWAY_PRIVATE_DOMAIN}',
@@ -90,11 +90,11 @@ $CONFIG = array (
   'redis' =>
   array (
     'host' => '${REDIS_HOST}',
-    'port' => ${REDIS_PORT},
+    'port' => '${REDIS_PORT}',
     'password' => '${REDIS_HOST_PASSWORD}',
   ),
   'maintenance' => false,
-  'update_check_disabled' => ${NEXTCLOUD_UPDATE_CHECK},
+  'update_check_disabled' => false,
 );
 EOF
     # Export instance-specific vars for envsubst
