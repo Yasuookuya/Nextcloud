@@ -296,6 +296,18 @@ fi
 
 nginx -t && echo "✅ Nginx config OK (listen ${PORT:-8080})" || { echo "❌ Nginx failed"; nginx -t; exit 1; }
 
+# Start nginx temporarily to serve deployment status page during installation
+echo "🌐 [PHASE: INSTALL] Starting nginx to serve deployment status page..."
+nginx -g "daemon off;" &
+NGINX_PID=$!
+echo "✅ [PHASE: INSTALL] Nginx started with PID $NGINX_PID"
+
+# Test deployment status page accessibility
+echo "🔍 [PHASE: INSTALL] Testing deployment status page..."
+timeout 10 bash -c 'until curl -f -s http://localhost/deployment-status.html > /dev/null; do sleep 1; done' && \
+  echo "✅ [PHASE: INSTALL] Deployment status page accessible" || \
+  echo "⚠️ [PHASE: INSTALL] Deployment status page not accessible"
+
 # Railway Deployment Info
 echo "🌐 Railway Deployment Info:"
 echo "  Public URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
@@ -386,10 +398,25 @@ if [ -f "/var/www/html/config/config.php" ]; then
 
   echo "✅ [PHASE: UPGRADE] Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
 
-  # Create deployment completion flag for nginx
-  echo "🏁 [PHASE: FINAL] Creating deployment completion flag..."
-  touch /var/www/html/.deployment_complete
-  echo "✅ [PHASE: FINAL] Deployment flag created - nginx will now serve Nextcloud"
+# Create deployment completion flag for nginx
+echo "🏁 [PHASE: FINAL] Creating deployment completion flag..."
+touch /var/www/html/.deployment_complete
+chown www-data:www-data /var/www/html/.deployment_complete
+echo "✅ [PHASE: FINAL] Deployment flag created - nginx will now serve Nextcloud"
+
+# Ensure deployment status page is accessible during installation
+if [ ! -f /var/www/html/.deployment_complete ]; then
+  echo "🔍 [PHASE: FINAL] Testing deployment status page accessibility..."
+  if [ -f /var/www/html/deployment-status.html ]; then
+    echo "✅ [PHASE: FINAL] Deployment status page exists"
+    # Test nginx configuration can serve the page
+    timeout 5 bash -c 'curl -f -s http://localhost/deployment-status.html > /dev/null' && \
+      echo "✅ [PHASE: FINAL] Deployment status page accessible" || \
+      echo "⚠️ [PHASE: FINAL] Deployment status page may not be accessible yet"
+  else
+    echo "❌ [PHASE: FINAL] Deployment status page missing!"
+  fi
+fi
 else
   echo "⚠️ [PHASE: UPGRADE] No config found - web installer needed."
 fi
@@ -433,6 +460,16 @@ if [ -f "/var/www/html/config/config.php" ]; then
   fi
 else
   echo "❌ [PHASE: FINAL] Config file missing - deployment incomplete"
+fi
+
+# Stop temporary nginx before starting supervisor
+echo "🛑 [PHASE: FINAL] Stopping temporary nginx..."
+if [ -n "$NGINX_PID" ] && kill -0 "$NGINX_PID" 2>/dev/null; then
+  kill "$NGINX_PID" 2>/dev/null || true
+  wait "$NGINX_PID" 2>/dev/null || true
+  echo "✅ [PHASE: FINAL] Temporary nginx stopped"
+else
+  echo "ℹ️ [PHASE: FINAL] Temporary nginx already stopped"
 fi
 
 echo "🚀 [PHASE: FINAL] Supervisor starting..."
