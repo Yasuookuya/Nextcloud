@@ -61,8 +61,15 @@ fi
 # Grant permissions to postgres user if tables exist (fix for existing DB)
 if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
   echo "Reassigning ownership and granting permissions to postgres user on existing tables..."
-  psql "$DATABASE_URL" -c "REASSIGN OWNED BY oc_admin TO postgres;" 2>/dev/null || echo "Reassign failed, continuing..."
-  psql "$DATABASE_URL" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres; GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;" || echo "Grant failed, continuing..."
+  # First, find the current owner of the tables
+  CURRENT_OWNER=$(psql "$DATABASE_URL" -t -c "SELECT tableowner FROM pg_tables WHERE tablename = 'oc_migrations' AND schemaname = 'public';" 2>/dev/null | xargs)
+  if [ -n "$CURRENT_OWNER" ] && [ "$CURRENT_OWNER" != "postgres" ]; then
+    echo "🔧 Current table owner: $CURRENT_OWNER, reassigning to postgres..."
+    psql "$DATABASE_URL" -c "REASSIGN OWNED BY $CURRENT_OWNER TO postgres;" 2>/dev/null || echo "⚠️ Reassign failed, continuing..."
+  fi
+  psql "$DATABASE_URL" -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;" 2>/dev/null || echo "⚠️ Table grants failed, continuing..."
+  psql "$DATABASE_URL" -c "GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO postgres;" 2>/dev/null || echo "⚠️ Sequence grants failed, continuing..."
+  psql "$DATABASE_URL" -c "GRANT ALL PRIVILEGES ON SCHEMA public TO postgres;" 2>/dev/null || echo "⚠️ Schema grants failed, continuing..."
   echo "Creating/updating config.php for existing DB..."
     mkdir -p /var/www/html/config
     mkdir -p /var/www/html/data
@@ -134,7 +141,8 @@ $CONFIG = array (
   'update_check_disabled' => false,
 );
 EOF
-    envsubst '${POSTGRES_HOST} ${POSTGRES_PORT} ${POSTGRES_DB} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${INSTANCEID} ${PASSWORDSALT} ${SECRET} ${RAILWAY_PUBLIC_DOMAIN} ${RAILWAY_PRIVATE_DOMAIN} ${RAILWAY_STATIC_URL} ${OVERWRITEPROTOCOL} ${REDIS_HOST} ${REDIS_PORT} ${REDIS_PASSWORD}' < /var/www/html/config/config.php.template > /var/www/html/config/config.php
+    # Use a more robust approach for envsubst
+    envsubst < /var/www/html/config/config.php.template > /var/www/html/config/config.php
     rm /var/www/html/config/config.php.template
     # CRITICAL: Lint the generated config
     if ! php -l /var/www/html/config/config.php; then

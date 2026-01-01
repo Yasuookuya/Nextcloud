@@ -6,6 +6,24 @@ RUN echo "🏗️ [BUILD: BASE] Using Nextcloud base image" && \
     php -r "echo 'PHP Version: ' . PHP_VERSION . PHP_EOL;" && \
     ls -la /usr/src/nextcloud/version.php || echo "⚠️ [BUILD: BASE] Version file not found"
 
+# [BUILD: INSTALL] Install Nextcloud application files
+RUN echo "📥 [BUILD: INSTALL] Installing Nextcloud application files..." && \
+    # Ensure we have the full Nextcloud application
+    if [ ! -f /var/www/html/index.php ]; then \
+        echo "📦 Nextcloud files missing, downloading..." && \
+        cd /tmp && \
+        curl -L -o nextcloud.tar.bz2 "https://download.nextcloud.com/server/releases/nextcloud-29.0.16.tar.bz2" && \
+        curl -L -o nextcloud.tar.bz2.md5 "https://download.nextcloud.com/server/releases/nextcloud-29.0.16.tar.bz2.md5" && \
+        md5sum -c nextcloud.tar.bz2.md5 && \
+        tar -xjf nextcloud.tar.bz2 && \
+        rm -rf /var/www/html/* && \
+        cp -r nextcloud/* /var/www/html/ && \
+        chown -R www-data:www-data /var/www/html && \
+        echo "✅ Nextcloud files installed successfully"; \
+    else \
+        echo "✅ Nextcloud files already present"; \
+    fi
+
 # [BUILD: DEPENDENCIES] Install additional tools
 RUN echo "📥 [BUILD: DEPENDENCIES] Installing additional packages..." && \
     apk add --no-cache gettext nginx supervisor curl postgresql-client procps net-tools bind-tools bash redis iproute2 bind && \
