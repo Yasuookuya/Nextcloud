@@ -99,8 +99,14 @@ done
 echo "✅ Redis is ready"
 
 # Substitute env vars in nginx.conf (fix $PORT issue)
-envsubst '${PORT}' < /etc/nginx/sites-available/default > /etc/nginx/sites-enabled/default
-echo "✅ Nginx config substituted with runtime env vars"
+if command -v envsubst >/dev/null 2>&1; then
+  envsubst '${PORT}' < /etc/nginx/sites-available/default > /etc/nginx/sites-enabled/default
+  echo "✅ Nginx config substituted with runtime env vars"
+else
+  echo "⚠️ envsubst not found - Falling back to default port 80"
+  sed -i "s/listen \$PORT/listen 80/g" /etc/nginx/sites-available/default
+  ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+fi
 
 # Set up autoconfig or force occ install if creds provided (enhanced for reliability)
 if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then

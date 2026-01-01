@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     nginx \
     psmisc \
+    gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
 # Install smbclient PHP extension and ensure PostgreSQL support
