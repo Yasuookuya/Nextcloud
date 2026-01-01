@@ -43,6 +43,30 @@ echo "🐛 DEBUG: PID $$"
 echo "=== STEP 1: ENV ==="
 env | grep -E "(PORT|POSTGRES|REDIS|NEXTCLOUD|DATABASE_URL|RAILWAY)" | sort
 
+# Environment variable validation
+echo "🔍 Validating environment variables..."
+
+# Required variables
+REQUIRED_VARS=("PORT" "POSTGRES_HOST" "POSTGRES_DB" "REDIS_HOST")
+WARNING_VARS=("NEXTCLOUD_ADMIN_USER" "NEXTCLOUD_ADMIN_PASSWORD")
+
+for var in "${REQUIRED_VARS[@]}"; do
+  if [ -z "${!var}" ]; then
+    echo "❌ Required environment variable $var is not set!"
+    exit 1
+  else
+    echo "✅ $var: ${!var}"
+  fi
+done
+
+for var in "${WARNING_VARS[@]}"; do
+  if [ -z "${!var}" ]; then
+    echo "⚠️ Warning: $var is not set, using defaults"
+  fi
+done
+
+echo "✅ Environment validation complete"
+
 echo "=== [PHASE: DB_CHECK] STEP 2: DB DIAG ==="
 echo "🔍 [PHASE: DB_CHECK] Checking database connectivity..."
 DB_TABLES=$(psql "$DATABASE_URL" -c "\dt" 2>&1)
