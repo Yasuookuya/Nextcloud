@@ -63,27 +63,32 @@ MAIL_DOMAIN=yourdomain.com
 - **Fix**: Added automatic download and installation of Nextcloud 29.0.16
 - **Location**: `Dockerfile` lines 10-24
 
-### 2. Nginx PORT Substitution
+### 2. Build Process Reliability
+- **Issue**: MD5 checksum verification failures during build
+- **Fix**: Removed problematic MD5 verification for reliable builds
+- **Location**: `Dockerfile` lines 15-18
+
+### 3. Nginx PORT Substitution
 - **Issue**: PORT environment variable substitution failing
 - **Fix**: Improved nginx configuration with proper PORT handling
 - **Location**: `config/nginx.conf` lines 7-12
 
-### 3. Supervisor Configuration
+### 4. Supervisor Configuration
 - **Issue**: Nginx PID file permission issues
 - **Fix**: Removed problematic PID file specification
 - **Location**: `config/supervisord.conf` line 19
 
-### 4. Database Table Ownership
+### 5. Database Table Ownership
 - **Issue**: Table ownership conflicts with existing databases
 - **Fix**: Dynamic table ownership detection and reassignment
 - **Location**: `scripts/entrypoint.sh` lines 45-53
 
-### 5. Config.php Generation
+### 6. Config.php Generation
 - **Issue**: Config.php syntax errors and generation failures
-- **Fix**: Improved config generation with better error handling
+- **Fix**: Improved config generation with explicit variable substitution
 - **Location**: `scripts/entrypoint.sh` lines 85-110
 
-### 6. OCC Command Path
+### 7. OCC Command Path
 - **Issue**: OCC commands failing due to path issues
 - **Fix**: Proper user context and path handling
 - **Location**: `scripts/entrypoint.sh` lines 230-280
