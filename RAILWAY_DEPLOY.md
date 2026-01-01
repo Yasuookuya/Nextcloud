@@ -49,8 +49,8 @@
 5. **Railway will auto-detect** the Dockerfile
 6. **Add Volumes for Persistence:**
    - Go to Volumes tab
-   - Add volume "nextcloud-app" mounted to `/var/www/html`
-   - Add volume "nextcloud-data" mounted to `/data`
+   - Add volume "nextcloud-app" mounted to `/var/www/html` (for app code and config persistence)
+   - Add volume "nextcloud-data" mounted to `/data` (for user data)
 7. **Add Database Reference Variables:**
    - Go to Variables tab (the railway.json handles most, but ensure these are set)
    - Variables are mostly auto-set via railway.json, but verify in dashboard

@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     curl \
     nginx \
+    psmisc \
     && rm -rf /var/lib/apt/lists/*
 
 # Install smbclient PHP extension and ensure PostgreSQL support

@@ -4,8 +4,8 @@ set -e
 echo "🚀 Starting NextCloud Railway deployment..."
 echo "🐛 DEBUG: Current script: $0"
 echo "🐛 DEBUG: Process ID: $$"
-echo "🐛 DEBUG: All running scripts:"
-ps aux | grep -E "(entrypoint|fix-warnings)" || echo "No matching processes found"
+# Removed ps debug to avoid 'command not found' - use procfs if needed
+echo "🐛 DEBUG: Skipping process list (ps not required)"
 
 # Debug: Print all environment variables starting with POSTGRES or REDIS
 echo "🔍 Debug: Environment variables:"
@@ -98,13 +98,17 @@ until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ${REDIS_PASSWORD:+-a "$REDIS_P
 done
 echo "✅ Redis is ready"
 
-# Set up autoconfig.php if admin credentials are provided
-if [ -n "${NEXTCLOUD_ADMIN_USER:-}" ] && [ "${NEXTCLOUD_ADMIN_USER}" != "" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ] && [ "${NEXTCLOUD_ADMIN_PASSWORD}" != "" ]; then
-    echo "✅ Admin credentials provided - will create autoconfig.php"
-    # Create hook for autoconfig setup
-    mkdir -p /docker-entrypoint-hooks.d/before-starting
-    
-    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
+# Substitute env vars in nginx.conf (fix $PORT issue)
+envsubst '${PORT}' < /etc/nginx/sites-available/default > /etc/nginx/sites-enabled/default
+echo "✅ Nginx config substituted with runtime env vars"
+
+# Set up autoconfig or force occ install if creds provided (enhanced for reliability)
+if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then
+  echo "✅ Admin credentials provided - will create autoconfig.php"
+  # Create hook for autoconfig setup
+  mkdir -p /docker-entrypoint-hooks.d/before-starting
+  
+  cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
 #!/bin/bash
 echo "🔧 Creating autoconfig.php for automatic setup..."
 mkdir -p /var/www/html/config
@@ -137,31 +141,44 @@ chown www-data:www-data /var/www/html/config/autoconfig.php
 chmod 640 /var/www/html/config/autoconfig.php
 echo "✅ Autoconfig.php created for automatic installation"
 EOF
-    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
+  chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
 else
-    echo "✅ No admin credentials - NextCloud setup wizard will be used"
-    echo "✅ Skipping autoconfig.php creation"
+  echo "⚠️ No admin creds - Forcing occ install with defaults (update later via UI)"
+  # Set defaults or prompt - for auto, recommend setting vars
+  export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-admin}
+  export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-$(openssl rand -base64 16)}  # Random for security; log it
+  echo "Generated temp password: $NEXTCLOUD_ADMIN_PASSWORD (change immediately!)"
 fi
 
-# Forward to original Nextcloud FPM entrypoint first (it handles install/permissions)
-echo "🌟 Running original Nextcloud FPM entrypoint..."
-exec /entrypoint.sh php-fpm &  # Run in background to allow Supervisor to take over
+# Run original entrypoint in foreground (handles base setup, no & to avoid conflict)
+echo "🌟 Running original Nextcloud FPM entrypoint (foreground)..."
+/entrypoint.sh php-fpm  # Foreground to ensure completion before Supervisor
 
-# Post-install: Run occ commands if installed
+# Force installation via occ if not installed (fallback)
+if [ ! -f "/var/www/html/config/config.php" ]; then
+  echo "🔧 Forcing Nextcloud installation via occ..."
+  su www-data -s /bin/bash -c "php occ maintenance:install \
+    --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST:$POSTGRES_PORT \
+    --database-user $POSTGRES_USER --database-pass $POSTGRES_PASSWORD \
+    --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD \
+    --data-dir $NEXTCLOUD_DATA_DIR"
+fi
+
+# Post-install (now runs after install complete)
 if [ -f "/var/www/html/config/config.php" ]; then
+  # ... existing occ commands for Redis, cron, and call fix-warnings.sh ...
   echo "🔧 Running post-install fixes..."
-  su - www-data -s /bin/bash -c "php occ maintenance:install --no-interaction" || true  # Fallback if needed
-  su - www-data -s /bin/bash -c "php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis"
-  su - www-data -s /bin/bash -c "php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis"
-  su - www-data -s /bin/bash -c "php occ config:system:set redis host --value=${REDIS_HOST}"
-  su - www-data -s /bin/bash -c "php occ config:system:set redis port --value=${REDIS_PORT}"
+  su www-data -s /bin/bash -c "php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis"
+  su www-data -s /bin/bash -c "php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis"
+  su www-data -s /bin/bash -c "php occ config:system:set redis host --value=${REDIS_HOST}"
+  su www-data -s /bin/bash -c "php occ config:system:set redis port --value=${REDIS_PORT}"
   if [ -n "$REDIS_PASSWORD" ]; then
-    su - www-data -s /bin/bash -c "php occ config:system:set redis password --value=${REDIS_PASSWORD}"
+    su www-data -s /bin/bash -c "php occ config:system:set redis password --value=${REDIS_PASSWORD}"
   fi
-  su - www-data -s /bin/bash -c "php occ background-job:cron"  # Set up cron mode
+  su www-data -s /bin/bash -c "php occ background-job:cron"  # Set up cron mode
   /usr/local/bin/fix-warnings.sh  # Run any warning fixes
 fi
 
-# Start Supervisor to manage Nginx, PHP-FPM, cron
+# Start Supervisor (after install complete)
 echo "🛡️ Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
