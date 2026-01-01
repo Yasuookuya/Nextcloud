@@ -59,45 +59,50 @@ if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
     INSTANCEID="oc$(openssl rand -hex 10)"
     PASSWORDSALT="$(openssl rand -hex 10)"
     SECRET="$(openssl rand -hex 10)"
-    cat > /var/www/html/config/config.php << EOF
+    # Generate template first, then subst env vars
+    cat > /var/www/html/config/config.php.template << 'EOF'
 <?php
-\$CONFIG = array (
+$CONFIG = array (
   'dbtype' => 'pgsql',
-  'dbhost' => 'postgres-n76t.railway.internal',
-  'dbport' => '5432',
+  'dbhost' => '${POSTGRES_HOST}',
+  'dbport' => '${POSTGRES_PORT}',
   'dbtableprefix' => 'oc_',
-  'dbname' => 'railway',
-  'dbuser' => 'postgres',
-  'dbpassword' => 'uejIXoiQzAqOoFZFBOqZCnjovieZlgui',
+  'dbname' => '${POSTGRES_DB}',
+  'dbuser' => '${POSTGRES_USER}',
+  'dbpassword' => '${POSTGRES_PASSWORD}',
   'installed' => true,
-  'instanceid' => '$INSTANCEID',
-  'passwordsalt' => '$PASSWORDSALT',
-  'secret' => '$SECRET',
+  'instanceid' => '${INSTANCEID}',
+  'passwordsalt' => '${PASSWORDSALT}',
+  'secret' => '${SECRET}',
   'trusted_domains' =>
   array (
-    0 => 'nextcloud-railway-template-website.up.railway.app',
+    0 => '${NEXTCLOUD_TRUSTED_DOMAINS%%,*}',  # First domain
     1 => 'localhost',
     2 => '::1',
-    3 => 'RAILWAY_PRIVATE_DOMAIN',
-    4 => 'RAILWAY_STATIC_URL',
+    3 => '${RAILWAY_PRIVATE_DOMAIN}',
+    4 => '${RAILWAY_STATIC_URL}',
   ),
   'datadirectory' => '/var/www/html/data',
-  'overwrite.cli.url' => 'https://nextcloud-railway-template-website.up.railway.app',
-  'overwriteprotocol' => 'https',
-  'memcache.local' => '\\\\OC\\\\Memcache\\\\Redis',
-  'memcache.locking' => '\\\\OC\\\\Memcache\\\\Redis',
+  'overwrite.cli.url' => 'https://${RAILWAY_PUBLIC_DOMAIN}',
+  'overwriteprotocol' => '${OVERWRITEPROTOCOL}',
+  'memcache.local' => '\\OC\\Memcache\\Redis',
+  'memcache.locking' => '\\OC\\Memcache\\Redis',
   'redis' =>
   array (
-    'host' => 'redis-svle.railway.internal',
-    'port' => 6379,
-    'password' => 'OyHpmNkWOQsPxrzLBxrXiAlnRlYbWeFY',
+    'host' => '${REDIS_HOST}',
+    'port' => ${REDIS_PORT},
+    'password' => '${REDIS_HOST_PASSWORD}',
   ),
   'maintenance' => false,
-  'update_check_disabled' => true,
+  'update_check_disabled' => ${NEXTCLOUD_UPDATE_CHECK},
 );
 EOF
+    # Export instance-specific vars for envsubst
+    export INSTANCEID PASSWORDSALT SECRET
+    envsubst < /var/www/html/config/config.php.template > /var/www/html/config/config.php
+    rm /var/www/html/config/config.php.template
     chown www-data:www-data /var/www/html/config/config.php
-    echo "Config.php created, skipping install."
+    echo "Config.php created with env var expansion, skipping install."
   fi
 fi
 echo "Table owners (for oc_*):"
