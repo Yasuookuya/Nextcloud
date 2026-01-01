@@ -63,6 +63,7 @@ if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
     export RAILWAY_STATIC_URL=${RAILWAY_STATIC_URL:-"nextcloud-railway-template-website.up.railway.app"}
     export REDIS_PASSWORD="${REDIS_HOST_PASSWORD:-}"
     export OVERWRITEPROTOCOL=${OVERWRITEPROTOCOL:-"https"}
+    export UPDATE_CHECK_DISABLED=${NEXTCLOUD_UPDATE_CHECK:-false}
     # Export instance-specific vars for envsubst
     export INSTANCEID PASSWORDSALT SECRET
     # Generate template first, then subst env vars
@@ -100,10 +101,10 @@ $CONFIG = array (
     'password' => '${REDIS_PASSWORD}',
   ),
   'maintenance' => false,
-  'update_check_disabled' => ${NEXTCLOUD_UPDATE_CHECK:-false},
+  'update_check_disabled' => ${UPDATE_CHECK_DISABLED},
 );
 EOF
-    envsubst '${POSTGRES_HOST} ${POSTGRES_PORT} ${POSTGRES_DB} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${INSTANCEID} ${PASSWORDSALT} ${SECRET} ${RAILWAY_PUBLIC_DOMAIN} ${RAILWAY_PRIVATE_DOMAIN} ${RAILWAY_STATIC_URL} ${OVERWRITEPROTOCOL} ${REDIS_HOST} ${REDIS_PORT} ${REDIS_PASSWORD} ${NEXTCLOUD_UPDATE_CHECK}' < /var/www/html/config/config.php.template > /var/www/html/config/config.php
+    envsubst '${POSTGRES_HOST} ${POSTGRES_PORT} ${POSTGRES_DB} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${INSTANCEID} ${PASSWORDSALT} ${SECRET} ${RAILWAY_PUBLIC_DOMAIN} ${RAILWAY_PRIVATE_DOMAIN} ${RAILWAY_STATIC_URL} ${OVERWRITEPROTOCOL} ${REDIS_HOST} ${REDIS_PORT} ${REDIS_PASSWORD} ${UPDATE_CHECK_DISABLED}' < /var/www/html/config/config.php.template > /var/www/html/config/config.php
     rm /var/www/html/config/config.php.template
     # CRITICAL: Lint the generated config
     if ! php -l /var/www/html/config/config.php; then
