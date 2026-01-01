@@ -174,7 +174,14 @@ if su www-data -s /bin/bash -c "php occ status" | grep -q "installed: false"; th
     --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST:$POSTGRES_PORT \
     --database-user $POSTGRES_USER --database-pass $POSTGRES_PASSWORD \
     --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD \
-    --data-dir $NEXTCLOUD_DATA_DIR"
+    --data-dir $NEXTCLOUD_DATA_DIR" || {
+      echo "❌ Install failed (likely privilege error on existing tables)!"
+      echo "   Solution: Reset PostgreSQL database schema."
+      echo "   Run in Railway shell or pgAdmin:"
+      echo "   psql $DATABASE_URL -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'"
+      echo "   Then redeploy."
+      exit 1
+    }
 fi
 
 # Kill background php-fpm to avoid conflict with Supervisor

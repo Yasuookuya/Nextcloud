@@ -171,6 +171,15 @@ HPB_URL = https://your-hpb-service-url.railway.app
 ### Issue: File uploads fail
 **Solution**: Check Railway storage limits, upgrade plan if needed
 
+### Issue: PostgreSQL privilege error (SQLSTATE[42501]) during install
+**Solution**: Reset the database schema to clear partial tables from failed deploys.
+Run in Railway shell:
+```
+railway shell
+psql $DATABASE_URL -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+```
+Then redeploy the NextCloud service. If you need to recover data, contact Railway support for DB backup before reset.
+
 ---
 
 ## 🎯 Final Checklist
