@@ -52,9 +52,7 @@ if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
   echo "Reassigning ownership and granting permissions to postgres user on existing tables..."
   psql "$DATABASE_URL" -c "REASSIGN OWNED BY oc_admin TO postgres;" 2>/dev/null || echo "Reassign failed, continuing..."
   psql "$DATABASE_URL" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres; GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;" || echo "Grant failed, continuing..."
-  # Create config.php if tables exist but no config
-  if [ ! -f "/var/www/html/config/config.php" ]; then
-    echo "Creating config.php for existing DB..."
+  echo "Creating/updating config.php for existing DB..."
     mkdir -p /var/www/html/config
     INSTANCEID="oc$(openssl rand -hex 10)"
     PASSWORDSALT="$(openssl rand -hex 10)"
@@ -103,7 +101,6 @@ EOF
     rm /var/www/html/config/config.php.template
     chown www-data:www-data /var/www/html/config/config.php
     echo "Config.php created with env var expansion, skipping install."
-  fi
 fi
 echo "Table owners (for oc_*):"
 psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
