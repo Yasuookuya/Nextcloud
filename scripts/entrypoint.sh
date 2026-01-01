@@ -54,12 +54,15 @@ if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
   psql "$DATABASE_URL" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres; GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;" || echo "Grant failed, continuing..."
   echo "Creating/updating config.php for existing DB..."
     mkdir -p /var/www/html/config
+    mkdir -p /var/www/html/data
+    # Use persistent config location
+    CONFIG_FILE="/var/www/html/data/config.php"
     # Parse existing config if present (PRESERVE instanceid/passwordsalt/secret)
-    if [ -f /var/www/html/config/config.php ]; then
-      echo "🔄 Preserving existing config values..."
-      INSTANCEID=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['instanceid'] ?? 'missing';")
-      PASSWORDSALT=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['passwordsalt'] ?? 'missing';")
-      SECRET=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['secret'] ?? 'missing';")
+    if [ -f "$CONFIG_FILE" ]; then
+      echo "🔄 Preserving existing config values from persistent storage..."
+      INSTANCEID=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['instanceid'] ?? 'missing';")
+      PASSWORDSALT=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['passwordsalt'] ?? 'missing';")
+      SECRET=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['secret'] ?? 'missing';")
 
       if [ "$INSTANCEID" = "missing" ] || [ "$PASSWORDSALT" = "missing" ] || [ "$SECRET" = "missing" ]; then
         echo "⚠️ Incomplete existing config, regenerating..."
@@ -130,7 +133,10 @@ EOF
     fi
     echo "✅ Config.php lint OK"
     chown www-data:www-data /var/www/html/config/config.php
-    echo "Config.php created with env var expansion + lint, skipping install."
+    # Make config persistent by copying to data volume
+    cp /var/www/html/config/config.php "$CONFIG_FILE"
+    chown www-data:www-data "$CONFIG_FILE"
+    echo "Config.php created with env var expansion + lint, and persisted to volume."
 fi
 echo "Table owners (for oc_*):"
 psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
