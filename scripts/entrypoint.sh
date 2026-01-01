@@ -65,8 +65,9 @@ export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
 export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
 
 # NextCloud configuration variables
-export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-}
-export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-}
+export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-kikaiworksadmin}
+export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-2046S@nto!7669Y@}
+export NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS:-localhost,::1}
 export NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR:-/var/www/html/data}
 export NEXTCLOUD_TABLE_PREFIX=${NEXTCLOUD_TABLE_PREFIX:-oc_}
 export NEXTCLOUD_UPDATE_CHECKER=${NEXTCLOUD_UPDATE_CHECKER:-false}
@@ -125,6 +126,11 @@ if envsubst '${PORT}' < /etc/nginx/nginx.conf > /tmp/nginx.conf.tmp 2>/dev/null;
 else
   echo "⚠️ envsubst failed, using 80"
 fi
+
+# Fix nginx log dirs and duplicate pid
+mkdir -p /var/lib/nginx/logs /var/log/nginx && chown -R www-data:www-data /var/lib/nginx /var/log/nginx
+sed -i '/pid .*;/d' /etc/nginx/nginx.conf  # Remove duplicate pid directives
+echo "pid /run/nginx.pid;" >> /etc/nginx/nginx.conf  # Add pid directive
 
 # Validate Nginx (Railway expects port 80)
 nginx -t && echo "✅ Nginx config OK (listen ${PORT:-80})" || { echo "❌ Nginx test failed:"; nginx -t; exit 1; }
