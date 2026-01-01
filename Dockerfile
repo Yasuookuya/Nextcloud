@@ -65,7 +65,7 @@ RUN echo "📝 [BUILD: SYNTAX] Validating script and config syntax..." && \
     bash -n /usr/local/bin/custom-entrypoint.sh && echo "✅ [BUILD: SYNTAX] Entrypoint script syntax OK" || (echo "❌ [BUILD: SYNTAX] Entrypoint script syntax error" && exit 1) && \
     bash -n /usr/local/bin/fix-warnings.sh && echo "✅ [BUILD: SYNTAX] Fix-warnings script syntax OK" || (echo "❌ [BUILD: SYNTAX] Fix-warnings script syntax error" && exit 1) && \
     echo "🔍 [BUILD: SYNTAX] Checking configuration files..." && \
-    nginx -t -c /etc/nginx/nginx.conf && echo "✅ [BUILD: SYNTAX] Nginx config syntax OK" || (echo "❌ [BUILD: SYNTAX] Nginx config syntax error" && exit 1) && \
+    export PORT=80 && envsubst '$PORT' < /etc/nginx/nginx.conf | nginx -t -c - && echo "✅ [BUILD: SYNTAX] Nginx config syntax OK" || (echo "❌ [BUILD: SYNTAX] Nginx config syntax error" && exit 1) && \
     python3 -c "import configparser; c = configparser.ConfigParser(); c.read('/etc/supervisor/conf.d/supervisord.conf')" 2>/dev/null && echo "✅ [BUILD: SYNTAX] Supervisor config syntax OK" || echo "⚠️ [BUILD: SYNTAX] Supervisor config syntax check limited" && \
     php -l /usr/local/etc/php/conf.d/nextcloud.ini && echo "✅ [BUILD: SYNTAX] PHP config syntax OK" || (echo "❌ [BUILD: SYNTAX] PHP config syntax error" && exit 1) && \
     echo "✅ [BUILD: SYNTAX] All syntax checks passed"

@@ -301,7 +301,7 @@ if [ -f "/var/www/html/config/config.php" ]; then
 
   # Test config readability first
   echo "🔍 [PHASE: UPGRADE] Testing config readability..."
-  if su www-data -s /bin/bash -c "php occ status --output=json" 2>&1; then
+  if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1; then
     echo "✅ [PHASE: UPGRADE] Config readable, proceeding with upgrade."
   else
     echo "❌ [PHASE: UPGRADE] Config unreadable - checking details..."
@@ -318,7 +318,7 @@ if [ -f "/var/www/html/config/config.php" ]; then
 
   # Maintenance mode
   echo "🔧 [PHASE: UPGRADE] Enabling maintenance mode..."
-  MAINT_ON=$(su www-data -s /bin/bash -c "php occ maintenance:mode --on" 2>&1 || echo "FAILED")
+  MAINT_ON=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on" 2>&1 || echo "FAILED")
   if [[ "$MAINT_ON" == *"FAILED"* ]]; then
     echo "⚠️ [PHASE: UPGRADE] Maintenance mode enable failed: $MAINT_ON"
   else
@@ -327,7 +327,7 @@ if [ -f "/var/www/html/config/config.php" ]; then
 
   # Upgrade
   echo "⬆️ [PHASE: UPGRADE] Running database upgrade..."
-  UPGRADE=$(su www-data -s /bin/bash -c "php occ upgrade --no-interaction --force" 2>&1 || echo "FAILED")
+  UPGRADE=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --force" 2>&1 || echo "FAILED")
   if [[ "$UPGRADE" == *"FAILED"* ]]; then
     echo "⚠️ [PHASE: UPGRADE] Upgrade failed: $UPGRADE"
   else
@@ -345,19 +345,19 @@ if [ -f "/var/www/html/config/config.php" ]; then
 
   # Redis/memcache (idempotent)
   echo "⚙️ [PHASE: UPGRADE] Configuring Redis caching..."
-  su www-data -s /bin/bash -c "php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis local cache config failed"
-  su www-data -s /bin/bash -c "php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis locking config failed"
-  su www-data -s /bin/bash -c "php occ config:system:set redis host --value=${REDIS_HOST}" 2>&1 || echo "⚠️ Redis host config failed"
-  su www-data -s /bin/bash -c "php occ config:system:set redis port --value=${REDIS_PORT}" 2>&1 || echo "⚠️ Redis port config failed"
-  [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "php occ config:system:set redis password --value=${REDIS_PASSWORD}" 2>&1 || echo "⚠️ Redis password config failed"
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis local cache config failed"
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis locking config failed"
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis host --value=${REDIS_HOST}" 2>&1 || echo "⚠️ Redis host config failed"
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value=${REDIS_PORT}" 2>&1 || echo "⚠️ Redis port config failed"
+  [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value=${REDIS_PASSWORD}" 2>&1 || echo "⚠️ Redis password config failed"
   echo "✅ [PHASE: UPGRADE] Redis configuration applied."
 
   # Scans + cron
   echo "📁 [PHASE: UPGRADE] Running file scans..."
-  su www-data -s /bin/bash -c "php occ files:scan --all" 2>&1 || echo "⚠️ File scan failed"
-  su www-data -s /bin/bash -c "php occ groupfolders:scan --all" 2>&1 || echo "⚠️ Group folders scan failed"
-  su www-data -s /bin/bash -c "php occ background-job:cron" 2>&1 || echo "⚠️ Background jobs failed"
-  su www-data -s /bin/bash -c "php occ integrity:check-core --skip-migrations" 2>&1 || echo "⚠️ Integrity check failed"
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ files:scan --all" 2>&1 || echo "⚠️ File scan failed"
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ groupfolders:scan --all" 2>&1 || echo "⚠️ Group folders scan failed"
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ background-job:cron" 2>&1 || echo "⚠️ Background jobs failed"
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ integrity:check-core --skip-migrations" 2>&1 || echo "⚠️ Integrity check failed"
 
   echo "✅ [PHASE: UPGRADE] Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
 
@@ -401,7 +401,7 @@ echo "🔗 [PHASE: FINAL] Access URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app
 # Final health check
 if [ -f "/var/www/html/config/config.php" ]; then
   echo "✅ [PHASE: FINAL] Config file exists"
-  if su www-data -s /bin/bash -c "php occ status --output=json" >/dev/null 2>&1; then
+  if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" >/dev/null 2>&1; then
     echo "✅ [PHASE: FINAL] OCC status OK - Nextcloud is operational"
   else
     echo "❌ [PHASE: FINAL] OCC status FAILED - Check logs for issues"
