@@ -234,6 +234,14 @@ timeout 5 bash -c "curl -f -s http://localhost/status.php && echo '✅ Status OK
 
 echo "📋 Logs: nginx=/var/log/nginx/error.log, supervisor=/var/log/supervisor/"
 
+# Ensure Nextcloud code is available (download if needed)
+if [ ! -f "/var/www/html/occ" ]; then
+  echo "📦 Nextcloud code not found, initializing..."
+  /entrypoint.sh php-fpm &
+  sleep 10  # Give time for code download
+  pkill -f php-fpm || true
+fi
+
 # PRESERVE config if exists (don't delete!)
 if [ -f "/var/www/html/config/config.php" ]; then
   echo "✅ Config exists + DB populated → Skipping install, running upgrade/post-setup."
