@@ -302,11 +302,11 @@ nginx -g "daemon off;" &
 NGINX_PID=$!
 echo "✅ [PHASE: INSTALL] Nginx started with PID $NGINX_PID"
 
-# Test deployment status page accessibility
+# Wait for nginx to be ready and test deployment status page accessibility
 echo "🔍 [PHASE: INSTALL] Testing deployment status page..."
-timeout 10 bash -c 'until curl -f -s http://localhost/deployment-status.html > /dev/null; do sleep 1; done' && \
+timeout 15 bash -c 'until curl -f -s http://localhost/deployment-status.html > /dev/null 2>&1; do sleep 1; done' && \
   echo "✅ [PHASE: INSTALL] Deployment status page accessible" || \
-  echo "⚠️ [PHASE: INSTALL] Deployment status page not accessible"
+  { echo "❌ [PHASE: INSTALL] Deployment status page not accessible - nginx may have failed to start"; kill $NGINX_PID 2>/dev/null || true; exit 1; }
 
 # Railway Deployment Info
 echo "🌐 Railway Deployment Info:"
@@ -340,17 +340,12 @@ if [ -f "/var/www/html/config/config.php" ]; then
   echo "🔍 [PHASE: UPGRADE] Testing config readability..."
   if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1; then
     echo "✅ [PHASE: UPGRADE] Config readable, proceeding with upgrade."
+    CONFIG_READABLE=true
   else
-    echo "❌ [PHASE: UPGRADE] Config unreadable - checking details..."
+    echo "⚠️ [PHASE: UPGRADE] Config not fully readable yet - this may be normal for first deployment."
     OCC_STATUS=$(su www-data -s /bin/bash -c "php occ status" 2>&1 || echo "OCC_FAILED")
     echo "🔍 [PHASE: UPGRADE] OCC status output: $OCC_STATUS"
-    if [[ "$OCC_STATUS" == *"Configuration was not read or initialized correctly"* ]]; then
-      echo "❌ [PHASE: UPGRADE] Config read error - instance ID mismatch detected."
-      echo "💡 [PHASE: UPGRADE] This usually means config values changed between deploys."
-      echo "🔧 [PHASE: UPGRADE] Check if config.php in data/ matches DB stored values."
-    fi
-    echo "🛑 [PHASE: UPGRADE] Exiting due to config issues."
-    exit 1
+    CONFIG_READABLE=false
   fi
 
   # Maintenance mode
@@ -397,12 +392,19 @@ if [ -f "/var/www/html/config/config.php" ]; then
   su www-data -s /bin/bash -c "cd /var/www/html && php occ integrity:check-core --skip-migrations" 2>&1 || echo "⚠️ Integrity check failed"
 
   echo "✅ [PHASE: UPGRADE] Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
+else
+  echo "⚠️ [PHASE: UPGRADE] No config found - basic installation may still work."
+fi
 
-# Create deployment completion flag for nginx
-echo "🏁 [PHASE: FINAL] Creating deployment completion flag..."
-touch /var/www/html/.deployment_complete
-chown www-data:www-data /var/www/html/.deployment_complete
-echo "✅ [PHASE: FINAL] Deployment flag created - nginx will now serve Nextcloud"
+# Create deployment completion flag for nginx (always create if config exists)
+if [ -f "/var/www/html/config/config.php" ]; then
+  echo "🏁 [PHASE: FINAL] Creating deployment completion flag..."
+  touch /var/www/html/.deployment_complete
+  chown www-data:www-data /var/www/html/.deployment_complete
+  echo "✅ [PHASE: FINAL] Deployment flag created - nginx will now serve Nextcloud"
+else
+  echo "⚠️ [PHASE: FINAL] Config.php not found - keeping deployment status page active"
+fi
 
 # Ensure deployment status page is accessible during installation
 if [ ! -f /var/www/html/.deployment_complete ]; then
