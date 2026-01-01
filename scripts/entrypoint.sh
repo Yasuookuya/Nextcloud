@@ -114,6 +114,10 @@ echo "🔍 POST-WAITS DIAGNOSTIC:"
 ls -la /var/www/html/config/ || echo "No config dir"
 su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null" || echo "occ status failed (no config yet)"
 
+# Fix nginx pid dir
+mkdir -p /var/run/nginx /var/log/nginx
+chown www-data:www-data /var/run/nginx /var/log/nginx
+
 # Substitute env vars in nginx.conf (fix $PORT issue)
 if command -v envsubst >/dev/null 2>&1; then
   envsubst '${PORT}' < /etc/nginx/sites-available/default > /etc/nginx/sites-enabled/default
@@ -124,72 +128,23 @@ else
   ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 fi
 
-# Set up autoconfig or force occ install if creds provided (enhanced for reliability)
-if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then
-  echo "✅ Admin credentials provided - will create autoconfig.php"
-  # Create hook for autoconfig setup
-  mkdir -p /docker-entrypoint-hooks.d/before-starting
-  
-  cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
-#!/bin/bash
-echo "🔧 Creating autoconfig.php for automatic setup..."
-mkdir -p /var/www/html/config
-cat > /var/www/html/config/autoconfig.php << AUTOEOF
-<?php
-\$AUTOCONFIG = array(
-    "dbtype" => "pgsql",
-    "dbname" => "${POSTGRES_DB}",
-    "dbuser" => "${POSTGRES_USER}",
-    "dbpass" => "${POSTGRES_PASSWORD}",
-    "dbhost" => "${POSTGRES_HOST}:${POSTGRES_PORT:-5432}",
-    "dbtableprefix" => "${NEXTCLOUD_TABLE_PREFIX}",
-    "directory" => "${NEXTCLOUD_DATA_DIR}",
-    "adminlogin" => "${NEXTCLOUD_ADMIN_USER}",
-    "adminpass" => "${NEXTCLOUD_ADMIN_PASSWORD}",
-    "trusted_domains" => array(
-        0 => "localhost",
-        1 => "${RAILWAY_PUBLIC_DOMAIN}",
-    ),
-    "memcache.local" => "\\OC\\Memcache\\Redis",
-    "memcache.locking" => "\\OC\\Memcache\\Redis",
-    "redis" => array(
-        "host" => "${REDIS_HOST}",
-        "port" => "${REDIS_PORT}",
-        "password" => "${REDIS_PASSWORD}",
-    ),
-);
-AUTOEOF
-chown www-data:www-data /var/www/html/config/autoconfig.php
-chmod 640 /var/www/html/config/autoconfig.php
-echo "✅ Autoconfig.php created for automatic installation"
-EOF
-  chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
-else
-  echo "⚠️ No admin creds - Forcing occ install with defaults (update later via UI)"
-  # Set defaults or prompt - for auto, recommend setting vars
-  export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-admin}
-  export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-$(openssl rand -base64 16)}  # Random for security; log it
-  echo "Generated temp password: $NEXTCLOUD_ADMIN_PASSWORD (change immediately!)"
-fi
+# Run original entrypoint to initialize Nextcloud code
+echo "🌟 Running original entrypoint (initializes Nextcloud)..."
+/entrypoint.sh php-fpm &
 
-# Fix permissions (critical for nginx/www-data)
-echo "🔧 Fixing permissions..."
-mkdir -p /var/run/nginx /var/log/nginx
-chown -R www-data:www-data /var/www/html /var/run/nginx /var/log/nginx
-chmod -R 755 /var/www/html
-ls -la /var/www/html  # Diagnostic: Check index.php exists
+# Wait for init (code download)
+sleep 30
+pkill -f php-fpm || true
 
-# Skip original entrypoint entirely (avoids parameter error, custom handles)
-echo "🌟 Skipping original entrypoint (using custom setup for wizard)"
-
-# Force fresh wizard
+# Delete config for wizard
 rm -f /var/www/html/config/config.php
-echo "🔧 config.php deleted - fresh wizard ready"
+
+# Chown
+chown -R www-data:www-data /var/www/html
 
 # Diagnostics
-echo "🔍 POST-SETUP DIAGNOSTIC:"
-ls -la /var/www/html/config/ || echo "No config dir"
-su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null || echo 'occ status: Not installed (wizard needed)'"
+ls -la /var/www/html
+psql "$DATABASE_URL" -c "\dp oc_migrations"
 
 # Post-install (now runs after install complete)
 if [ -f "/var/www/html/config/config.php" ]; then
