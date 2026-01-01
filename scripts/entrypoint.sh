@@ -156,37 +156,12 @@ else
   echo "Generated temp password: $NEXTCLOUD_ADMIN_PASSWORD (change immediately!)"
 fi
 
-# Run original entrypoint in background (handles install)
-echo "🌟 Running original Nextcloud FPM entrypoint (background)..."
-/entrypoint.sh php-fpm &
+# Skip occ install - use web wizard instead (avoids DB privilege issue)
+echo "🌟 Skipping occ install - using web wizard for fresh setup (avoids DB privilege issues)"
+rm -f /var/www/html/config/config.php  # Force fresh (delete persistent config)
 
-# Wait for installation to complete (poll for config.php)
-echo "⌛ Waiting for installation to complete..."
-until [ -f "/var/www/html/config/config.php" ]; do
-  sleep 5
-done
-echo "✅ Installation detected (config.php exists)"
-
-# Force occ install if still needed (fallback)
-if su www-data -s /bin/bash -c "php occ status" | grep -q "installed: false"; then
-  echo "🔧 Forcing Nextcloud installation via occ..."
-  su www-data -s /bin/bash -c "php occ maintenance:install \
-    --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST:$POSTGRES_PORT \
-    --database-user $POSTGRES_USER --database-pass $POSTGRES_PASSWORD \
-    --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD \
-    --data-dir $NEXTCLOUD_DATA_DIR" || {
-      echo "❌ Install failed (likely privilege error on existing tables)!"
-      echo "   Solution: Reset PostgreSQL database schema."
-      echo "   Run in Railway shell or pgAdmin:"
-      echo "   psql $DATABASE_URL -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'"
-      echo "   Then redeploy."
-      exit 1
-    }
-fi
-
-# Kill background php-fpm to avoid conflict with Supervisor
-pkill -f "php-fpm" || true
-echo "✅ Background php-fpm stopped"
+# Run original entrypoint for base setup (no php-fpm to avoid conflict)
+ /entrypoint.sh  # Background not needed for wizard
 
 # Post-install (now runs after install complete)
 if [ -f "/var/www/html/config/config.php" ]; then
