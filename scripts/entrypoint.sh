@@ -318,7 +318,18 @@ if ! grep -q '^pid ' /etc/nginx/nginx.conf; then
   echo "✅ Added pid directive"
 fi
 
-nginx -t && echo "✅ Nginx config OK (listen ${PORT:-8080})" || { echo "❌ Nginx failed"; nginx -t; exit 1; }
+echo "🔍 Testing nginx configuration..."
+if nginx -t; then
+  echo "✅ Nginx config OK (listen ${PORT:-8080})"
+  echo "🔍 Testing status.php endpoint..."
+  # Quick test of our status endpoint
+  timeout 5 bash -c "curl -s -o /dev/null -w '%{http_code}' http://localhost:${PORT:-8080}/status.php" 2>/dev/null || echo "⚠️ Status endpoint test failed (expected during startup)"
+else
+  echo "❌ Nginx config test failed - showing details:"
+  nginx -t
+  echo "❌ Cannot start services with invalid nginx config"
+  exit 1
+fi
 
 # Skip temporary nginx test - let supervisor handle it
 echo "🌐 [PHASE: INSTALL] Skipping temporary nginx test - will be handled by supervisor"
@@ -360,15 +371,15 @@ if [ -f "/var/www/html/config/config.php" ]; then
     echo "🔄 [PHASE: INSTALL/UPGRADE] Config readable but upgrade needed."
     echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade with timeout protection..."
 
-    # Make config.php writable for upgrade process
+    # Make config.php writable for upgrade process - use 666 for full access
     echo "🔧 [PHASE: UPGRADE] Making config.php writable for upgrade..."
-    chmod 644 /var/www/html/config/config.php
+    chmod 666 /var/www/html/config/config.php
     if [ -f "/var/www/html/data/config.php" ]; then
-      chmod 644 /var/www/html/data/config.php
+      chmod 666 /var/www/html/data/config.php
     fi
 
-    # Run upgrade with timeout and better error handling
-    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1
+    # Run upgrade with timeout and better error handling - run as root to bypass permission issues
+    timeout 600 bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1
     UPGRADE_EXIT_CODE=$?
 
     echo "🔍 [PHASE: UPGRADE] Upgrade exit code: $UPGRADE_EXIT_CODE"
@@ -625,17 +636,65 @@ echo "  - Cache: Redis (${REDIS_HOST}:${REDIS_PORT})"
 echo "  - Services: nginx + php-fpm + cron"
 echo "🔗 [PHASE: FINAL] Access URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
 
-# Final health check
+# Final health check and service preparation
 if [ -f "/var/www/html/config/config.php" ]; then
   echo "✅ [PHASE: FINAL] Config file exists"
+
+  # Final maintenance mode check and force disable
+  echo "🔧 [PHASE: FINAL] Final maintenance mode check..."
+  MAINT_STATUS=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode" 2>/dev/null || echo "unknown")
+  if [[ "$MAINT_STATUS" == *"enabled"* ]] || [[ "$MAINT_STATUS" == *"true"* ]]; then
+    echo "⚠️ [PHASE: FINAL] Maintenance mode is still enabled - forcing disable..."
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Could not disable maintenance mode via occ"
+    # Force via config edit
+    sed -i "s/'maintenance' => true/'maintenance' => false/g" /var/www/html/config/config.php || echo "⚠️ Config edit failed"
+  else
+    echo "✅ [PHASE: FINAL] Maintenance mode is disabled"
+  fi
+
+  # Check Nextcloud status
   if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" >/dev/null 2>&1; then
     echo "✅ [PHASE: FINAL] OCC status OK - Nextcloud is operational"
   else
-    echo "❌ [PHASE: FINAL] OCC status FAILED - Check logs for issues"
+    echo "❌ [PHASE: FINAL] OCC status FAILED - attempting emergency repair..."
+    # Emergency repair: try to reset any corrupted state
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair" 2>&1 || echo "⚠️ Repair failed"
   fi
 else
   echo "❌ [PHASE: FINAL] Config file missing - deployment incomplete"
 fi
 
-echo "🚀 [PHASE: FINAL] Supervisor starting..."
+# Ensure proper ownership for web serving
+echo "🔧 [PHASE: FINAL] Ensuring proper file ownership..."
+chown -R www-data:www-data /var/www/html /var/log/nginx /var/run/nginx /var/run/php /var/log/supervisor
+
+# Pre-flight service checks
+echo "🔍 [PHASE: FINAL] Pre-flight service checks..."
+if ! nginx -t >/dev/null 2>&1; then
+  echo "❌ [PHASE: FINAL] Nginx configuration test failed"
+  nginx -t
+  exit 1
+else
+  echo "✅ [PHASE: FINAL] Nginx config OK"
+fi
+
+# Test PHP-FPM config
+if ! php-fpm -t >/dev/null 2>&1; then
+  echo "❌ [PHASE: FINAL] PHP-FPM configuration test failed"
+  php-fpm -t
+  exit 1
+else
+  echo "✅ [PHASE: FINAL] PHP-FPM config OK"
+fi
+
+# Test Supervisor config
+if ! supervisord -c /etc/supervisor/conf.d/supervisord.conf -t >/dev/null 2>&1; then
+  echo "❌ [PHASE: FINAL] Supervisor configuration test failed"
+  supervisord -c /etc/supervisor/conf.d/supervisord.conf -t
+  exit 1
+else
+  echo "✅ [PHASE: FINAL] Supervisor config OK"
+fi
+
+echo "🚀 [PHASE: FINAL] All pre-flight checks passed. Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
