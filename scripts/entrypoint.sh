@@ -163,6 +163,12 @@ else
   echo "Generated temp password: $NEXTCLOUD_ADMIN_PASSWORD (change immediately!)"
 fi
 
+# Fix permissions (critical for nginx/www-data)
+echo "🔧 Fixing permissions..."
+chown -R www-data:www-data /var/www/html
+chmod -R 755 /var/www/html
+ls -la /var/www/html  # Diagnostic: Check index.php exists
+
 # Skip original entrypoint entirely (avoids parameter error, custom handles)
 echo "🌟 Skipping original entrypoint (using custom setup for wizard)"
 
