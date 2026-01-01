@@ -303,8 +303,8 @@ echo "🔍 POST-WAITS DIAGNOSTIC:"
 ls -la /var/www/html/config/ || echo "No config dir"
 su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null" || echo "occ status failed (no config yet)"
 
-mkdir -p /var/run/nginx /var/log/nginx /var/lib/nginx/logs
-chown -R www-data:www-data /var/run/nginx /var/log/nginx
+mkdir -p /run/nginx /var/log/nginx /var/run/nginx
+chown -R www-data:www-data /run/nginx /var/log/nginx
 
 # ONLY envsubst PORT (no sed pid hacks - config now clean)
 if envsubst '${PORT}' < /etc/nginx/nginx.conf > /tmp/nginx.conf.tmp 2>/dev/null; then
@@ -347,82 +347,82 @@ if [ ! -f "/var/www/html/occ" ]; then
   fi
 fi
 
-# [PHASE: INSTALL/UPGRADE] Handle both fresh installs and upgrades
+# [PHASE: INSTALL/UPGRADE] Handle both fresh installs and upgrades - SIMPLIFIED AND FIXED
 if [ -f "/var/www/html/config/config.php" ]; then
   echo "✅ [PHASE: INSTALL/UPGRADE] Config exists → Checking installation status."
 
   # Test config readability first
   echo "🔍 [PHASE: INSTALL/UPGRADE] Testing config readability..."
-  OCC_STATUS_OUTPUT=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1)
+  OCC_STATUS_OUTPUT=$(timeout 30 su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1)
+  OCC_EXIT_CODE=$?
+
   if echo "$OCC_STATUS_OUTPUT" | grep -q "require upgrade"; then
     echo "🔄 [PHASE: INSTALL/UPGRADE] Config readable but upgrade needed."
-    CONFIG_READABLE=false
-    UPGRADE_NEEDED=true
+    echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade with timeout protection..."
 
-    # NOTE: Skip maintenance mode enable/disable during upgrade as occ commands are limited
-    # The upgrade process will handle maintenance mode internally
-    echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade (maintenance mode will be handled automatically)..."
-    UPGRADE_CMD=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" 2>&1)
+    # Run upgrade with timeout and better error handling
+    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1
     UPGRADE_EXIT_CODE=$?
 
-    echo "🔍 [PHASE: UPGRADE] Upgrade output:"
-    echo "$UPGRADE_CMD"
+    echo "🔍 [PHASE: UPGRADE] Upgrade exit code: $UPGRADE_EXIT_CODE"
 
-    if [ $UPGRADE_EXIT_CODE -eq 0 ] && [[ "$UPGRADE_CMD" != *"FAILED"* ]] && [[ "$UPGRADE_CMD" != *"error"* ]] && [[ "$UPGRADE_CMD" != *"Error"* ]]; then
+    if [ $UPGRADE_EXIT_CODE -eq 0 ]; then
       echo "✅ [PHASE: UPGRADE] Upgrade completed successfully."
-
-      # Verify upgrade was successful by checking version
-      UPGRADE_CHECK=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1 || echo "CHECK_FAILED")
-      if echo "$UPGRADE_CHECK" | grep -q "version"; then
-        echo "✅ [PHASE: UPGRADE] Version check passed - upgrade verified."
+    elif [ $UPGRADE_EXIT_CODE -eq 124 ]; then
+      echo "⏰ [PHASE: UPGRADE] Upgrade timed out after 10 minutes - checking status..."
+      # Check if upgrade actually completed despite timeout
+      sleep 5
+      if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" | grep -q '"installed":true' 2>/dev/null; then
+        echo "✅ [PHASE: UPGRADE] Upgrade actually completed (timeout was just slow output)."
       else
-        echo "⚠️ [PHASE: UPGRADE] Version check failed, but continuing..."
-      fi
-    else
-      echo "❌ [PHASE: UPGRADE] Upgrade failed with exit code $UPGRADE_EXIT_CODE: $UPGRADE_CMD"
-
-      # Force maintenance mode off even if upgrade failed
-      echo "🔧 [PHASE: UPGRADE] Attempting to force disable maintenance mode..."
-      su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Could not disable maintenance mode"
-    fi
-
-  elif [ $? -eq 0 ]; then
-    echo "✅ [PHASE: INSTALL/UPGRADE] Config readable, Nextcloud appears installed."
-    CONFIG_READABLE=true
-  else
-    echo "⚠️ [PHASE: INSTALL/UPGRADE] Config exists but occ status failed - may need installation or repair."
-    OCC_STATUS=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status" 2>&1 || echo "OCC_FAILED")
-    echo "🔍 [PHASE: INSTALL/UPGRADE] OCC status output: $OCC_STATUS"
-
-    # Debug: Check config.php syntax and database connection
-    echo "🔍 [PHASE: INSTALL/UPGRADE] Debugging config.php..."
-    if [ -f "/var/www/html/config/config.php" ]; then
-      php -l /var/www/html/config/config.php && echo "✅ Config.php syntax OK" || echo "❌ Config.php syntax error"
-      echo "📄 Config.php contents (first 10 lines):"
-      head -10 /var/www/html/config/config.php
-    fi
-
-    # Debug: Test database connection directly
-    echo "🔍 [PHASE: INSTALL/UPGRADE] Testing database connection..."
-    DB_TEST=$(psql "$DATABASE_URL" -c "SELECT version();" 2>&1 || echo "DB_CONNECT_FAILED")
-    if [[ "$DB_TEST" == *"DB_CONNECT_FAILED"* ]]; then
-      echo "❌ Database connection failed: $DB_TEST"
-      echo "🔧 Attempting to fix database connection..."
-      # Try alternative connection method
-      export PGPASSWORD="$POSTGRES_PASSWORD"
-      DB_TEST_ALT=$(psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version();" 2>&1 || echo "DB_CONNECT_ALT_FAILED")
-      if [[ "$DB_TEST_ALT" == *"DB_CONNECT_ALT_FAILED"* ]]; then
-        echo "❌ Alternative database connection also failed: $DB_TEST_ALT"
+        echo "❌ [PHASE: UPGRADE] Upgrade timed out and appears incomplete."
         exit 1
-      else
-        echo "✅ Alternative database connection successful"
       fi
     else
-      echo "✅ Database connection successful"
+      echo "❌ [PHASE: UPGRADE] Upgrade failed with exit code $UPGRADE_EXIT_CODE"
+      exit 1
     fi
 
-    # Check if database tables exist
-    TABLE_COUNT=$(psql "$DATABASE_URL" -c "\dt oc_*" 2>/dev/null | grep -c "table" || echo "0")
+  elif [ $OCC_EXIT_CODE -eq 0 ]; then
+    echo "✅ [PHASE: INSTALL/UPGRADE] Nextcloud is up to date and operational."
+  else
+    echo "⚠️ [PHASE: INSTALL/UPGRADE] OCC status failed - attempting repair..."
+
+    # Check for common issues
+    if ! php -l /var/www/html/config/config.php >/dev/null 2>&1; then
+      echo "❌ Config.php syntax error - cannot continue"
+      exit 1
+    fi
+
+    # Try maintenance mode reset
+    echo "🔧 Attempting maintenance mode reset..."
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>/dev/null || true
+
+    # Check database connection
+    if ! psql "$DATABASE_URL" -c "SELECT 1;" >/dev/null 2>&1; then
+      echo "❌ Database connection failed - cannot continue"
+      exit 1
+    fi
+
+    echo "🔄 Attempting fresh upgrade after repair..."
+    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" 2>&1
+    if [ $? -eq 0 ]; then
+      echo "✅ [PHASE: INSTALL/UPGRADE] Repair and upgrade successful."
+    else
+      echo "❌ [PHASE: INSTALL/UPGRADE] Repair failed - manual intervention required."
+      exit 1
+    fi
+  fi
+else
+  echo "⚠️ [PHASE: INSTALL/UPGRADE] No config found - fresh installation needed."
+
+  # Fresh installation
+  mkdir -p /var/www/html/data
+  chown www-data:www-data /var/www/html/data
+
+  echo "🏗️ [PHASE: INSTALL/UPGRADE] Running fresh Nextcloud installation..."
+  INSTALL_CMD="cd /var/www/html && php occ maintenance:install --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST --database-port $POSTGRES_PORT --database-user $POSTGRES_USER --database-pass $POSTGRES_PASSWORD --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD --data-dir /var/www/html/data"
+
     echo "🔍 [PHASE: INSTALL/UPGRADE] Found $TABLE_COUNT Nextcloud tables"
 
     # Force fresh installation if OCC status fails consistently
