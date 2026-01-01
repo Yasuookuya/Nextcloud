@@ -43,9 +43,20 @@ echo "🐛 DEBUG: PID $$"
 echo "=== STEP 1: ENV ==="
 env | grep -E "(PORT|POSTGRES|REDIS|NEXTCLOUD|DATABASE_URL|RAILWAY)" | sort
 
-echo "=== STEP 2: DB DIAG ==="
-echo "Tables:"
-psql "$DATABASE_URL" -c "\dt" || echo "No tables or connection issue"
+echo "=== [PHASE: DB_CHECK] STEP 2: DB DIAG ==="
+echo "🔍 [PHASE: DB_CHECK] Checking database connectivity..."
+DB_TABLES=$(psql "$DATABASE_URL" -c "\dt" 2>&1)
+if [ $? -eq 0 ]; then
+  echo "✅ [PHASE: DB_CHECK] Database connection successful."
+  echo "📊 [PHASE: DB_CHECK] Tables found:"
+  echo "$DB_TABLES"
+  TABLE_COUNT=$(echo "$DB_TABLES" | grep -c "table")
+  echo "📈 [PHASE: DB_CHECK] Total tables: $TABLE_COUNT"
+else
+  echo "❌ [PHASE: DB_CHECK] Database connection failed:"
+  echo "$DB_TABLES"
+  exit 1
+fi
 
 # Grant permissions to postgres user if tables exist (fix for existing DB)
 if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
@@ -274,43 +285,88 @@ echo "📋 Logs: nginx=/var/log/nginx/error.log, supervisor=/var/log/supervisor/
 
 # Ensure Nextcloud code is available (download if needed)
 if [ ! -f "/var/www/html/occ" ]; then
-  echo "📦 Nextcloud code not found, initializing..."
-  /entrypoint.sh php-fpm &
-  sleep 10  # Give time for code download
-  pkill -f php-fpm || true
+  if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
+    echo "📦 Nextcloud code not found, but DB exists - skipping official installer to avoid conflicts."
+  else
+    echo "📦 Nextcloud code not found, initializing..."
+    /entrypoint.sh php-fpm &
+    sleep 10  # Give time for code download
+    pkill -f php-fpm || true
+  fi
 fi
 
-# PRESERVE config if exists (don't delete!)
+# [PHASE: UPGRADE] PRESERVE config if exists (don't delete!)
 if [ -f "/var/www/html/config/config.php" ]; then
-  echo "✅ Config exists + DB populated → Running safe upgrade/post-setup."
+  echo "✅ [PHASE: UPGRADE] Config exists + DB populated → Running safe upgrade/post-setup."
 
   # Test config readability first
-  if ! su www-data -s /bin/bash -c "php occ status" >/dev/null 2>&1; then
-    echo "❌ Config unreadable (instance mismatch?). Manual intervention needed."
-    # Fallback: disable random regen next deploy, or reset DB
+  echo "🔍 [PHASE: UPGRADE] Testing config readability..."
+  if su www-data -s /bin/bash -c "php occ status --output=json" 2>&1; then
+    echo "✅ [PHASE: UPGRADE] Config readable, proceeding with upgrade."
+  else
+    echo "❌ [PHASE: UPGRADE] Config unreadable - checking details..."
+    OCC_STATUS=$(su www-data -s /bin/bash -c "php occ status" 2>&1 || echo "OCC_FAILED")
+    echo "🔍 [PHASE: UPGRADE] OCC status output: $OCC_STATUS"
+    if [[ "$OCC_STATUS" == *"Configuration was not read or initialized correctly"* ]]; then
+      echo "❌ [PHASE: UPGRADE] Config read error - instance ID mismatch detected."
+      echo "💡 [PHASE: UPGRADE] This usually means config values changed between deploys."
+      echo "🔧 [PHASE: UPGRADE] Check if config.php in data/ matches DB stored values."
+    fi
+    echo "🛑 [PHASE: UPGRADE] Exiting due to config issues."
     exit 1
   fi
 
-  su www-data -s /bin/bash -c "php occ maintenance:mode --on" || echo "⚠️ Maintenance mode skip (upgrade needed)"
-  su www-data -s /bin/bash -c "php occ upgrade --no-interaction --force" || echo "⚠️ Upgrade skip (web upgrade recommended)"
-  su www-data -s /bin/bash -c "php occ maintenance:mode --off"
+  # Maintenance mode
+  echo "🔧 [PHASE: UPGRADE] Enabling maintenance mode..."
+  MAINT_ON=$(su www-data -s /bin/bash -c "php occ maintenance:mode --on" 2>&1 || echo "FAILED")
+  if [[ "$MAINT_ON" == *"FAILED"* ]]; then
+    echo "⚠️ [PHASE: UPGRADE] Maintenance mode enable failed: $MAINT_ON"
+  else
+    echo "✅ [PHASE: UPGRADE] Maintenance mode enabled."
+  fi
+
+  # Upgrade
+  echo "⬆️ [PHASE: UPGRADE] Running database upgrade..."
+  UPGRADE=$(su www-data -s /bin/bash -c "php occ upgrade --no-interaction --force" 2>&1 || echo "FAILED")
+  if [[ "$UPGRADE" == *"FAILED"* ]]; then
+    echo "⚠️ [PHASE: UPGRADE] Upgrade failed: $UPGRADE"
+  else
+    echo "✅ [PHASE: UPGRADE] Upgrade completed."
+  fi
+
+  # Maintenance mode off
+  echo "🔧 [PHASE: UPGRADE] Disabling maintenance mode..."
+  MAINT_OFF=$(su www-data -s /bin/bash -c "php occ maintenance:mode --off" 2>&1 || echo "FAILED")
+  if [[ "$MAINT_OFF" == *"FAILED"* ]]; then
+    echo "⚠️ [PHASE: UPGRADE] Maintenance mode disable failed: $MAINT_OFF"
+  else
+    echo "✅ [PHASE: UPGRADE] Maintenance mode disabled."
+  fi
 
   # Redis/memcache (idempotent)
-  su www-data -s /bin/bash -c "php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis"
-  su www-data -s /bin/bash -c "php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis"
-  su www-data -s /bin/bash -c "php occ config:system:set redis host --value=${REDIS_HOST}"
-  su www-data -s /bin/bash -c "php occ config:system:set redis port --value=${REDIS_PORT}"
-  [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "php occ config:system:set redis password --value=${REDIS_PASSWORD}"
+  echo "⚙️ [PHASE: UPGRADE] Configuring Redis caching..."
+  su www-data -s /bin/bash -c "php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis local cache config failed"
+  su www-data -s /bin/bash -c "php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis locking config failed"
+  su www-data -s /bin/bash -c "php occ config:system:set redis host --value=${REDIS_HOST}" 2>&1 || echo "⚠️ Redis host config failed"
+  su www-data -s /bin/bash -c "php occ config:system:set redis port --value=${REDIS_PORT}" 2>&1 || echo "⚠️ Redis port config failed"
+  [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "php occ config:system:set redis password --value=${REDIS_PASSWORD}" 2>&1 || echo "⚠️ Redis password config failed"
+  echo "✅ [PHASE: UPGRADE] Redis configuration applied."
 
   # Scans + cron
-  su www-data -s /bin/bash -c "php occ files:scan --all"
-  su www-data -s /bin/bash -c "php occ groupfolders:scan --all || true"
-  su www-data -s /bin/bash -c "php occ background-job:cron"
-  su www-data -s /bin/bash -c "php occ integrity:check-core --skip-migrations" || true
+  echo "📁 [PHASE: UPGRADE] Running file scans..."
+  su www-data -s /bin/bash -c "php occ files:scan --all" 2>&1 || echo "⚠️ File scan failed"
+  su www-data -s /bin/bash -c "php occ groupfolders:scan --all" 2>&1 || echo "⚠️ Group folders scan failed"
+  su www-data -s /bin/bash -c "php occ background-job:cron" 2>&1 || echo "⚠️ Background jobs failed"
+  su www-data -s /bin/bash -c "php occ integrity:check-core --skip-migrations" 2>&1 || echo "⚠️ Integrity check failed"
 
-  echo "✅ Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
+  echo "✅ [PHASE: UPGRADE] Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
+
+  # Create deployment completion flag for nginx
+  echo "🏁 [PHASE: FINAL] Creating deployment completion flag..."
+  touch /var/www/html/.deployment_complete
+  echo "✅ [PHASE: FINAL] Deployment flag created - nginx will now serve Nextcloud"
 else
-  echo "⚠️ No config/DB → Run web installer."
+  echo "⚠️ [PHASE: UPGRADE] No config found - web installer needed."
 fi
 
 # Chown
@@ -330,6 +386,29 @@ echo "📁 Creating log/run dirs..."
 mkdir -p /var/log/supervisor /var/log/nginx /var/run/php /var/run/nginx
 chown -R www-data:www-data /var/log/supervisor /var/log/nginx /var/run/php /var/run/nginx /var/www/html/data
 
-# Start Supervisor (after install complete)
-echo "🛡️ Starting Supervisor..."
+# [PHASE: FINAL] Start Supervisor (after install complete)
+echo "🛡️ [PHASE: FINAL] Starting Supervisor with services..."
+echo "📊 [PHASE: FINAL] DEPLOYMENT SUMMARY:"
+echo "  - Nextcloud Version: 29.0.16"
+echo "  - Config Location: /var/www/html/data/config.php (persistent)"
+echo "  - Data Directory: /var/www/html/data"
+echo "  - Admin User: ${NEXTCLOUD_ADMIN_USER}"
+echo "  - Database: PostgreSQL (${POSTGRES_DB})"
+echo "  - Cache: Redis (${REDIS_HOST}:${REDIS_PORT})"
+echo "  - Services: nginx + php-fpm + cron"
+echo "🔗 [PHASE: FINAL] Access URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
+
+# Final health check
+if [ -f "/var/www/html/config/config.php" ]; then
+  echo "✅ [PHASE: FINAL] Config file exists"
+  if su www-data -s /bin/bash -c "php occ status --output=json" >/dev/null 2>&1; then
+    echo "✅ [PHASE: FINAL] OCC status OK - Nextcloud is operational"
+  else
+    echo "❌ [PHASE: FINAL] OCC status FAILED - Check logs for issues"
+  fi
+else
+  echo "❌ [PHASE: FINAL] Config file missing - deployment incomplete"
+fi
+
+echo "🚀 [PHASE: FINAL] Supervisor starting..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
