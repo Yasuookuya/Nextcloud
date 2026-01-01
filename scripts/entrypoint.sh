@@ -220,7 +220,7 @@ fi
 # Fix nginx log dirs and duplicate pid
 mkdir -p /var/lib/nginx/logs /var/log/nginx && chown -R www-data:www-data /var/lib/nginx /var/log/nginx
 sed -i '/pid .*;/d' /etc/nginx/nginx.conf  # Remove duplicate pid directives
-echo "pid /run/nginx.pid;" >> /etc/nginx/nginx.conf  # Add pid directive
+sed -i '1i pid /run/nginx.pid;' /etc/nginx/nginx.conf  # Add pid directive at top
 
 # Validate Nginx (Railway expects port 80)
 nginx -t && echo "✅ Nginx config OK (listen ${PORT:-80})" || { echo "❌ Nginx test failed:"; nginx -t; exit 1; }
