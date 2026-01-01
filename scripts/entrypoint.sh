@@ -328,7 +328,7 @@ echo "✅ [PHASE: INSTALL] Nginx started with PID $NGINX_PID"
 
 # Wait for nginx to be ready and test deployment status page accessibility
 echo "🔍 [PHASE: INSTALL] Testing deployment status page..."
-timeout 15 bash -c 'until curl -f -s http://localhost/deployment-status.html > /dev/null 2>&1; do sleep 1; done' && \
+timeout 15 bash -c 'until curl -f -s http://localhost:${PORT:-8080}/deployment-status.html > /dev/null 2>&1; do sleep 1; done' && \
   echo "✅ [PHASE: INSTALL] Deployment status page accessible" || \
   { echo "❌ [PHASE: INSTALL] Deployment status page not accessible - nginx may have failed to start"; kill $NGINX_PID 2>/dev/null || true; exit 1; }
 
@@ -339,8 +339,8 @@ echo "  Service: ${RAILWAY_SERVICE_NAME:-unknown}"
 echo "  Listen: localhost:80"
 
 echo "🧪 Endpoint Tests:"
-timeout 5 bash -c "curl -f -s http://localhost/ && echo '✅ Root (index.php) OK'" || echo "⚠️ / pending (wizard/DB)"
-timeout 5 bash -c "curl -f -s http://localhost/status.php && echo '✅ Status OK'" || echo "ℹ️ status.php pending"
+timeout 5 bash -c "curl -f -s http://localhost:${PORT:-8080}/ && echo '✅ Root (index.php) OK'" || echo "⚠️ / pending (wizard/DB)"
+timeout 5 bash -c "curl -f -s http://localhost:${PORT:-8080}/status.php && echo '✅ Status OK'" || echo "ℹ️ status.php pending"
 
 echo "📋 Logs: nginx=/var/log/nginx/error.log, supervisor=/var/log/supervisor/"
 
@@ -459,7 +459,7 @@ if [ ! -f /var/www/html/.deployment_complete ]; then
   if [ -f /var/www/html/deployment-status.html ]; then
     echo "✅ [PHASE: FINAL] Deployment status page exists"
     # Test nginx configuration can serve the page
-    timeout 5 bash -c 'curl -f -s http://localhost/deployment-status.html > /dev/null' && \
+    timeout 5 bash -c 'curl -f -s http://localhost:${PORT:-8080}/deployment-status.html > /dev/null' && \
       echo "✅ [PHASE: FINAL] Deployment status page accessible" || \
       echo "⚠️ [PHASE: FINAL] Deployment status page may not be accessible yet"
   else
