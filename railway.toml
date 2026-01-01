@@ -1,0 +1,14 @@
+[build]
+builder = "dockerfile"
+
+[deploy]
+startCommand = "/usr/local/bin/custom-entrypoint.sh"
+
+[env]
+NEXTCLOUD_TRUSTED_DOMAINS = "nextcloud-railway-template-website.up.railway.app localhost"
+PHP_MEMORY_LIMIT = "512M"
+PHP_UPLOAD_LIMIT = "512M"
+
+[healthcheck]
+path = "/"
+timeout = 300
