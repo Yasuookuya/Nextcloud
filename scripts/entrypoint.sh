@@ -52,6 +52,53 @@ if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
   echo "Reassigning ownership and granting permissions to postgres user on existing tables..."
   psql "$DATABASE_URL" -c "REASSIGN OWNED BY oc_admin TO postgres;" 2>/dev/null || echo "Reassign failed, continuing..."
   psql "$DATABASE_URL" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres; GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;" || echo "Grant failed, continuing..."
+  # Create config.php if tables exist but no config
+  if [ ! -f "/var/www/html/config/config.php" ]; then
+    echo "Creating config.php for existing DB..."
+    mkdir -p /var/www/html/config
+    INSTANCEID="oc$(openssl rand -hex 10)"
+    PASSWORDSALT="$(openssl rand -hex 10)"
+    SECRET="$(openssl rand -hex 10)"
+    cat > /var/www/html/config/config.php << EOF
+<?php
+\$CONFIG = array (
+  'dbtype' => 'pgsql',
+  'dbhost' => 'postgres-n76t.railway.internal',
+  'dbport' => '5432',
+  'dbtableprefix' => 'oc_',
+  'dbname' => 'railway',
+  'dbuser' => 'postgres',
+  'dbpassword' => 'uejIXoiQzAqOoFZFBOqZCnjovieZlgui',
+  'installed' => true,
+  'instanceid' => '$INSTANCEID',
+  'passwordsalt' => '$PASSWORDSALT',
+  'secret' => '$SECRET',
+  'trusted_domains' =>
+  array (
+    0 => 'nextcloud-railway-template-website.up.railway.app',
+    1 => 'localhost',
+    2 => '::1',
+    3 => 'RAILWAY_PRIVATE_DOMAIN',
+    4 => 'RAILWAY_STATIC_URL',
+  ),
+  'datadirectory' => '/var/www/html/data',
+  'overwrite.cli.url' => 'https://nextcloud-railway-template-website.up.railway.app',
+  'overwriteprotocol' => 'https',
+  'memcache.local' => '\\\\OC\\\\Memcache\\\\Redis',
+  'memcache.locking' => '\\\\OC\\\\Memcache\\\\Redis',
+  'redis' =>
+  array (
+    'host' => 'redis-svle.railway.internal',
+    'port' => 6379,
+    'password' => 'OyHpmNkWOQsPxrzLBxrXiAlnRlYbWeFY',
+  ),
+  'maintenance' => false,
+  'update_check_disabled' => true,
+);
+EOF
+    chown www-data:www-data /var/www/html/config/config.php
+    echo "Config.php created, skipping install."
+  fi
 fi
 echo "Table owners (for oc_*):"
 psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
