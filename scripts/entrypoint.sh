@@ -54,16 +54,32 @@ if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
   psql "$DATABASE_URL" -c "GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres; GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;" || echo "Grant failed, continuing..."
   echo "Creating/updating config.php for existing DB..."
     mkdir -p /var/www/html/config
-    INSTANCEID="oc$(openssl rand -hex 10)"
-    PASSWORDSALT="$(openssl rand -hex 10)"
-    SECRET="$(openssl rand -hex 10)"
+    # Parse existing config if present (PRESERVE instanceid/passwordsalt/secret)
+    if [ -f /var/www/html/config/config.php ]; then
+      echo "🔄 Preserving existing config values..."
+      INSTANCEID=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['instanceid'] ?? 'missing';")
+      PASSWORDSALT=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['passwordsalt'] ?? 'missing';")
+      SECRET=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['secret'] ?? 'missing';")
+
+      if [ "$INSTANCEID" = "missing" ] || [ "$PASSWORDSALT" = "missing" ] || [ "$SECRET" = "missing" ]; then
+        echo "⚠️ Incomplete existing config, regenerating..."
+        INSTANCEID="oc$(openssl rand -hex 10)"
+        PASSWORDSALT="$(openssl rand -hex 10)"
+        SECRET="$(openssl rand -hex 10)"
+      fi
+    else
+      echo "🆕 First-time config generation..."
+      INSTANCEID="oc$(openssl rand -hex 10)"
+      PASSWORDSALT="$(openssl rand -hex 10)"
+      SECRET="$(openssl rand -hex 10)"
+    fi
     # Explicit exports for all template vars (safe, idempotent)
     export RAILWAY_PUBLIC_DOMAIN=${RAILWAY_PUBLIC_DOMAIN:-"nextcloud-railway-template-website.up.railway.app"}
     export RAILWAY_PRIVATE_DOMAIN=${RAILWAY_PRIVATE_DOMAIN:-"nextcloud-railway-template.railway.internal"}
     export RAILWAY_STATIC_URL=${RAILWAY_STATIC_URL:-"nextcloud-railway-template-website.up.railway.app"}
     export REDIS_PASSWORD="${REDIS_HOST_PASSWORD:-}"
     export OVERWRITEPROTOCOL=${OVERWRITEPROTOCOL:-"https"}
-    export UPDATE_CHECK_DISABLED=${NEXTCLOUD_UPDATE_CHECK:-false}
+    # UPDATE_CHECK_DISABLED is always false
     # Export instance-specific vars for envsubst
     export INSTANCEID PASSWORDSALT SECRET
     # Generate template first, then subst env vars
@@ -101,10 +117,10 @@ $CONFIG = array (
     'password' => '${REDIS_PASSWORD}',
   ),
   'maintenance' => false,
-  'update_check_disabled' => ${UPDATE_CHECK_DISABLED},
+  'update_check_disabled' => false,
 );
 EOF
-    envsubst '${POSTGRES_HOST} ${POSTGRES_PORT} ${POSTGRES_DB} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${INSTANCEID} ${PASSWORDSALT} ${SECRET} ${RAILWAY_PUBLIC_DOMAIN} ${RAILWAY_PRIVATE_DOMAIN} ${RAILWAY_STATIC_URL} ${OVERWRITEPROTOCOL} ${REDIS_HOST} ${REDIS_PORT} ${REDIS_PASSWORD} ${UPDATE_CHECK_DISABLED}' < /var/www/html/config/config.php.template > /var/www/html/config/config.php
+    envsubst '${POSTGRES_HOST} ${POSTGRES_PORT} ${POSTGRES_DB} ${POSTGRES_USER} ${POSTGRES_PASSWORD} ${INSTANCEID} ${PASSWORDSALT} ${SECRET} ${RAILWAY_PUBLIC_DOMAIN} ${RAILWAY_PRIVATE_DOMAIN} ${RAILWAY_STATIC_URL} ${OVERWRITEPROTOCOL} ${REDIS_HOST} ${REDIS_PORT} ${REDIS_PASSWORD}' < /var/www/html/config/config.php.template > /var/www/html/config/config.php
     rm /var/www/html/config/config.php.template
     # CRITICAL: Lint the generated config
     if ! php -l /var/www/html/config/config.php; then
@@ -260,9 +276,17 @@ fi
 
 # PRESERVE config if exists (don't delete!)
 if [ -f "/var/www/html/config/config.php" ]; then
-  echo "✅ Config exists + DB populated → Skipping install, running upgrade/post-setup."
-  su www-data -s /bin/bash -c "php occ maintenance:mode --on"  # Safe mode for upgrade
-  su www-data -s /bin/bash -c "php occ upgrade"  # Run upgrade (handles apps)
+  echo "✅ Config exists + DB populated → Running safe upgrade/post-setup."
+
+  # Test config readability first
+  if ! su www-data -s /bin/bash -c "php occ status" >/dev/null 2>&1; then
+    echo "❌ Config unreadable (instance mismatch?). Manual intervention needed."
+    # Fallback: disable random regen next deploy, or reset DB
+    exit 1
+  fi
+
+  su www-data -s /bin/bash -c "php occ maintenance:mode --on" || echo "⚠️ Maintenance mode skip (upgrade needed)"
+  su www-data -s /bin/bash -c "php occ upgrade --no-interaction --force" || echo "⚠️ Upgrade skip (web upgrade recommended)"
   su www-data -s /bin/bash -c "php occ maintenance:mode --off"
 
   # Redis/memcache (idempotent)
@@ -276,6 +300,7 @@ if [ -f "/var/www/html/config/config.php" ]; then
   su www-data -s /bin/bash -c "php occ files:scan --all"
   su www-data -s /bin/bash -c "php occ groupfolders:scan --all || true"
   su www-data -s /bin/bash -c "php occ background-job:cron"
+  su www-data -s /bin/bash -c "php occ integrity:check-core --skip-migrations" || true
 
   echo "✅ Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
 else
