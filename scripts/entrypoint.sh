@@ -358,6 +358,42 @@ if [ -f "/var/www/html/config/config.php" ]; then
     echo "🔄 [PHASE: INSTALL/UPGRADE] Config readable but upgrade needed."
     CONFIG_READABLE=false
     UPGRADE_NEEDED=true
+
+    # Enable maintenance mode before upgrade
+    echo "🔧 [PHASE: UPGRADE] Enabling maintenance mode for upgrade..."
+    MAINT_ON=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on" 2>&1 || echo "FAILED")
+    if [[ "$MAINT_ON" == *"FAILED"* ]]; then
+      echo "⚠️ [PHASE: UPGRADE] Failed to enable maintenance mode: $MAINT_ON"
+    else
+      echo "✅ [PHASE: UPGRADE] Maintenance mode enabled."
+    fi
+
+    # Run upgrade with verbose output and no interaction
+    echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade..."
+    UPGRADE_CMD=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" 2>&1)
+    UPGRADE_EXIT_CODE=$?
+
+    echo "🔍 [PHASE: UPGRADE] Upgrade output:"
+    echo "$UPGRADE_CMD"
+
+    if [ $UPGRADE_EXIT_CODE -eq 0 ] && [[ "$UPGRADE_CMD" != *"FAILED"* ]] && [[ "$UPGRADE_CMD" != *"error"* ]] && [[ "$UPGRADE_CMD" != *"Error"* ]]; then
+      echo "✅ [PHASE: UPGRADE] Upgrade completed successfully."
+
+      # Verify upgrade was successful by checking version
+      UPGRADE_CHECK=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1 || echo "CHECK_FAILED")
+      if echo "$UPGRADE_CHECK" | grep -q "version"; then
+        echo "✅ [PHASE: UPGRADE] Version check passed - upgrade verified."
+      else
+        echo "⚠️ [PHASE: UPGRADE] Version check failed, but continuing..."
+      fi
+    else
+      echo "❌ [PHASE: UPGRADE] Upgrade failed with exit code $UPGRADE_EXIT_CODE: $UPGRADE_CMD"
+
+      # Force maintenance mode off even if upgrade failed
+      echo "🔧 [PHASE: UPGRADE] Attempting to force disable maintenance mode..."
+      su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Could not disable maintenance mode"
+    fi
+
   elif [ $? -eq 0 ]; then
     echo "✅ [PHASE: INSTALL/UPGRADE] Config readable, Nextcloud appears installed."
     CONFIG_READABLE=true
