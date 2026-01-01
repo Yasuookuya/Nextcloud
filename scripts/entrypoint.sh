@@ -2,18 +2,20 @@
 set -e
 
 echo "🚀 Starting NextCloud Railway deployment..."
-echo "🐛 DEBUG: Current script: $0"
-echo "🐛 DEBUG: Process ID: $$"
-# Removed ps debug to avoid 'command not found' - use procfs if needed
-echo "🐛 DEBUG: Skipping process list (ps not required)"
+echo "🐛 DEBUG: PID $$"
 
-# Debug: Print all environment variables starting with POSTGRES or REDIS
-echo "🔍 Debug: Environment variables:"
-env | grep -E "^(POSTGRES|REDIS.*|RAILWAY|PG|NEXTCLOUD|PHP)" | sort
+# Diagnostics: Print env
+echo "🔍 ENV DIAGNOSTIC:"
+env | grep -E "(POSTGRES|REDIS|NEXTCLOUD|DATABASE_URL|RAILWAY)" | sort
 
-# Also check for any database-related variables
-echo "🔍 Database-related variables:"
-env | grep -iE "(database|db|host)" | sort
+# Diagnostics: Check DB connection and tables/owners
+echo "🔍 DB DIAGNOSTIC:"
+echo "Tables:"
+psql "$DATABASE_URL" -c "\dt" || echo "No tables or connection issue"
+echo "Table owners (for oc_*):"
+psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
+echo "oc_migrations perms:"
+psql "$DATABASE_URL" -c "\dp oc_migrations" || echo "No oc_migrations or perm error"
 
 # Check for environment variables - we need at least some PostgreSQL config
 # Check for Railway's PG* variables OR POSTGRES_* variables OR DATABASE_URL
@@ -97,6 +99,11 @@ until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ${REDIS_PASSWORD:+-a "$REDIS_P
   sleep 2
 done
 echo "✅ Redis is ready"
+
+# Diagnostics: Check config and occ status
+echo "🔍 POST-WAITS DIAGNOSTIC:"
+ls -la /var/www/html/config/ || echo "No config dir"
+su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null" || echo "occ status failed (no config yet)"
 
 # Substitute env vars in nginx.conf (fix $PORT issue)
 if command -v envsubst >/dev/null 2>&1; then
