@@ -381,14 +381,6 @@ if [ -f "/var/www/html/config/config.php" ]; then
     else
       echo "❌ [PHASE: UPGRADE] Upgrade failed with exit code $UPGRADE_EXIT_CODE: $UPGRADE_CMD"
 
-      if echo "$UPGRADE_CHECK" | grep -q "version"; then
-        echo "✅ [PHASE: UPGRADE] Version check passed - upgrade verified."
-      else
-        echo "⚠️ [PHASE: UPGRADE] Version check failed, but continuing..."
-      fi
-    else
-      echo "❌ [PHASE: UPGRADE] Upgrade failed with exit code $UPGRADE_EXIT_CODE: $UPGRADE_CMD"
-
       # Force maintenance mode off even if upgrade failed
       echo "🔧 [PHASE: UPGRADE] Attempting to force disable maintenance mode..."
       su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Could not disable maintenance mode"
