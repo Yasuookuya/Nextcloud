@@ -457,6 +457,8 @@ if [ -f "/var/www/html/config/config.php" ]; then
   echo "⚠️ Skipping integrity check for deployment speed"
 
   echo "✅ [PHASE: UPGRADE] Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
+    fi
+  fi
 else
   echo "⚠️ [PHASE: UPGRADE] No config found - basic installation may still work."
 fi
