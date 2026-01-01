@@ -236,7 +236,7 @@ redis-cli -h host -p port ping
 
 ### Health Endpoints
 - **Status Page**: `https://your-app.up.railway.app/status.php`
-- **Deployment Status**: `https://your-app.up.railway.app/deployment-status.html`
+
 - **Root Access**: `https://your-app.up.railway.app/`
 
 ### Metrics to Monitor

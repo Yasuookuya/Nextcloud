@@ -43,7 +43,7 @@ RUN echo "📋 [BUILD: COPY] Copying configuration files..."
 COPY config/nginx.conf /etc/nginx/nginx.conf
 COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
-COPY config/deployment-status.html /var/www/html/deployment-status.html
+
 COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 
@@ -66,7 +66,6 @@ RUN echo "🔍 [BUILD: VALIDATE] Starting comprehensive build validation..." && 
     ls -la /etc/nginx/nginx.conf && \
     ls -la /etc/supervisor/conf.d/supervisord.conf && \
     ls -la /usr/local/etc/php/conf.d/nextcloud.ini && \
-    ls -la /var/www/html/deployment-status.html && \
     echo "✅ [BUILD: VALIDATE] All required files present" && \
     echo "🔐 [BUILD: VALIDATE] Checking file permissions..." && \
     test -x /usr/local/bin/custom-entrypoint.sh && echo "✅ [BUILD: VALIDATE] Entrypoint executable" || echo "❌ [BUILD: VALIDATE] Entrypoint not executable" && \
@@ -125,7 +124,7 @@ RUN echo "🛡️ [BUILD: INTEGRITY] Final build integrity check..." && \
     echo "🔍 [BUILD: INTEGRITY] Verifying build artifacts..." && \
     [ -f /usr/local/bin/custom-entrypoint.sh ] && [ -f /usr/local/bin/fix-warnings.sh ] && \
     [ -f /etc/nginx/nginx.conf ] && [ -f /etc/supervisor/conf.d/supervisord.conf ] && \
-    [ -f /usr/local/etc/php/conf.d/nextcloud.ini ] && [ -f /var/www/html/deployment-status.html ] && \
+    [ -f /usr/local/etc/php/conf.d/nextcloud.ini ] && \
     echo "✅ [BUILD: INTEGRITY] All build artifacts present" && \
     echo "🔍 [BUILD: INTEGRITY] Checking file sizes..." && \
     find /usr/local/bin -name "*.sh" -exec ls -lh {} \; && \
@@ -138,7 +137,7 @@ RUN echo "🎉 [BUILD: SUMMARY] Docker build completed successfully!" && \
     echo "📊 [BUILD: SUMMARY] Build artifacts summary:" && \
     echo "  - Nextcloud Version: 29.0.16 (from base image)" && \
     echo "  - Entrypoint Script: $(stat -c%s /usr/local/bin/custom-entrypoint.sh) bytes" && \
-    echo "  - Configuration Files: $(ls /etc/nginx/nginx.conf /etc/supervisor/conf.d/supervisord.conf /usr/local/etc/php/conf.d/nextcloud.ini /var/www/html/deployment-status.html | wc -l) files" && \
+    echo "  - Configuration Files: $(ls /etc/nginx/nginx.conf /etc/supervisor/conf.d/supervisord.conf /usr/local/etc/php/conf.d/nextcloud.ini | wc -l) files" && \
     echo "  - Total Build Steps: 11 phases completed" && \
     echo "  - Exposed Port: 80" && \
     echo "  - Health Check: Configured" && \

@@ -473,19 +473,7 @@ else
   echo "⚠️ [PHASE: FINAL] Config.php not found - keeping deployment status page active"
 fi
 
-# Ensure deployment status page is accessible during installation
-if [ ! -f /var/www/html/.deployment_complete ]; then
-  echo "🔍 [PHASE: FINAL] Testing deployment status page accessibility..."
-  if [ -f /var/www/html/deployment-status.html ]; then
-    echo "✅ [PHASE: FINAL] Deployment status page exists"
-    # Test nginx configuration can serve the page
-    timeout 5 bash -c 'curl -f -s http://localhost:${PORT:-8080}/deployment-status.html > /dev/null' && \
-      echo "✅ [PHASE: FINAL] Deployment status page accessible" || \
-      echo "⚠️ [PHASE: FINAL] Deployment status page may not be accessible yet"
-  else
-    echo "❌ [PHASE: FINAL] Deployment status page missing!"
-  fi
-fi
+# Nextcloud deployment is complete
 
 # Chown
 chown -R www-data:www-data /var/www/html
