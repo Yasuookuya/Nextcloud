@@ -118,15 +118,20 @@ su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null" || echo "
 mkdir -p /var/run/nginx /var/log/nginx
 chown www-data:www-data /var/run/nginx /var/log/nginx
 
-# Substitute env vars in nginx.conf (fix $PORT issue)
-if command -v envsubst >/dev/null 2>&1; then
-  envsubst '${PORT}' < /etc/nginx/sites-available/default > /etc/nginx/sites-enabled/default
-  echo "✅ Nginx config substituted with runtime env vars"
-else
-  echo "⚠️ envsubst not found - Falling back to default port 80"
-  sed -i "s/listen \$PORT/listen 80/g" /etc/nginx/sites-available/default
-  ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
-fi
+# Validate Nginx (Railway expects port 80)
+nginx -t && echo "✅ Nginx config OK (listen 80)" || { echo "❌ Nginx test failed:"; nginx -t; exit 1; }
+
+# Railway Deployment Info
+echo "🌐 Railway Deployment Info:"
+echo "  Public URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
+echo "  Service: ${RAILWAY_SERVICE_NAME:-unknown}"
+echo "  Listen: localhost:80"
+
+echo "🧪 Endpoint Tests:"
+timeout 5 bash -c "curl -f -s http://localhost/ && echo '✅ Root (index.php) OK'" || echo "⚠️ / pending (wizard/DB)"
+timeout 5 bash -c "curl -f -s http://localhost/status.php && echo '✅ Status OK'" || echo "ℹ️ status.php pending"
+
+echo "📋 Logs: nginx=/var/log/nginx/error.log, supervisor=/var/log/supervisor/"
 
 # Run original entrypoint to initialize Nextcloud code
 echo "🌟 Running original entrypoint (initializes Nextcloud)..."

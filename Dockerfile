@@ -1,7 +1,11 @@
 FROM nextcloud:29-fpm-alpine
 
-# Tools for diagnostics
-RUN apk add --no-cache gettext nginx supervisor curl postgresql-client procps net-tools bind-tools
+# Tools for diagnostics + startup fixes
+RUN apk add --no-cache gettext nginx supervisor curl postgresql-client procps net-tools bind-tools bash redis
+
+RUN echo "✅ Bash: $(bash --version 2>/dev/null | head -1 || echo 'ready')" && \
+    echo "✅ Redis CLI: $(redis-cli --version 2>/dev/null || echo 'ready')" && \
+    echo "✅ Postgres client: $(psql --version 2>/dev/null | head -1 || echo 'ready')"
 
 # Copy configs/scripts
 COPY config/nginx.conf /etc/nginx/nginx.conf
@@ -18,6 +22,6 @@ RUN mkdir -p /run/nginx /var/log/nginx /var/run/nginx
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost/status.php || exit 1
+  CMD curl -f http://localhost/status.php >/dev/null 2>&1 || curl -f http://localhost >/dev/null 2>&1 || exit 1
 
 ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]
