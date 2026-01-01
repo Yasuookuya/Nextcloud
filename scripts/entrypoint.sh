@@ -118,8 +118,16 @@ su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null" || echo "
 mkdir -p /var/run/nginx /var/log/nginx
 chown www-data:www-data /var/run/nginx /var/log/nginx
 
+# Subst PORT (Railway sets PORT=8080)
+if envsubst '${PORT}' < /etc/nginx/nginx.conf > /tmp/nginx.conf.tmp 2>/dev/null; then
+  mv /tmp/nginx.conf.tmp /etc/nginx/nginx.conf
+  echo "✅ Nginx: PORT=${PORT} substituted"
+else
+  echo "⚠️ envsubst failed, using 80"
+fi
+
 # Validate Nginx (Railway expects port 80)
-nginx -t && echo "✅ Nginx config OK (listen 80)" || { echo "❌ Nginx test failed:"; nginx -t; exit 1; }
+nginx -t && echo "✅ Nginx config OK (listen ${PORT:-80})" || { echo "❌ Nginx test failed:"; nginx -t; exit 1; }
 
 # Railway Deployment Info
 echo "🌐 Railway Deployment Info:"
