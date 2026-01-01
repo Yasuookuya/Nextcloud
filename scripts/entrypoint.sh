@@ -180,6 +180,11 @@ if [ -f "/var/www/html/config/config.php" ]; then
   /usr/local/bin/fix-warnings.sh  # Run any warning fixes
 fi
 
+# Ensure log dirs exist for Supervisor/Nginx/PHP (Fixes crash)
+echo "📁 Creating log/run dirs..."
+mkdir -p /var/log/supervisor /var/log/nginx /var/run/php /var/run/nginx
+chown -R www-data:www-data /var/log/supervisor /var/log/nginx /var/run/php /var/run/nginx /var/www/html/data
+
 # Start Supervisor (after install complete)
 echo "🛡️ Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
