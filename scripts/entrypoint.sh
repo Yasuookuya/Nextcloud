@@ -193,6 +193,12 @@ if [ -f "/var/www/html/config/config.php" ]; then
     su www-data -s /bin/bash -c "php occ config:system:set redis password --value=${REDIS_PASSWORD}"
   fi
   su www-data -s /bin/bash -c "php occ background-job:cron"  # Set up cron mode
+
+  # Community fix: Scan files and group folders to sync existing data
+  echo "🧹 Scanning files and group folders (to recover existing data)..."
+  su www-data -s /bin/bash -c "php occ files:scan --all"
+  su www-data -s /bin/bash -c "php occ groupfolders:scan --all"
+
   /usr/local/bin/fix-warnings.sh  # Run any warning fixes
 fi
 
