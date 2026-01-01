@@ -356,20 +356,38 @@ if [ ! -f "/var/www/html/occ" ]; then
   fi
 fi
 
-# [PHASE: UPGRADE] PRESERVE config if exists (don't delete!)
+# [PHASE: INSTALL/UPGRADE] Handle both fresh installs and upgrades
 if [ -f "/var/www/html/config/config.php" ]; then
-  echo "✅ [PHASE: UPGRADE] Config exists + DB populated → Running safe upgrade/post-setup."
+  echo "✅ [PHASE: INSTALL/UPGRADE] Config exists → Checking installation status."
 
   # Test config readability first
-  echo "🔍 [PHASE: UPGRADE] Testing config readability..."
+  echo "🔍 [PHASE: INSTALL/UPGRADE] Testing config readability..."
   if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1; then
-    echo "✅ [PHASE: UPGRADE] Config readable, proceeding with upgrade."
+    echo "✅ [PHASE: INSTALL/UPGRADE] Config readable, Nextcloud appears installed."
     CONFIG_READABLE=true
   else
-    echo "⚠️ [PHASE: UPGRADE] Config not fully readable yet - this may be normal for first deployment."
-    OCC_STATUS=$(su www-data -s /bin/bash -c "php occ status" 2>&1 || echo "OCC_FAILED")
-    echo "🔍 [PHASE: UPGRADE] OCC status output: $OCC_STATUS"
-    CONFIG_READABLE=false
+    echo "⚠️ [PHASE: INSTALL/UPGRADE] Config exists but occ status failed - may need installation or repair."
+    OCC_STATUS=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status" 2>&1 || echo "OCC_FAILED")
+    echo "🔍 [PHASE: INSTALL/UPGRADE] OCC status output: $OCC_STATUS"
+
+    # Check if database tables exist
+    TABLE_COUNT=$(psql "$DATABASE_URL" -c "\dt oc_*" 2>/dev/null | grep -c "table" || echo "0")
+    if [ "$TABLE_COUNT" -eq "0" ]; then
+      echo "📦 [PHASE: INSTALL/UPGRADE] No Nextcloud tables found - performing fresh installation."
+      # Fresh installation
+      INSTALL_CMD="cd /var/www/html && php occ maintenance:install --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST --database-port $POSTGRES_PORT --database-user $POSTGRES_USER --database-pass $POSTGRES_PASSWORD --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD --data-dir /var/www/html/data"
+      echo "🏗️ [PHASE: INSTALL/UPGRADE] Running: $INSTALL_CMD"
+      if su www-data -s /bin/bash -c "$INSTALL_CMD" 2>&1; then
+        echo "✅ [PHASE: INSTALL/UPGRADE] Fresh installation completed successfully."
+        CONFIG_READABLE=true
+      else
+        echo "❌ [PHASE: INSTALL/UPGRADE] Fresh installation failed!"
+        exit 1
+      fi
+    else
+      echo "🔧 [PHASE: INSTALL/UPGRADE] Database tables exist but config issues - attempting repair."
+      CONFIG_READABLE=false
+    fi
   fi
 
   # Maintenance mode
