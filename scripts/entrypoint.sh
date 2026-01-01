@@ -443,9 +443,6 @@ if [ ! -f /var/www/html/.deployment_complete ]; then
     echo "❌ [PHASE: FINAL] Deployment status page missing!"
   fi
 fi
-else
-  echo "⚠️ [PHASE: UPGRADE] No config found - web installer needed."
-fi
 
 # Chown
 chown -R www-data:www-data /var/www/html
@@ -454,9 +451,10 @@ chown -R www-data:www-data /var/www/html
 ls -la /var/www/html
 psql "$DATABASE_URL" -c "\dp oc_migrations"
 
-# Run fix-warnings if config exists
+# Run fix-warnings if config exists and Nextcloud is installed
 if [ -f "/var/www/html/config/config.php" ]; then
-  /usr/local/bin/fix-warnings.sh  # Run any warning fixes
+  echo "🔧 Running fix-warnings script..."
+  /usr/local/bin/fix-warnings.sh || echo "⚠️ Fix-warnings script failed, but continuing..."
 fi
 
 # Ensure log dirs exist for Supervisor/Nginx/PHP (Fixes crash)
