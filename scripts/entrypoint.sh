@@ -353,7 +353,12 @@ if [ -f "/var/www/html/config/config.php" ]; then
 
   # Test config readability first
   echo "🔍 [PHASE: INSTALL/UPGRADE] Testing config readability..."
-  if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1; then
+  OCC_STATUS_OUTPUT=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1)
+  if echo "$OCC_STATUS_OUTPUT" | grep -q "require upgrade"; then
+    echo "🔄 [PHASE: INSTALL/UPGRADE] Config readable but upgrade needed."
+    CONFIG_READABLE=false
+    UPGRADE_NEEDED=true
+  elif [ $? -eq 0 ]; then
     echo "✅ [PHASE: INSTALL/UPGRADE] Config readable, Nextcloud appears installed."
     CONFIG_READABLE=true
   else
@@ -425,16 +430,16 @@ if [ -f "/var/www/html/config/config.php" ]; then
         exit 1
       fi
     else
-      echo "🔧 [PHASE: INSTALL/UPGRADE] Database tables exist and no cache issues - attempting upgrade."
-  # Run upgrade if needed
-  echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade..."
-  UPGRADE_CMD=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade" 2>&1 || echo "FAILED")
-  if [[ "$UPGRADE_CMD" == *"FAILED"* ]]; then
-    echo "⚠️ [PHASE: UPGRADE] Upgrade failed: $UPGRADE_CMD"
-    # Continue anyway - upgrade might not be strictly needed
-  else
-    echo "✅ [PHASE: UPGRADE] Upgrade completed successfully."
-  fi
+      echo "🔧 [PHASE: INSTALL/UPGRADE] Database tables exist - attempting upgrade."
+      # Run upgrade if needed
+      echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade..."
+      UPGRADE_CMD=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade" 2>&1 || echo "FAILED")
+      if [[ "$UPGRADE_CMD" == *"FAILED"* ]]; then
+        echo "⚠️ [PHASE: UPGRADE] Upgrade failed: $UPGRADE_CMD"
+        # Continue anyway - upgrade might not be strictly needed
+      else
+        echo "✅ [PHASE: UPGRADE] Upgrade completed successfully."
+      fi
 
   # Maintenance mode off
   echo "🔧 [PHASE: UPGRADE] Disabling maintenance mode..."
