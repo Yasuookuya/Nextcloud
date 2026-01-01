@@ -503,23 +503,28 @@ if [ -f "/var/www/html/config/config.php" ]; then
         su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Could not disable maintenance mode"
       fi
 
-  # Maintenance mode off
-  echo "🔧 [PHASE: UPGRADE] Disabling maintenance mode..."
-  MAINT_OFF=$(su www-data -s /bin/bash -c "php occ maintenance:mode --off" 2>&1 || echo "FAILED")
-  if [[ "$MAINT_OFF" == *"FAILED"* ]]; then
-    echo "⚠️ [PHASE: UPGRADE] Maintenance mode disable failed: $MAINT_OFF"
-  else
-    echo "✅ [PHASE: UPGRADE] Maintenance mode disabled."
-  fi
+  # Only run post-upgrade tasks if upgrade was actually needed
+  if [ "$UPGRADE_NEEDED" = true ]; then
+    # Maintenance mode off
+    echo "🔧 [PHASE: UPGRADE] Disabling maintenance mode..."
+    MAINT_OFF=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "FAILED")
+    if [[ "$MAINT_OFF" == *"FAILED"* ]]; then
+      echo "⚠️ [PHASE: UPGRADE] Maintenance mode disable failed: $MAINT_OFF"
+    else
+      echo "✅ [PHASE: UPGRADE] Maintenance mode disabled."
+    fi
 
-  # Redis/memcache (idempotent)
-  echo "⚙️ [PHASE: UPGRADE] Configuring Redis caching..."
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis local cache config failed"
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis locking config failed"
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis host --value=${REDIS_HOST}" 2>&1 || echo "⚠️ Redis host config failed"
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value=${REDIS_PORT}" 2>&1 || echo "⚠️ Redis port config failed"
-  [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value=${REDIS_PASSWORD}" 2>&1 || echo "⚠️ Redis password config failed"
-  echo "✅ [PHASE: UPGRADE] Redis configuration applied."
+    # Redis/memcache (idempotent)
+    echo "⚙️ [PHASE: UPGRADE] Configuring Redis caching..."
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis local cache config failed"
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis locking config failed"
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis host --value=${REDIS_HOST}" 2>&1 || echo "⚠️ Redis host config failed"
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value=${REDIS_PORT}" 2>&1 || echo "⚠️ Redis port config failed"
+    [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value=${REDIS_PASSWORD}" 2>&1 || echo "⚠️ Redis password config failed"
+    echo "✅ [PHASE: UPGRADE] Redis configuration applied."
+  else
+    echo "ℹ️ [PHASE: UPGRADE] No upgrade needed - skipping Redis configuration"
+  fi
 
   # Scans + cron (skip for fresh installs to speed up deployment)
   if [ "$TABLE_COUNT" -gt "10" ]; then
@@ -558,6 +563,38 @@ chown -R www-data:www-data /var/www/html
 # Diagnostics
 ls -la /var/www/html
 psql "$DATABASE_URL" -c "\dp oc_migrations"
+
+# Force disable maintenance mode and clear upgrade flags to ensure Nextcloud is accessible
+if [ -f "/var/www/html/config/config.php" ]; then
+  echo "🔧 Forcing maintenance mode off and clearing upgrade flags..."
+
+  # Try normal occ command first
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Normal maintenance mode disable failed"
+
+  # Force disable by directly editing config.php
+  sed -i "s/'maintenance' => true/'maintenance' => false/g" /var/www/html/config/config.php || echo "⚠️ Config edit failed"
+
+  # Clear any cached maintenance mode
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance" 2>&1 || echo "⚠️ Could not clear maintenance config"
+
+  # Try alternative: create a temporary script to force maintenance off
+  cat > /tmp/force_maintenance_off.php << 'EOF'
+<?php
+$configFile = '/var/www/html/config/config.php';
+if (file_exists($configFile)) {
+    $config = include $configFile;
+    $config['maintenance'] = false;
+    $content = "<?php\n\$CONFIG = " . var_export($config, true) . ";\n";
+    file_put_contents($configFile, $content);
+    echo "Maintenance mode forcibly disabled in config\n";
+}
+?>
+EOF
+  php /tmp/force_maintenance_off.php || echo "⚠️ PHP maintenance force failed"
+  rm -f /tmp/force_maintenance_off.php
+
+  echo "✅ Maintenance mode forcibly disabled"
+fi
 
 # Run fix-warnings if config exists and Nextcloud is installed
 if [ -f "/var/www/html/config/config.php" ]; then
