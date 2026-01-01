@@ -359,17 +359,9 @@ if [ -f "/var/www/html/config/config.php" ]; then
     CONFIG_READABLE=false
     UPGRADE_NEEDED=true
 
-    # Enable maintenance mode before upgrade
-    echo "🔧 [PHASE: UPGRADE] Enabling maintenance mode for upgrade..."
-    MAINT_ON=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on" 2>&1 || echo "FAILED")
-    if [[ "$MAINT_ON" == *"FAILED"* ]]; then
-      echo "⚠️ [PHASE: UPGRADE] Failed to enable maintenance mode: $MAINT_ON"
-    else
-      echo "✅ [PHASE: UPGRADE] Maintenance mode enabled."
-    fi
-
-    # Run upgrade with verbose output and no interaction
-    echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade..."
+    # NOTE: Skip maintenance mode enable/disable during upgrade as occ commands are limited
+    # The upgrade process will handle maintenance mode internally
+    echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade (maintenance mode will be handled automatically)..."
     UPGRADE_CMD=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" 2>&1)
     UPGRADE_EXIT_CODE=$?
 
@@ -381,6 +373,14 @@ if [ -f "/var/www/html/config/config.php" ]; then
 
       # Verify upgrade was successful by checking version
       UPGRADE_CHECK=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1 || echo "CHECK_FAILED")
+      if echo "$UPGRADE_CHECK" | grep -q "version"; then
+        echo "✅ [PHASE: UPGRADE] Version check passed - upgrade verified."
+      else
+        echo "⚠️ [PHASE: UPGRADE] Version check failed, but continuing..."
+      fi
+    else
+      echo "❌ [PHASE: UPGRADE] Upgrade failed with exit code $UPGRADE_EXIT_CODE: $UPGRADE_CMD"
+
       if echo "$UPGRADE_CHECK" | grep -q "version"; then
         echo "✅ [PHASE: UPGRADE] Version check passed - upgrade verified."
       else
@@ -468,14 +468,9 @@ if [ -f "/var/www/html/config/config.php" ]; then
     else
       echo "🔧 [PHASE: INSTALL/UPGRADE] Database tables exist - attempting upgrade."
 
-      # Enable maintenance mode before upgrade
-      echo "🔧 [PHASE: UPGRADE] Enabling maintenance mode for upgrade..."
-      MAINT_ON=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on" 2>&1 || echo "FAILED")
-      if [[ "$MAINT_ON" == *"FAILED"* ]]; then
-        echo "⚠️ [PHASE: UPGRADE] Failed to enable maintenance mode: $MAINT_ON"
-      else
-        echo "✅ [PHASE: UPGRADE] Maintenance mode enabled."
-      fi
+      # NOTE: Skip maintenance mode enable/disable during upgrade as occ commands are limited
+      # The upgrade process will handle maintenance mode internally
+      echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade (maintenance mode will be handled automatically)..."
 
       # Run upgrade with verbose output and no interaction
       echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade..."
