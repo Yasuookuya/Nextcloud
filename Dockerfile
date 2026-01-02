@@ -41,6 +41,18 @@ COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
 COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 
+# Ensure occ command exists (Nextcloud CLI tool)
+RUN if [ ! -f /var/www/html/occ ]; then \
+    echo '#!/usr/bin/env php' > /var/www/html/occ && \
+    echo '<?php' >> /var/www/html/occ && \
+    echo 'require_once __DIR__ . "/lib/base.php";' >> /var/www/html/occ && \
+    echo 'require_once __DIR__ . "/console.php";' >> /var/www/html/occ && \
+    chmod +x /var/www/html/occ && \
+    echo "✅ Created occ command"; \
+else \
+    echo "✅ occ command exists"; \
+fi
+
 # [BUILD: PERMISSIONS] Set permissions
 RUN echo "🔐 [BUILD: PERMISSIONS] Setting script permissions..." && \
     chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh && \
