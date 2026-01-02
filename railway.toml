@@ -1,25 +1,24 @@
 [build]
-builder = "dockerfile"
+builder = "NIXPACKS"
 
 [deploy]
 startCommand = "/usr/local/bin/custom-entrypoint.sh"
-healthcheckPath = "/status.php"
-healthcheckTimeout = 600
-restartPolicyType = "ON_FAILURE"
+restartPolicyType = "ONFAILURE"
 restartPolicyMaxRetries = 10
 
-[env]
-# Nextcloud Configuration
+[[services]]
+[services.vars]
+PORT = "8080"
 NEXTCLOUD_ADMIN_USER = "kikaiworksadmin"
 NEXTCLOUD_ADMIN_PASSWORD = "2046S@nto!7669Y@"
-NEXTCLOUD_TRUSTED_DOMAINS = "${{RAILWAY_PUBLIC_DOMAIN}},localhost,::1,${{RAILWAY_PRIVATE_DOMAIN}},${{RAILWAY_STATIC_URL}}"
+NEXTCLOUD_TRUSTED_DOMAINS = "nextcloud-railway-template-website.up.railway.app,localhost,::1,$RAILWAY_PRIVATE_DOMAIN,$RAILWAY_STATIC_URL"
 NEXTCLOUD_UPDATE_CHECK = "false"
-NEXTCLOUD_DATA_DIR = "/var/www/html/data"
-
-# PHP Performance Settings
+OVERWRITEPROTOCOL = "https"
 PHP_MEMORY_LIMIT = "512M"
 PHP_UPLOAD_LIMIT = "512M"
-PHP_MAX_EXECUTION_TIME = "3600"
 
-# System Settings
-PORT = "8080"
+# Auto-links plugins (Railway UI confirms)
+[services.databases.postgres]
+plugin = "railway.postgres"
+[services.databases.redis]
+plugin = "railway.redis"
