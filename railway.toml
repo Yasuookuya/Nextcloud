@@ -16,14 +16,7 @@ NEXTCLOUD_UPDATE_CHECK = "false"
 OVERWRITEPROTOCOL = "https"
 PHP_MEMORY_LIMIT = "512M"
 PHP_UPLOAD_LIMIT = "512M"
-POSTGRES_DB = "railway"
-POSTGRES_HOST = "${{Postgres.RAILWAY_PRIVATE_DOMAIN}}"
-POSTGRES_PORT = "5432"
-POSTGRES_USER = "postgres"
-POSTGRES_PASSWORD = "${{Postgres.POSTGRES_PASSWORD}}"
-REDIS_PASSWORD = "${{Redis.REDIS_PASSWORD}}"
-REDIS_HOST = "${{Redis.REDISHOST}}"
-REDIS_PORT = "${{Redis.REDISPORT}}"
+
 
 # Auto-links plugins (Railway UI confirms)
 [services.databases.postgres]
