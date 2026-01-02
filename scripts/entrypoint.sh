@@ -390,20 +390,20 @@ chown -R www-data:www-data /var/www/html
 ls -la /var/www/html
 psql "$DATABASE_URL" -c "\dp oc_migrations"
 
-# Robust maintenance off (occ + sed, www-data)
+# Clean maintenance off (sed + occ)
 echo "🔧 [FINAL] Force maintenance off..."
-su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off 2>/dev/null || true"
 sed -i "s/'maintenance'\s*=>\s*true/'maintenance' => false/g" /var/www/html/config/config.php 2>/dev/null || true
 sed -i "s/'maintenance'\s*=>\s*true/'maintenance' => false/g" /var/www/html/data/config.php 2>/dev/null || true
+su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off 2>/dev/null || true"
 su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance 2>/dev/null || true"
 
-# Auto-upgrade if needed (fixes button, Nextcloud docs)
-if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json 2>&1 | grep -q '\"updater\":\"true\"'" ; then
-  echo "⬆️ [FINAL] Auto-upgrading (timeout 5min)..."
+# CLI upgrade bypass (fixes web button, Nextcloud docs)
+if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json 2>&1 | grep -q '\"updater\":\"true\"'" 2>/dev/null; then
+  echo "⬆️ [FINAL] CLI upgrade (bypasses web button)..."
   chmod 666 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
-  timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" || echo "⚠️ Upgrade skipped (web UI fallback)"
+  timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1 || echo "⚠️ CLI upgrade failed, use web UI"
   chmod 444 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off && php occ background-job:cron" || true
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off && php occ background-job:cron" 2>/dev/null || true
 fi
 
 # Fix-warnings safe (post-upgrade)
