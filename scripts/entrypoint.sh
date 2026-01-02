@@ -65,9 +65,13 @@ if (isset(\$CONFIG['redis'])) {
   \$CONFIG['redis']['password'] = '$REDIS_PASSWORD';
 }
 
-// Generate proper PHP config format
-\$configContent = "<?php\n\$CONFIG = " . var_export(\$CONFIG, true) . ";\n";
-file_put_contents('/var/www/html/config/config.php', \$configContent);
+// Write config directly
+\$fp = fopen('/var/www/html/config/config.php', 'w');
+fwrite(\$fp, "<?php\n");
+fwrite(\$fp, "\$CONFIG = ");
+fwrite(\$fp, var_export(\$CONFIG, true));
+fwrite(\$fp, ";\n");
+fclose(\$fp);
 echo "Config updated successfully\n";
 EOF
     su www-data -s /bin/bash -c "cd /var/www/html && php /tmp/update_config.php"
