@@ -104,24 +104,6 @@ for i in {1..3}; do
   [ $i -eq 3 ] && { echo "❌ [PHASE: DB_CHECK] Final failure"; exit 1; }
 done
 
-# Check database version compatibility
-if psql "$DATABASE_URL" -c "\dt oc_*" >/dev/null 2>&1; then
-  echo "🔍 Checking database version compatibility..."
-  # Try a quick upgrade test to see if it's compatible
-  UPGRADE_TEST=$(timeout 30 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" 2>&1 | head -10)
-  if echo "$UPGRADE_TEST" | grep -q "Updates between multiple major versions and downgrades are unsupported"; then
-    echo "⚠️ Database schema is incompatible with Nextcloud 29.0.16"
-    echo "💡 Detected old Nextcloud version - resetting for clean installation"
-    echo "🔄 Resetting database for clean 29.0.16 installation..."
-    # Reset database for clean install
-    psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;" 2>/dev/null || echo "⚠️ DB reset failed"
-    DB_HAS_TABLES=false
-    echo "✅ Database reset complete - will perform fresh installation"
-  else
-    echo "✅ Database appears compatible with Nextcloud 29.0.16"
-  fi
-fi
-
 # Grant permissions to postgres user if tables exist (fix for existing DB)
 if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
   echo "Reassigning ownership and granting permissions to postgres user on existing tables..."
@@ -243,11 +225,25 @@ fi
 
 fix_permissions  # Early enforcement
 
-echo "🚀 [UPGRADE PHASE] Consolidated upgrade/repair (https://docs.nextcloud.com/server/29/admin_manual/maintenance/upgrade.html)..."
+# Check database version compatibility (after config is ready)
+if psql "$DATABASE_URL" -c "\dt oc_*" >/dev/null 2>&1; then
+  echo "🔍 Checking database version compatibility..."
+  # Try a quick upgrade test to see if it's compatible
+  UPGRADE_TEST=$(timeout 30 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" 2>&1 | head -10)
+  if echo "$UPGRADE_TEST" | grep -q "Updates between multiple major versions and downgrades are unsupported"; then
+    echo "⚠️ Database schema is incompatible with Nextcloud 29.0.16"
+    echo "💡 Detected old Nextcloud version - resetting for clean installation"
+    echo "🔄 Resetting database for clean 29.0.16 installation..."
+    # Reset database for clean install
+    psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;" 2>/dev/null || echo "⚠️ DB reset failed"
+    DB_HAS_TABLES=false
+    echo "✅ Database reset complete - will perform fresh installation"
+  else
+    echo "✅ Database appears compatible with Nextcloud 29.0.16"
+  fi
+fi
 
-# Temp writable
-chmod 777 /var/www/html/config /var/www/html/data 2>/dev/null || true
-chmod 666 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
+echo "🚀 [UPGRADE PHASE] Consolidated upgrade/repair (https://docs.nextcloud.com/server/29/admin_manual/maintenance/upgrade.html)..."
 
 su www-data -s /bin/bash -c "
   cd /var/www/html &&
