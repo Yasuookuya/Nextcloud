@@ -66,15 +66,13 @@ fi
 
 fix_permissions
 
-# Essentials ONLY (upgrade if needed, no app:update → UI handles)
+# Essentials ONLY (upgrade for existing DBs, no app:update → UI handles)
 su www-data -s /bin/bash -c "
   cd /var/www/html &&
-  if php occ status --output=json 2>/dev/null | grep -q '\"needsUpgrade\":true'; then
-    echo '🔄 Upgrade needed, running...'
-    php occ maintenance:mode --on &&
-    php occ upgrade --no-interaction &&
-    php occ maintenance:mode --off
-  fi &&
+  echo '🔄 Checking for upgrades...' &&
+  php occ maintenance:mode --on &&
+  php occ upgrade --no-interaction || echo '⚠️ Upgrade failed or not needed' &&
+  php occ maintenance:mode --off &&
   php occ maintenance:mode --off &&
   php occ config:system:set htaccess.RewriteBase --value=/ &&
   php occ maintenance:update:htaccess &&
