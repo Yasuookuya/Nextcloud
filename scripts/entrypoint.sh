@@ -142,4 +142,8 @@ ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
 a2dismod mpm_event mpm_worker || true
 a2enmod mpm_prefork || true
 
-exec /entrypoint.sh apache2-foreground
+echo "Starting Apache..."
+/entrypoint.sh apache2-foreground &
+sleep 5
+echo "Apache PID: $(pgrep apache2)"
+tail -f /var/log/apache2/error.log /var/log/apache2/access.log
