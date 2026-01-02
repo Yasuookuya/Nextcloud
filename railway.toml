@@ -23,10 +23,3 @@ PHP_MAX_EXECUTION_TIME = "3600"
 
 # System Settings
 PORT = "8080"
-
-[healthcheck]
-path = "/status.php"
-interval = 30
-timeout = 10
-startPeriod = 60
-retries = 3
