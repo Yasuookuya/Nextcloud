@@ -4,6 +4,7 @@ set -e
 # Railway env (plugins auto-injected)
 export PGSSLMODE=disable
 export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
+export REDIS_PASSWORD="${REDIS_HOST_PASSWORD:-}"
 
 # Validate
 if [ -z "$POSTGRES_HOST" ] || [ -z "$REDIS_HOST" ]; then
