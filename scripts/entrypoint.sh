@@ -44,6 +44,9 @@ export SMTP_PASSWORD=${SMTP_PASSWORD:-null}
 export MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS:-null}
 export MAIL_DOMAIN=${MAIL_DOMAIN:-null}
 
+# Set Nextcloud version from Dockerfile
+export NEXTCLOUD_VERSION="29.0.16"
+
 echo "✅ Railway environment variables set"
 
 echo "🚀 Starting NextCloud Railway deployment..."
@@ -349,7 +352,22 @@ timeout 30 sh -c "until redis-cli -h '$REDIS_HOST' -p '$REDIS_PORT' ${REDIS_PASS
 echo "🚀 APP/CORE UPGRADE BLOCK"
 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on || true"
 timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction"
-timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"
+
+# Check version before core upgrade to prevent multi-major version failures
+if [ -f "/var/www/html/data/config.php" ]; then
+  CURRENT_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
+  if [ "$CURRENT_VERSION" = "$NEXTCLOUD_VERSION" ] || [ "$CURRENT_VERSION" = "unknown" ]; then
+    echo "✅ Version match or unknown, proceeding with core upgrade..."
+    timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"
+  else
+    echo "⚠️ Version mismatch detected: DB version $CURRENT_VERSION vs Code version $NEXTCLOUD_VERSION. Skipping core upgrade to prevent data loss."
+    echo "   Please perform manual stepwise upgrades (e.g., 27→28→29) or restore from backup."
+  fi
+else
+  echo "🆕 No existing config, proceeding with core upgrade for fresh install..."
+  timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"
+fi
+
 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair --include-expensive"
 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
 
@@ -375,8 +393,17 @@ for retry in $(seq 1 $MAX_RETRIES); do
     timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-columns || true"
     timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-indices || true"
 
-    # Core
-    timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" || echo "Core partial"
+    # Core (with version check)
+    if [ -f "/var/www/html/data/config.php" ]; then
+      CURRENT_LOOP_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
+      if [ "$CURRENT_LOOP_VERSION" = "$NEXTCLOUD_VERSION" ] || [ "$CURRENT_LOOP_VERSION" = "unknown" ]; then
+        timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" || echo "Core partial"
+      else
+        echo "⚠️ Skipping core upgrade in loop: DB version $CURRENT_LOOP_VERSION != Code version $NEXTCLOUD_VERSION"
+      fi
+    else
+      timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" || echo "Core partial"
+    fi
 
     # Repair
     timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair --include-expensive"
@@ -437,11 +464,17 @@ su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete ma
 
 # CLI upgrade bypass (fixes web button, Nextcloud docs)
 if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json 2>&1 | grep -q '\"updater\":\"true\"'" 2>/dev/null; then
-  echo "⬆️ [FINAL] CLI upgrade (bypasses web button)..."
-  chmod 666 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
-  timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1 || echo "⚠️ CLI upgrade failed, use web UI"
-  chmod 444 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off && php occ background-job:cron" 2>/dev/null || true
+  echo "⬆️ [FINAL] CLI upgrade check (bypasses web button)..."
+  FINAL_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
+  if [ "$FINAL_VERSION" = "$NEXTCLOUD_VERSION" ] || [ "$FINAL_VERSION" = "unknown" ]; then
+    echo "✅ Proceeding with CLI upgrade..."
+    chmod 666 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
+    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1 || echo "⚠️ CLI upgrade failed, use web UI"
+    chmod 444 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off && php occ background-job:cron" 2>/dev/null || true
+  else
+    echo "⚠️ Skipping CLI upgrade: DB version $FINAL_VERSION != Code version $NEXTCLOUD_VERSION"
+  fi
 fi
 
 # Fix-warnings safe (post-upgrade)
@@ -514,13 +547,19 @@ fi
 
 # Auto-upgrade (www-data, Nextcloud docs)
 echo "⬆️ [PHASE: FINAL] Checking for Nextcloud updates..."
-su www-data -s /bin/bash -c '
-  cd /var/www/html &&
-  php occ maintenance:mode --on &&
-  php occ upgrade --no-interaction --verbose &&
-  php occ maintenance:mode --off &&
-  php occ background-job:cron
-' || echo "⚠️ [PHASE: FINAL] Auto-upgrade skipped (non-fatal)"
+FINAL_AUTO_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
+if [ "$FINAL_AUTO_VERSION" = "$NEXTCLOUD_VERSION" ] || [ "$FINAL_AUTO_VERSION" = "unknown" ]; then
+  echo "✅ Proceeding with final auto-upgrade..."
+  su www-data -s /bin/bash -c '
+    cd /var/www/html &&
+    php occ maintenance:mode --on &&
+    php occ upgrade --no-interaction --verbose &&
+    php occ maintenance:mode --off &&
+    php occ background-job:cron
+  ' || echo "⚠️ [PHASE: FINAL] Auto-upgrade failed (non-fatal)"
+else
+  echo "⚠️ [PHASE: FINAL] Skipping auto-upgrade: DB version $FINAL_AUTO_VERSION != Code version $NEXTCLOUD_VERSION"
+fi
 
 echo "🚀 [PHASE: FINAL] All pre-flight checks passed. Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
