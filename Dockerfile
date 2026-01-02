@@ -42,7 +42,11 @@ COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 
 # Ensure occ command exists (Nextcloud CLI tool)
-RUN if [ ! -f /var/www/html/occ ]; then \
+RUN if [ -f /usr/src/nextcloud/occ ]; then \
+    cp /usr/src/nextcloud/occ /var/www/html/ && \
+    chmod +x /var/www/html/occ && \
+    echo "✅ Copied occ from source"; \
+elif [ ! -f /var/www/html/occ ]; then \
     echo '#!/usr/bin/env php' > /var/www/html/occ && \
     echo '<?php' >> /var/www/html/occ && \
     echo 'require_once __DIR__ . "/lib/base.php";' >> /var/www/html/occ && \
