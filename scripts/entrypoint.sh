@@ -18,6 +18,7 @@ echo "⌛ Waiting DB/Redis..."
 timeout 60 sh -c "until pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT; do sleep 2; done"
 timeout 60 sh -c "until redis-cli -h $REDIS_HOST -p $REDIS_PORT ${REDIS_PASSWORD:+-a $REDIS_PASSWORD} ping; do sleep 2; done"
 
+
 fix_permissions() {
   mkdir -p /var/www/html/{config,data}
   chown -R www-data:www-data /var/www/html{,/config,/data}
