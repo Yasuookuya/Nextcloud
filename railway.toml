@@ -1,6 +1,3 @@
-[build]
-dockerfilePath = "./Dockerfile"
-
 [deploy]
 startCommand = "/usr/local/bin/custom-entrypoint.sh"
 restartPolicyType = "ON_FAILURE"
