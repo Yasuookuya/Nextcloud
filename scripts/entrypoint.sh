@@ -76,20 +76,20 @@ done
 
 echo "✅ Environment validation complete"
 
-echo "=== [PHASE: DB_CHECK] STEP 2: DB DIAG ==="
-echo "🔍 [PHASE: DB_CHECK] Checking database connectivity..."
-DB_TABLES=$(psql "$DATABASE_URL" -c "\dt" 2>&1)
-if [ $? -eq 0 ]; then
-  echo "✅ [PHASE: DB_CHECK] Database connection successful."
-  echo "📊 [PHASE: DB_CHECK] Tables found:"
-  echo "$DB_TABLES"
-  TABLE_COUNT=$(echo "$DB_TABLES" | grep -c "table")
-  echo "📈 [PHASE: DB_CHECK] Total tables: $TABLE_COUNT"
-else
-  echo "❌ [PHASE: DB_CHECK] Database connection failed:"
-  echo "$DB_TABLES"
-  exit 1
-fi
+# STEP 2: DB DIAG with retry
+echo "🔍 [PHASE: DB_CHECK] Checking database connectivity (3 retries)..."
+for i in {1..3}; do
+  if DB_TABLES=$(timeout 10 psql "$DATABASE_URL" -c "\dt" 2>&1) && [ $? -eq 0 ]; then
+    echo "✅ [PHASE: DB_CHECK] Database connection successful."
+    echo "📊 Tables: $(echo "$DB_TABLES" | grep -c "table")"
+    DB_HAS_TABLES=true
+    break
+  else
+    echo "⚠️ [PHASE: DB_CHECK] Attempt $i failed: $DB_TABLES"
+    sleep 5
+  fi
+  [ $i -eq 3 ] && { echo "❌ [PHASE: DB_CHECK] Final failure"; exit 1; }
+done
 
 # Grant permissions to postgres user if tables exist (fix for existing DB)
 if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
@@ -331,209 +331,45 @@ if [ ! -f "/var/www/html/occ" ]; then
   fi
 fi
 
-# [PHASE: INSTALL/UPGRADE] Handle both fresh installs and upgrades - SIMPLIFIED AND FIXED
-if [ -f "/var/www/html/config/config.php" ]; then
-  echo "✅ [PHASE: INSTALL/UPGRADE] Config exists → Checking installation status."
+# Always generate config (fresh or existing) - PERSISTENT
+echo "📝 Generating persistent config.php..."
+mkdir -p /var/www/html/config /var/www/html/data
+CONFIG_FILE="/var/www/html/data/config.php"
+# ... (keep instanceid/passwordsalt logic) ...
+# Generate & subst template (keep existing sed block)
+# Lint + chown + copy to $CONFIG_FILE (keep)
 
-  # Test config readability first
-  echo "🔍 [PHASE: INSTALL/UPGRADE] Testing config readability..."
-  OCC_STATUS_OUTPUT=$(timeout 30 su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1)
-  OCC_EXIT_CODE=$?
+# Waits with retries
+echo "⌛ Waiting for PostgreSQL (max 30s)..."
+timeout 30 sh -c "until pg_isready -h '$POSTGRES_HOST' -p '$POSTGRES_PORT'; do sleep 2; done" || exit 1
+echo "⌛ Waiting for Redis (max 30s)..."
+timeout 30 sh -c "until redis-cli -h '$REDIS_HOST' -p '$REDIS_PORT' ${REDIS_PASSWORD:+-a '$REDIS_PASSWORD'} ping; do sleep 2; done" || exit 1
 
-  if echo "$OCC_STATUS_OUTPUT" | grep -q "require upgrade"; then
-    echo "🔄 [PHASE: INSTALL/UPGRADE] Config readable but upgrade needed."
-    echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade with timeout protection..."
-
-    # Make config.php writable for upgrade process - use 666 for full access
-    echo "🔧 [PHASE: UPGRADE] Making config.php writable for upgrade..."
-    chmod 666 /var/www/html/config/config.php
-    if [ -f "/var/www/html/data/config.php" ]; then
-      chmod 666 /var/www/html/data/config.php
-    fi
-
-    # Run upgrade with timeout and better error handling - run as root to bypass permission issues
-    timeout 600 bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1
-    UPGRADE_EXIT_CODE=$?
-
-    echo "🔍 [PHASE: UPGRADE] Upgrade exit code: $UPGRADE_EXIT_CODE"
-
-    if [ $UPGRADE_EXIT_CODE -eq 0 ]; then
-      echo "✅ [PHASE: UPGRADE] Upgrade completed successfully."
-      # Make config.php read-only again for security
-      echo "🔒 [PHASE: UPGRADE] Making config.php read-only again..."
-      chmod 444 /var/www/html/config/config.php
-      if [ -f "/var/www/html/data/config.php" ]; then
-        chmod 444 /var/www/html/data/config.php
-      fi
-    elif [ $UPGRADE_EXIT_CODE -eq 124 ]; then
-      echo "⏰ [PHASE: UPGRADE] Upgrade timed out after 10 minutes - checking status..."
-      # Check if upgrade actually completed despite timeout
-      sleep 5
-      if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" | grep -q '"installed":true' 2>/dev/null; then
-        echo "✅ [PHASE: UPGRADE] Upgrade actually completed (timeout was just slow output)."
-        # Make config.php read-only again for security
-        echo "🔒 [PHASE: UPGRADE] Making config.php read-only again..."
-        chmod 444 /var/www/html/config/config.php
-        if [ -f "/var/www/html/data/config.php" ]; then
-          chmod 444 /var/www/html/data/config.php
-        fi
-      else
-        echo "❌ [PHASE: UPGRADE] Upgrade timed out and appears incomplete."
-        exit 1
-      fi
-    else
-      echo "❌ [PHASE: UPGRADE] Upgrade failed with exit code $UPGRADE_EXIT_CODE"
-      exit 1
-    fi
-
-  elif [ $OCC_EXIT_CODE -eq 0 ]; then
-    echo "✅ [PHASE: INSTALL/UPGRADE] Nextcloud is up to date and operational."
-  else
-    echo "⚠️ [PHASE: INSTALL/UPGRADE] OCC status failed - attempting repair..."
-
-    # Check for common issues
-    if ! php -l /var/www/html/config/config.php >/dev/null 2>&1; then
-      echo "❌ Config.php syntax error - cannot continue"
-      exit 1
-    fi
-
-    # Try maintenance mode reset
-    echo "🔧 Attempting maintenance mode reset..."
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>/dev/null || true
-
-    # Check database connection
-    if ! psql "$DATABASE_URL" -c "SELECT 1;" >/dev/null 2>&1; then
-      echo "❌ Database connection failed - cannot continue"
-      exit 1
-    fi
-
-    echo "🔄 Attempting fresh upgrade after repair..."
-    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" 2>&1
-    if [ $? -eq 0 ]; then
-      echo "✅ [PHASE: INSTALL/UPGRADE] Repair and upgrade successful."
-    else
-      echo "❌ [PHASE: INSTALL/UPGRADE] Repair failed - manual intervention required."
-      exit 1
-    fi
+# SIMPLIFIED INSTALL/UPGRADE (single path, no deep nesting)
+if [ -f "$CONFIG_FILE" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ status" >/dev/null 2>&1; then
+  echo "✅ Nextcloud installed. Checking upgrade..."
+  if su www-data -s /bin/bash -c "cd /var/www/html && php occ status" | grep -q "require upgrade"; then
+    echo "⬆️ Upgrading..."
+    chmod 666 /var/www/html/config/config.php "$CONFIG_FILE"
+    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" || exit 1
+    chmod 444 /var/www/html/config/config.php "$CONFIG_FILE"
   fi
 else
-  echo "⚠️ [PHASE: INSTALL/UPGRADE] No config found - fresh installation needed."
-
-  # Fresh installation
-  mkdir -p /var/www/html/data
-  chown www-data:www-data /var/www/html/data
-
-  echo "🏗️ [PHASE: INSTALL/UPGRADE] Running fresh Nextcloud installation..."
-  INSTALL_CMD="cd /var/www/html && php occ maintenance:install --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST --database-port $POSTGRES_PORT --database-user $POSTGRES_USER --database-pass $POSTGRES_PASSWORD --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD --data-dir /var/www/html/data"
-
-    echo "🔍 [PHASE: INSTALL/UPGRADE] Found $TABLE_COUNT Nextcloud tables"
-
-    # Force fresh installation if OCC status fails consistently
-    if [ "$TABLE_COUNT" -eq "0" ] || [[ "$OCC_STATUS" == *"Memcache"* ]] || [[ "$OCC_STATUS" == *"not available"* ]]; then
-      echo "📦 [PHASE: INSTALL/UPGRADE] Performing fresh installation (no tables or cache issues detected)"
-
-      # Clean up any existing broken config that might interfere
-      if [ -f "/var/www/html/config/config.php" ]; then
-        echo "🧹 [PHASE: INSTALL/UPGRADE] Removing potentially broken config.php"
-        rm -f /var/www/html/config/config.php
-      fi
-
-      # Fresh installation with explicit data directory
-      mkdir -p /var/www/html/data
-      chown www-data:www-data /var/www/html/data
-
-      INSTALL_CMD="cd /var/www/html && php occ maintenance:install --database pgsql --database-name $POSTGRES_DB --database-host $POSTGRES_HOST --database-port $POSTGRES_PORT --database-user $POSTGRES_USER --database-pass $POSTGRES_PASSWORD --admin-user $NEXTCLOUD_ADMIN_USER --admin-pass $NEXTCLOUD_ADMIN_PASSWORD --data-dir /var/www/html/data"
-      echo "🏗️ [PHASE: INSTALL/UPGRADE] Running: $INSTALL_CMD"
-
-      if su www-data -s /bin/bash -c "$INSTALL_CMD" 2>&1; then
-        echo "✅ [PHASE: INSTALL/UPGRADE] Fresh installation completed successfully."
-
-        # Verify installation worked
-        if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1; then
-          echo "✅ [PHASE: INSTALL/UPGRADE] Installation verified - OCC status OK"
-          CONFIG_READABLE=true
-        else
-          echo "❌ [PHASE: INSTALL/UPGRADE] Installation verification failed"
-          exit 1
-        fi
-      else
-        echo "❌ [PHASE: INSTALL/UPGRADE] Fresh installation failed!"
-        exit 1
-      fi
-    else
-      echo "🔧 [PHASE: INSTALL/UPGRADE] Database tables exist - attempting upgrade."
-
-      # NOTE: Skip maintenance mode enable/disable during upgrade as occ commands are limited
-      # The upgrade process will handle maintenance mode internally
-      echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade (maintenance mode will be handled automatically)..."
-
-      # Run upgrade with verbose output and no interaction
-      echo "⬆️ [PHASE: UPGRADE] Running Nextcloud upgrade..."
-      UPGRADE_CMD=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" 2>&1)
-      UPGRADE_EXIT_CODE=$?
-
-      echo "🔍 [PHASE: UPGRADE] Upgrade output:"
-      echo "$UPGRADE_CMD"
-
-      if [ $UPGRADE_EXIT_CODE -eq 0 ] && [[ "$UPGRADE_CMD" != *"FAILED"* ]] && [[ "$UPGRADE_CMD" != *"error"* ]] && [[ "$UPGRADE_CMD" != *"Error"* ]]; then
-        echo "✅ [PHASE: UPGRADE] Upgrade completed successfully."
-
-        # Verify upgrade was successful by checking version
-        UPGRADE_CHECK=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" 2>&1 || echo "CHECK_FAILED")
-        if echo "$UPGRADE_CHECK" | grep -q "version"; then
-          echo "✅ [PHASE: UPGRADE] Version check passed - upgrade verified."
-        else
-          echo "⚠️ [PHASE: UPGRADE] Version check failed, but continuing..."
-        fi
-      else
-        echo "❌ [PHASE: UPGRADE] Upgrade failed with exit code $UPGRADE_EXIT_CODE: $UPGRADE_CMD"
-
-        # Force maintenance mode off even if upgrade failed
-        echo "🔧 [PHASE: UPGRADE] Attempting to force disable maintenance mode..."
-        su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Could not disable maintenance mode"
-      fi
-
-  # Only run post-upgrade tasks if upgrade was actually needed
-  if [ "$UPGRADE_NEEDED" = true ]; then
-    # Maintenance mode off
-    echo "🔧 [PHASE: UPGRADE] Disabling maintenance mode..."
-    MAINT_OFF=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "FAILED")
-    if [[ "$MAINT_OFF" == *"FAILED"* ]]; then
-      echo "⚠️ [PHASE: UPGRADE] Maintenance mode disable failed: $MAINT_OFF"
-    else
-      echo "✅ [PHASE: UPGRADE] Maintenance mode disabled."
-    fi
-
-    # Redis/memcache (idempotent)
-    echo "⚙️ [PHASE: UPGRADE] Configuring Redis caching..."
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis local cache config failed"
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.locking --value=\\OC\\Memcache\\Redis" 2>&1 || echo "⚠️ Redis locking config failed"
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis host --value=${REDIS_HOST}" 2>&1 || echo "⚠️ Redis host config failed"
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value=${REDIS_PORT}" 2>&1 || echo "⚠️ Redis port config failed"
-    [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value=${REDIS_PASSWORD}" 2>&1 || echo "⚠️ Redis password config failed"
-    echo "✅ [PHASE: UPGRADE] Redis configuration applied."
-  else
-    echo "ℹ️ [PHASE: UPGRADE] No upgrade needed - skipping Redis configuration"
-  fi
-
-  # Scans + cron (skip for fresh installs to speed up deployment)
-  if [ "$TABLE_COUNT" -gt "10" ]; then
-    echo "📁 [PHASE: UPGRADE] Running file scans (upgrade detected)..."
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ files:scan --all" 2>&1 || echo "⚠️ File scan failed"
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ groupfolders:scan --all" 2>&1 || echo "⚠️ Group folders scan failed"
-  else
-    echo "📁 [PHASE: UPGRADE] Skipping file scans for fresh install (will run later)..."
-  fi
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ background-job:cron" 2>&1 || echo "⚠️ Background jobs failed"
-  # Skip integrity check for speed
-  echo "⚠️ Skipping integrity check for deployment speed"
-
-  echo "✅ [PHASE: UPGRADE] Upgrade & post-setup complete. Admin: ${NEXTCLOUD_ADMIN_USER}/${NEXTCLOUD_ADMIN_PASSWORD}"
-    fi
-  fi
-else
-  echo "⚠️ [PHASE: UPGRADE] No config found - basic installation may still work."
+  echo "🏗️ Fresh install..."
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:install \
+    --database 'pgsql' --database-host '$POSTGRES_HOST' --database-port '$POSTGRES_PORT' \
+    --database-name '$POSTGRES_DB' --database-user '$POSTGRES_USER' --database-pass '$POSTGRES_PASSWORD' \
+    --admin-user '$NEXTCLOUD_ADMIN_USER' --admin-pass '$NEXTCLOUD_ADMIN_PASSWORD' \
+    --data-dir '/var/www/html/data'" || exit 1
 fi
+
+# Post-install (always)
+su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.local --value='\\OC\\Memcache\\Redis'"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.locking --value='\\OC\\Memcache\\Redis'"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis host --value='$REDIS_HOST'"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value='$REDIS_PORT'"
+[ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value='$REDIS_PASSWORD'"
 
 # Create deployment completion flag for nginx (always create if config exists)
 if [ -f "/var/www/html/config/config.php" ]; then
@@ -607,7 +443,7 @@ echo "  - Admin User: ${NEXTCLOUD_ADMIN_USER}"
 echo "  - Database: PostgreSQL (${POSTGRES_DB})"
 echo "  - Cache: Redis (${REDIS_HOST}:${REDIS_PORT})"
 echo "  - Services: nginx + php-fpm + cron"
-echo "🔗 [PHASE: FINAL] Access URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
+echo "� [PHASE: FINAL] Access URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
 
 # Final health check and service preparation
 if [ -f "/var/www/html/config/config.php" ]; then

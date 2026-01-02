@@ -78,12 +78,12 @@ RUN echo "🔍 [BUILD: VALIDATE] Starting comprehensive build validation..." && 
 # [BUILD: SYNTAX] Script and config syntax validation
 RUN echo "📝 [BUILD: SYNTAX] Validating script and config syntax..." && \
     echo "🔍 [BUILD: SYNTAX] Checking shell scripts..." && \
-    bash -n /usr/local/bin/custom-entrypoint.sh && echo "✅ [BUILD: SYNTAX] Entrypoint script syntax OK" || (echo "❌ [BUILD: SYNTAX] Entrypoint script syntax error" && exit 1) && \
-    bash -n /usr/local/bin/fix-warnings.sh && echo "✅ [BUILD: SYNTAX] Fix-warnings script syntax OK" || (echo "❌ [BUILD: SYNTAX] Fix-warnings script syntax error" && exit 1) && \
+    (bash -n /usr/local/bin/custom-entrypoint.sh && echo "✅ [BUILD: SYNTAX] Entrypoint script syntax OK") || (echo "❌ [BUILD: SYNTAX] Entrypoint script syntax error" && exit 1) && \
+    (bash -n /usr/local/bin/fix-warnings.sh && echo "✅ [BUILD: SYNTAX] Fix-warnings script syntax OK") || (echo "❌ [BUILD: SYNTAX] Fix-warnings script syntax error" && exit 1) && \
     echo "🔍 [BUILD: SYNTAX] Checking configuration files..." && \
-    export PORT=${PORT:-8080} && envsubst '$PORT' < /etc/nginx/nginx.conf | nginx -t -c - && echo "✅ [BUILD: SYNTAX] Nginx config syntax OK" || (echo "❌ [BUILD: SYNTAX] Nginx config syntax error" && exit 1) && \
+    export PORT=${PORT:-8080} && (envsubst '$PORT' < /etc/nginx/nginx.conf | nginx -t -c - && echo "✅ [BUILD: SYNTAX] Nginx config syntax OK") || (echo "❌ [BUILD: SYNTAX] Nginx config syntax error" && exit 1) && \
     python3 -c "import configparser; c = configparser.ConfigParser(); c.read('/etc/supervisor/conf.d/supervisord.conf')" 2>/dev/null && echo "✅ [BUILD: SYNTAX] Supervisor config syntax OK" || echo "⚠️ [BUILD: SYNTAX] Supervisor config syntax check limited" && \
-    php -l /usr/local/etc/php/conf.d/nextcloud.ini && echo "✅ [BUILD: SYNTAX] PHP config syntax OK" || (echo "❌ [BUILD: SYNTAX] PHP config syntax error" && exit 1) && \
+    (php -l /usr/local/etc/php/conf.d/nextcloud.ini && echo "✅ [BUILD: SYNTAX] PHP config syntax OK") || (echo "❌ [BUILD: SYNTAX] PHP config syntax error" && exit 1) && \
     echo "✅ [BUILD: SYNTAX] All syntax checks passed"
 
 # [BUILD: RESOURCES] System resource and dependency checks
