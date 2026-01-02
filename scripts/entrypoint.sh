@@ -29,7 +29,7 @@ fix_permissions() {
 }
 
 # Install IF NEEDED (simple: no tables)
-if ! psql "$DATABASE_URL" -lqt | cut -d \| -f 1 | grep -qw oc_; then
+if ! psql "$DATABASE_URL" -c "\dt oc_*" >/dev/null 2>&1; then
   echo "🏗️ Fresh install..."
   su www-data -s /bin/bash -c "
     cd /var/www/html &&
@@ -89,7 +89,6 @@ else
     'host' => '$REDIS_HOST', 'port' => '$REDIS_PORT',
     'password' => '${REDIS_PASSWORD:-}',
   ),
-  'config_is_read_only' => true,
 );
 EOF
 
@@ -105,9 +104,9 @@ fix_permissions
 su www-data -s /bin/bash -c "
   cd /var/www/html &&
   php occ maintenance:mode --off &&
-  php occ config:system:set config_is_read_only --value=true &&
   php occ config:system:set htaccess.RewriteBase --value=/ &&
-  php occ maintenance:update:htaccess
+  php occ maintenance:update:htaccess &&
+  php occ config:system:set config_is_read_only --value=true
 "
 
 touch /var/www/html/.deployment_complete
