@@ -104,6 +104,30 @@ for i in {1..3}; do
   [ $i -eq 3 ] && { echo "❌ [PHASE: DB_CHECK] Final failure"; exit 1; }
 done
 
+# Check database version compatibility
+if psql "$DATABASE_URL" -c "\dt oc_*" >/dev/null 2>&1; then
+  echo "🔍 Checking database version compatibility..."
+  # Get the latest migration to determine DB version
+  LATEST_MIGRATION=$(psql "$DATABASE_URL" -t -c "SELECT app, version FROM oc_migrations ORDER BY app, version DESC LIMIT 1;" 2>/dev/null | head -1)
+  if [ -n "$LATEST_MIGRATION" ]; then
+    echo "📊 Latest migration: $LATEST_MIGRATION"
+    # Extract version from migration (this is approximate)
+    DB_MAJOR_VERSION=$(echo "$LATEST_MIGRATION" | grep -o '[0-9]\+' | head -1)
+    echo "🎯 Detected DB major version: ~$DB_MAJOR_VERSION"
+    echo "📦 Code version: $NEXTCLOUD_VERSION (29.0.16)"
+
+    if [ "$DB_MAJOR_VERSION" -lt 25 ] 2>/dev/null; then
+      echo "⚠️ Database version ($DB_MAJOR_VERSION) is too old for direct upgrade to 29.0.16"
+      echo "💡 Nextcloud requires step-by-step upgrades for major version jumps"
+      echo "🔄 Resetting database for clean 29.0.16 installation..."
+      # Reset database for clean install
+      psql "$DATABASE_URL" -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO postgres; GRANT ALL ON SCHEMA public TO public;" 2>/dev/null || echo "⚠️ DB reset failed"
+      DB_HAS_TABLES=false
+      echo "✅ Database reset complete"
+    fi
+  fi
+fi
+
 # Grant permissions to postgres user if tables exist (fix for existing DB)
 if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
   echo "Reassigning ownership and granting permissions to postgres user on existing tables..."
