@@ -154,28 +154,6 @@ EOF
   chown www-data:www-data /var/www/html/config/autoconfig.php
   chmod 640 /var/www/html/config/autoconfig.php
   echo "✅ Autoconfig.php created for automatic installation"
-
-  # Install Nextcloud automatically
-  echo "🔧 Installing Nextcloud automatically..."
-  su www-data -s /bin/bash -c "
-    cd /var/www/html &&
-    php console.php maintenance:install \
-      --database pgsql \
-      --database-name \"$POSTGRES_DB\" \
-      --database-user \"$PGUSER\" \
-      --database-pass \"$PGPASSWORD\" \
-      --database-host \"$PGHOST:$PGPORT\" \
-      --admin-user \"$NEXTCLOUD_ADMIN_USER\" \
-      --admin-pass \"$NEXTCLOUD_ADMIN_PASSWORD\" \
-      --data-dir /var/www/html/data
-  "
-  if [ $? -eq 0 ]; then
-    echo "✅ Nextcloud installed successfully"
-    # Clean up autoconfig.php after successful install
-    rm -f /var/www/html/config/autoconfig.php
-  else
-    echo "❌ Automatic installation failed, falling back to web installer"
-  fi
 fi
 
 fix_permissions
