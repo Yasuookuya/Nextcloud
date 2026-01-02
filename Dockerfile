@@ -1,10 +1,27 @@
-FROM nextcloud:latest
+FROM nextcloud:32-fpm
 
 # [BUILD: BASE] Base image info
 RUN echo "🏗️ [BUILD: BASE] Using Nextcloud base image" && \
     echo "📦 [BUILD: BASE] Nextcloud version check:" && \
     php -r "echo 'PHP Version: ' . PHP_VERSION . PHP_EOL;" && \
     ls -la /usr/src/nextcloud/version.php || echo "⚠️ [BUILD: BASE] Version file not found"
+
+# [BUILD: DEPENDENCIES] Install additional tools FIRST
+RUN echo "📥 [BUILD: DEPENDENCIES] Installing additional packages..." && \
+    apt-get update && apt-get install -y gettext-base nginx supervisor curl postgresql-client procps net-tools bind9-utils bash redis-tools iproute2 php8.3-fpm php8.3-pgsql php8.3-redis php8.3-gd php8.3-curl php8.3-zip php8.3-xml php8.3-mbstring php8.3-intl && \
+    apt-get clean && \
+    ln -sf /usr/sbin/php-fpm8.3 /usr/bin/php-fpm || true && \
+    echo "✅ [BUILD: DEPENDENCIES] Package installation complete"
+
+# [BUILD: DIAGNOSTICS] Tool version checks
+RUN echo "🔍 [BUILD: DIAGNOSTICS] Checking installed tools:" && \
+    echo "✅ Bash: $(bash --version 2>/dev/null | head -1 || echo 'ready')" && \
+    echo "✅ Redis CLI: $(redis-cli --version 2>/dev/null || echo 'ready')" && \
+    echo "✅ Postgres client: $(psql --version 2>/dev/null | head -1 || echo 'ready')" && \
+    echo "✅ Nginx: $(nginx -v 2>&1 || echo 'ready')" && \
+    echo "✅ PHP: $(php --version | head -1 || echo 'ready')" && \
+    echo "✅ IP route: $(ip route 2>/dev/null | head -1 || echo 'ready')" && \
+    echo "✅ Nslookup: $(nslookup -version 2>/dev/null | head -1 || echo 'ready')"
 
 # [BUILD: INSTALL] Install Nextcloud from base image source
 RUN echo "📥 [BUILD: INSTALL] Installing Nextcloud from base image source..." && \
@@ -16,23 +33,6 @@ RUN echo "📥 [BUILD: INSTALL] Installing Nextcloud from base image source..." 
         echo "⚠️ Nextcloud source not found, assuming files are pre-installed"; \
     fi && \
     ls -la /var/www/html/ | head -5
-
-# [BUILD: DEPENDENCIES] Install additional tools
-RUN echo "📥 [BUILD: DEPENDENCIES] Installing additional packages..." && \
-    apt-get update && apt-get install -y gettext nginx supervisor curl postgresql-client procps net-tools bind9-utils bash redis-tools iproute2 php8.4-fpm php8.4-pgsql php8.4-redis php8.4-gd php8.4-curl php8.4-zip php8.4-xml php8.4-mbstring php8.4-intl && \
-    apt-get clean && \
-    ln -sf /usr/sbin/php-fpm8.4 /usr/bin/php-fpm || true && \
-    echo "✅ [BUILD: DEPENDENCIES] Package installation complete"
-
-# [BUILD: DIAGNOSTICS] Tool version checks
-RUN echo "🔍 [BUILD: DIAGNOSTICS] Checking installed tools:" && \
-    echo "✅ [BUILD: DIAGNOSTICS] Bash: $(bash --version 2>/dev/null | head -1 || echo 'ready')" && \
-    echo "✅ [BUILD: DIAGNOSTICS] Redis CLI: $(redis-cli --version 2>/dev/null || echo 'ready')" && \
-    echo "✅ [BUILD: DIAGNOSTICS] Postgres client: $(psql --version 2>/dev/null | head -1 || echo 'ready')" && \
-    echo "✅ [BUILD: DIAGNOSTICS] Nginx: $(nginx -v 2>&1 || echo 'ready')" && \
-    echo "✅ [BUILD: DIAGNOSTICS] PHP: $(php --version | head -1 || echo 'ready')" && \
-    echo "✅ [BUILD: DIAGNOSTICS] IP route: $(ip route 2>/dev/null | head -1 || echo 'ready')" && \
-    echo "✅ [BUILD: DIAGNOSTICS] Nslookup: $(nslookup -version 2>/dev/null | head -1 || echo 'ready')"
 
 # [BUILD: COPY] Copy configuration files
 RUN echo "📋 [BUILD: COPY] Copying configuration files..."
@@ -111,8 +111,12 @@ RUN echo "💾 [BUILD: RESOURCES] Checking system resources and dependencies..."
     echo "✅ [BUILD: RESOURCES] Available disk space: ${DISK_MB}MB" && \
     [ $DISK_MB -gt 1024 ] && echo "✅ [BUILD: RESOURCES] Disk space sufficient" || echo "⚠️ [BUILD: RESOURCES] Disk space limited (${DISK_MB}MB)" && \
     echo "🔍 [BUILD: RESOURCES] Checking critical binaries..." && \
-    which php && which nginx && which supervisord && which redis-cli && which psql && \
-    echo "✅ [BUILD: RESOURCES] All critical binaries available"
+    echo "php: $(which php || echo 'missing')" && \
+    echo "nginx: $(which nginx || echo 'missing')" && \
+    echo "supervisord: $(which supervisord || echo 'missing')" && \
+    echo "redis-cli: $(which redis-cli || echo 'missing')" && \
+    echo "psql: $(which psql || echo 'missing')" && \
+    echo "✅ [BUILD: RESOURCES] Binaries check complete"
 
 # [BUILD: NETWORK] Network configuration validation
 RUN echo "🌐 [BUILD: NETWORK] Validating network configuration..." && \
