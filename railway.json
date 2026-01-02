@@ -18,7 +18,7 @@
         "PGPASSWORD": "${{Postgres-iG4t.PGPASSWORD}}",
         "PGDATABASE": "${{Postgres-iG4t.PGDATABASE}}",
         "REDIS_PASSWORD": "${{Redis.REDIS_PASSWORD}}",
-        "NEXTCLOUD_TRUSTED_DOMAINS": "${{RAILWAY_PUBLIC_DOMAIN}} localhost",
+        "NEXTCLOUD_TRUSTED_DOMAINS": "${{RAILWAY_PUBLIC_DOMAIN}} localhost engineering.kikaiworks.com",
         "NEXTCLOUD_DATA_DIR": "/var/www/html/data",
         "NEXTCLOUD_TABLE_PREFIX": "oc_",
         "NEXTCLOUD_UPDATE_CHECKER": "false",
