@@ -390,36 +390,13 @@ chown -R www-data:www-data /var/www/html
 ls -la /var/www/html
 psql "$DATABASE_URL" -c "\dp oc_migrations"
 
-# Force disable maintenance mode and clear upgrade flags to ensure Nextcloud is accessible
+# Disable maintenance mode (simplified, reliable approach)
 if [ -f "/var/www/html/config/config.php" ]; then
-  echo "🔧 Forcing maintenance mode off and clearing upgrade flags..."
-
-  # Try normal occ command first
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Normal maintenance mode disable failed"
-
-  # Force disable by directly editing config.php
-  sed -i "s/'maintenance' => true/'maintenance' => false/g" /var/www/html/config/config.php || echo "⚠️ Config edit failed"
-
-  # Clear any cached maintenance mode
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance" 2>&1 || echo "⚠️ Could not clear maintenance config"
-
-  # Try alternative: create a temporary script to force maintenance off
-  cat > /tmp/force_maintenance_off.php << 'EOF'
-<?php
-$configFile = '/var/www/html/config/config.php';
-if (file_exists($configFile)) {
-    $config = include $configFile;
-    $config['maintenance'] = false;
-    $content = "<?php\n\$CONFIG = " . var_export($config, true) . ";\n";
-    file_put_contents($configFile, $content);
-    echo "Maintenance mode forcibly disabled in config\n";
-}
-?>
-EOF
-  php /tmp/force_maintenance_off.php || echo "⚠️ PHP maintenance force failed"
-  rm -f /tmp/force_maintenance_off.php
-
-  echo "✅ Maintenance mode forcibly disabled"
+  echo "🔧 Disabling maintenance mode..."
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>/dev/null || true
+  sed -i "s/'maintenance' => true/'maintenance' => false/g" /var/www/html/config/config.php 2>/dev/null || true
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance" 2>/dev/null || true
+  echo "✅ Maintenance mode disabled"
 fi
 
 # Run fix-warnings if config exists and Nextcloud is installed
