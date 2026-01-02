@@ -1,5 +1,5 @@
 [build]
-builder = "NIXPACKS"
+dockerfilePath = "./Dockerfile"
 
 [deploy]
 startCommand = "/usr/local/bin/custom-entrypoint.sh"
