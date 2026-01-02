@@ -183,20 +183,17 @@ else
   echo "✅ DB connection OK"
 fi
 
-# Debug: Verify occ exists
-ls -la /var/www/html/occ* || echo "❌ occ missing?"
-
 # Essentials ONLY (upgrade for existing DBs, no app:update → UI handles)
 su www-data -s /bin/bash -c "
   cd /var/www/html &&
   echo '🔄 Checking for upgrades...' &&
-  php ./occ maintenance:mode --on &&
-  php ./occ upgrade --no-interaction || echo '⚠️ Upgrade failed or not needed' &&
-  php ./occ maintenance:mode --off &&
-  php ./occ maintenance:mode --off &&
-  php ./occ config:system:set htaccess.RewriteBase --value=/ &&
-  php ./occ maintenance:update:htaccess &&
-  php ./occ config:system:set config_is_read_only --value=true
+  php console.php maintenance:mode --on &&
+  php console.php upgrade --no-interaction || echo '⚠️ Upgrade failed or not needed' &&
+  php console.php maintenance:mode --off &&
+  php console.php maintenance:mode --off &&
+  php console.php config:system:set htaccess.RewriteBase --value=/ &&
+  php console.php maintenance:update:htaccess &&
+  php console.php config:system:set config_is_read_only --value=true
 "
 
 touch /var/www/html/.deployment_complete
@@ -204,7 +201,7 @@ chown www-data:www-data /var/www/html/.deployment_complete
 
 echo "🚀 Ready! Login: https://${RAILWAY_PUBLIC_DOMAIN}"
 echo "🔍 Status:"
-su www-data -s /bin/bash -c "cd /var/www/html && php ./occ status"
+su www-data -s /bin/bash -c "cd /var/www/html && php console.php status"
 
 # Nginx subst + supervisor
 envsubst '\${PORT}' < /etc/nginx/nginx.conf > /tmp/nginx.conf && mv /tmp/nginx.conf /etc/nginx/nginx.conf
