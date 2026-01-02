@@ -15,6 +15,7 @@ POSTGRES_DB="${POSTGRES_DB:-railway}"
 REDISHOST="${REDISHOST:-${REDIS_HOST:-redis.railway.internal}}"
 REDISPORT="${REDISPORT:-6379}"
 REDIS_PASSWORD="${REDIS_PASSWORD:-${REDISHOST_PASSWORD}}"
+REDISUSER="${REDISUSER:-default}"
 
 # Validate
 if [ -z "$PGHOST" ] || [ -z "$REDISHOST" ]; then
@@ -194,7 +195,18 @@ EOF
     php console.php maintenance:mode --off &&
     php console.php config:system:set htaccess.RewriteBase --value=/ &&
     php console.php maintenance:update:htaccess &&
-    php console.php config:system:set config_is_read_only --value=true
+    php console.php config:system:set config_is_read_only --value=true &&
+    # Configure Redis if available
+    if [ -n \"\$REDISHOST\" ] && [ -n \"\$REDIS_PASSWORD\" ]; then
+      echo '🔧 Configuring Redis...' &&
+      php console.php config:system:set redis host --value=\"\$REDISHOST\" || true &&
+      php console.php config:system:set redis port --value=\"\$REDISPORT\" || true &&
+      php console.php config:system:set redis user --value=\"\$REDISUSER\" || true &&
+      php console.php config:system:set redis password --value=\"\$REDIS_PASSWORD\" || true &&
+      php console.php config:system:set redis timeout --value=0.0 || true &&
+      php console.php config:system:set memcache.locking redis || true &&
+      echo '✅ Redis configured'
+    fi
   "
 else
   echo "✅ Fresh install - skipping upgrade commands (installation via web)"
