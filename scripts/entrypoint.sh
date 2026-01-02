@@ -345,7 +345,19 @@ timeout 30 sh -c "until pg_isready -h '$POSTGRES_HOST' -p '$POSTGRES_PORT'; do s
 echo "⌛ Waiting for Redis (max 30s)..."
 timeout 30 sh -c "until redis-cli -h '$REDIS_HOST' -p '$REDIS_PORT' ${REDIS_PASSWORD:+-a '$REDIS_PASSWORD'} ping; do sleep 2; done" || exit 1
 
-# UPGRADE LOOP: Apps + Core + Repair until clean (handles apps)
+# FORCE APP/CORE UPGRADE BLOCK (before fix-warnings)
+echo "🚀 APP/CORE UPGRADE BLOCK"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on || true"
+timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction"
+timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair --include-expensive"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
+
+# Disable updater UI
+su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set updater.release.channel --value='stable'"
+rm -f /var/www/html/data/updater-*.json
+
+# UPGRADE LOOP: Apps + Core + Repair until clean (handles apps) - kept as fallback
 echo "🔍 Full status check/upgrade loop..."
 MAX_RETRIES=5
 for retry in $(seq 1 $MAX_RETRIES); do
