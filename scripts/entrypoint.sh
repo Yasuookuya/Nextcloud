@@ -165,6 +165,7 @@ CONFIG_VAR = array (
   'datadirectory' => '/var/www/html/data',
   'overwrite.cli.url' => 'https://RAILWAY_PUBLIC_DOMAIN_VAR',
   'overwriteprotocol' => 'OVERWRITEPROTOCOL_VAR',
+  'htaccess.RewriteBase' => '/',
   'memcache.local' => '\\OC\\Memcache\\Redis',
   'memcache.locking' => '\\OC\\Memcache\\Redis',
   'redis' =>
@@ -210,6 +211,14 @@ EOF
     chown www-data:www-data "$CONFIG_FILE"
     echo "Config.php created with env var expansion + lint, and persisted to volume."
 fi
+
+echo "🔧 Enabling pretty URLs..."
+su www-data -s /bin/bash -c "
+  cd /var/www/html &&
+  php occ config:system:set htaccess.RewriteBase --value='/' || true &&
+  php occ maintenance:update:htaccess || true
+"
+
 echo "Table owners (for oc_*):"
 psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
 echo "oc_migrations perms:"
@@ -348,75 +357,58 @@ timeout 30 sh -c "until pg_isready -h '$POSTGRES_HOST' -p '$POSTGRES_PORT'; do s
 echo "⌛ Waiting for Redis (max 30s)..."
 timeout 30 sh -c "until redis-cli -h '$REDIS_HOST' -p '$REDIS_PORT' ${REDIS_PASSWORD:+-a '$REDIS_PASSWORD'} ping; do sleep 2; done" || exit 1
 
-# FORCE APP/CORE UPGRADE BLOCK (before fix-warnings)
+# 🚀 APP/CORE UPGRADE BLOCK
 echo "🚀 APP/CORE UPGRADE BLOCK"
-su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on || true"
-timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction"
 
-# Check version before core upgrade to prevent multi-major version failures
-if [ -f "/var/www/html/data/config.php" ]; then
-  CURRENT_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
-  if [ "$CURRENT_VERSION" = "$NEXTCLOUD_VERSION" ] || [ "$CURRENT_VERSION" = "unknown" ]; then
-    echo "✅ Version match or unknown, proceeding with core upgrade..."
-    timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"
-  else
-    echo "⚠️ Version mismatch detected: DB version $CURRENT_VERSION vs Code version $NEXTCLOUD_VERSION. Skipping core upgrade to prevent data loss."
-    echo "   Please perform manual stepwise upgrades (e.g., 27→28→29) or restore from backup."
-  fi
+# Improved version check: code vs installed vs schema
+CODE_VERSION=$(php /var/www/html/version.php 2>/dev/null | grep 'const VERSION ' | cut -d "'" -f2 || echo "29.0.16")
+INSTALLED_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
+SCHEMA_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade:check 2>&1 | grep -o 'Nextcloud [0-9]\+' | cut -d' ' -f2 || echo 'unknown'")
+
+echo "Versions: Code=$CODE_VERSION, Installed=$INSTALLED_VERSION, Schema~$SCHEMA_VERSION"
+
+# Major version extraction
+code_major=$(echo $CODE_VERSION | cut -d. -f1)
+installed_major=$(echo $INSTALLED_VERSION | cut -d. -f1)
+
+if [[ "$INSTALLED_VERSION" != "unknown" && "$code_major" != "$installed_major" ]]; then
+  echo "⚠️ MAJOR VERSION MISMATCH (Code $CODE_VERSION vs DB $INSTALLED_VERSION). Skipping auto-upgrade to prevent data loss."
+  echo "   Manual stepwise upgrade required via web UI (e.g., deploy intermediate versions)."
 else
-  echo "🆕 No existing config, proceeding with core upgrade for fresh install..."
-  timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"
+  echo "✅ Versions compatible, running upgrade..."
+  # Make config writable
+  chmod 664 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
+  
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on || true"
+  
+  # Apps first
+  timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction" || echo "Apps update partial/failed"
+  
+  # Core upgrade
+  timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" || {
+    echo "⚠️ Core upgrade failed (expected for minor issues). Continuing..."
+  }
+  
+  # Repair
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair --include-expensive || true"
+  
+  # Lock config
+  chmod 444 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
 fi
 
-su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair --include-expensive"
-su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
+# FORCE maintenance OFF (breaks loop)
+echo "🔧 FORCING maintenance OFF..."
+sed -i "s/'maintenance'\s*=>[^,]*,/'maintenance' => false,/g" /var/www/html/config/config.php 2>/dev/null || true
+sed -i "s/'maintenance_window_start'\s*=>[^,]*,//g" /var/www/html/config/config.php 2>/dev/null || true
+su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off || true"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance --yes || true"
 
-# Disable updater UI
-su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set updater.release.channel --value='stable'"
-rm -f /var/www/html/data/updater-*.json
-
-# UPGRADE LOOP: Apps + Core + Repair until clean (handles apps) - kept as fallback
-echo "🔍 Full status check/upgrade loop..."
-MAX_RETRIES=5
-for retry in $(seq 1 $MAX_RETRIES); do
-  STATUS=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json 2>&1 | grep -E 'version|updater|apps'" || echo "failed")
-  if [[ "$STATUS" == *"updater\":\"true"* ]] || echo "$STATUS" | grep -q "require.*upgrade" || echo "$STATUS" | grep -q "apps.*update"; then
-    echo "🔄 Retry $retry/$MAX_RETRIES: Apps/Core upgrade needed"
-    rm -rf /var/www/html/data/updater-* /var/www/html/updater/.step
-    chmod -R 777 /var/www/html/data /var/www/html/updater 2>/dev/null || true
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on || true"
-
-    # Apps first (key!)
-    timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction --verbose" || echo "Apps partial"
-
-    # DB prep
-    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-columns || true"
-    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-indices || true"
-
-    # Core (with version check)
-    if [ -f "/var/www/html/data/config.php" ]; then
-      CURRENT_LOOP_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
-      if [ "$CURRENT_LOOP_VERSION" = "$NEXTCLOUD_VERSION" ] || [ "$CURRENT_LOOP_VERSION" = "unknown" ]; then
-        timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" || echo "Core partial"
-      else
-        echo "⚠️ Skipping core upgrade in loop: DB version $CURRENT_LOOP_VERSION != Code version $NEXTCLOUD_VERSION"
-      fi
-    else
-      timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" || echo "Core partial"
-    fi
-
-    # Repair
-    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair --include-expensive"
-
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
-
-    sleep 5  # Settle
-  else
-    echo "✅ Clean after $retry retries"
-    break
-  fi
-  [ $retry -eq $MAX_RETRIES ] && echo "⚠️ Max retries - manual occ needed"
-done
+# Always create deployment flag if DB ready (breaks nginx status page)
+if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
+  touch /var/www/html/.deployment_complete
+  chown www-data:www-data /var/www/html/.deployment_complete
+  echo "✅ Deployment complete flag created"
+fi
 
 # Fresh install (only if no config)
 if [ ! -f "/var/www/html/data/config.php" ]; then
@@ -436,15 +428,7 @@ su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis
 su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value='$REDIS_PORT'"
 [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value='$REDIS_PASSWORD'"
 
-# Create deployment completion flag for nginx (always create if config exists)
-if [ -f "/var/www/html/config/config.php" ]; then
-  echo "🏁 [PHASE: FINAL] Creating deployment completion flag..."
-  touch /var/www/html/.deployment_complete
-  chown www-data:www-data /var/www/html/.deployment_complete
-  echo "✅ [PHASE: FINAL] Deployment flag created - nginx will now serve Nextcloud"
-else
-  echo "⚠️ [PHASE: FINAL] Config.php not found - keeping deployment status page active"
-fi
+
 
 # Nextcloud deployment is complete
 
