@@ -25,17 +25,17 @@ fi
 
 echo "✅ Env OK: Postgres=$PGHOST:$PGPORT Redis=$REDISHOST:$REDISPORT"
 
-# Wait DB/Redis (short wait to avoid long delays)
-echo "⌛ Quick check for DB/Redis..."
-if timeout 10 sh -c "until PGPASSWORD=\"$PGPASSWORD\" psql -h \"$PGHOST\" -p \"$PGPORT\" -U \"$PGUSER\" -d postgres -c 'SELECT 1;' >/dev/null 2>&1; do sleep 1; done"; then
+# Wait DB/Redis
+echo "⌛ Waiting DB/Redis..."
+if timeout 60 sh -c "until PGPASSWORD=\"$PGPASSWORD\" psql -h \"$PGHOST\" -p \"$PGPORT\" -U \"$PGUSER\" -d postgres -c 'SELECT 1;' >/dev/null 2>&1; do sleep 2; done"; then
   echo "✅ DB ready"
 else
-  echo "⚠️ DB not ready, proceeding with install"
+  echo "⚠️ DB not ready, continuing anyway"
 fi
-if timeout 10 sh -c "until redis-cli -h $REDISHOST -p $REDISPORT ${REDIS_PASSWORD:+-a $REDIS_PASSWORD} ping; do sleep 1; done"; then
+if timeout 120 sh -c "until redis-cli -h $REDISHOST -p $REDISPORT ${REDIS_PASSWORD:+-a $REDIS_PASSWORD} ping; do sleep 2; done"; then
   echo "✅ Redis ready"
 else
-  echo "⚠️ Redis not ready, proceeding with install"
+  echo "⚠️ Redis not ready, continuing anyway"
 fi
 
 
