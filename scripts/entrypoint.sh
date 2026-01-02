@@ -51,17 +51,27 @@ if [ -f "/var/www/html/data/config.php" ]; then
   fi
 
   if [ "$CONFIG_CHANGED" = true ]; then
-    echo "🔧 Updating configuration using Nextcloud occ commands..."
-    su www-data -s /bin/bash -c "
-      cd /var/www/html &&
-      php occ config:system:set dbhost '$PGHOST:$PGPORT' &&
-      php occ config:system:set dbuser '$PGUSER' &&
-      php occ config:system:set dbpassword '$PGPASSWORD' &&
-      php occ config:system:set redis host '$REDISHOST' &&
-      php occ config:system:set redis port '$REDISPORT' &&
-      php occ config:system:set redis password '$REDIS_PASSWORD'
-    "
-    echo "✅ Database and Redis configuration updated"
+    echo "🔧 Updating configuration files directly..."
+    # Update both config locations
+    CONFIG_FILES=("/var/www/html/config/config.php" "/var/www/html/data/config.php")
+
+    for config_file in "${CONFIG_FILES[@]}"; do
+      if [ -f "$config_file" ]; then
+        # Update database host
+        if [ "$CURRENT_DB_HOST" != "$PGHOST:$PGPORT" ]; then
+          sed -i "s|$CURRENT_DB_HOST|$PGHOST:$PGPORT|g" "$config_file"
+          echo "✅ Updated database host in $config_file"
+        fi
+
+        # Update Redis host if present
+        if [ "$CURRENT_REDIS_HOST" != "$REDISHOST" ]; then
+          sed -i "s|'host' => '$CURRENT_REDIS_HOST'|'host' => '$REDISHOST'|g" "$config_file"
+          echo "✅ Updated Redis host in $config_file"
+        fi
+      fi
+    done
+
+    echo "✅ Database and Redis configuration updated in all config files"
   else
     echo "✅ Database and Redis configuration is current"
   fi
