@@ -12,14 +12,21 @@
   "environments": {
     "production": {
       "variables": {
-        "POSTGRES_HOST": "${{Postgres.RAILWAY_PRIVATE_DOMAIN}}",
-        "POSTGRES_USER": "${{Postgres.PGUSER}}",
-        "POSTGRES_PASSWORD": "${{Postgres.POSTGRES_PASSWORD}}",
-        "POSTGRES_DB": "${{Postgres.POSTGRES_DB}}",
-        "REDIS_HOST": "${{Redis.RAILWAY_PRIVATE_DOMAIN}}",
-        "REDIS_HOST_PORT": "${{Redis.REDISPORT}}",
-        "REDIS_HOST_PASSWORD": "${{Redis.REDIS_PASSWORD}}",
+        "PGHOST": "${{Postgres-iG4t.PGHOST}}",
+        "PGPORT": "${{Postgres-iG4t.PGPORT}}",
+        "PGUSER": "${{Postgres-iG4t.PGUSER}}",
+        "PGPASSWORD": "${{Postgres-iG4t.PGPASSWORD}}",
+        "PGDATABASE": "${{Postgres-iG4t.PGDATABASE}}",
+        "REDIS_PASSWORD": "${{Redis.REDIS_PASSWORD}}",
         "NEXTCLOUD_TRUSTED_DOMAINS": "${{RAILWAY_PUBLIC_DOMAIN}} localhost",
+        "NEXTCLOUD_DATA_DIR": "/var/www/html/data",
+        "NEXTCLOUD_TABLE_PREFIX": "oc_",
+        "NEXTCLOUD_UPDATE_CHECKER": "false",
+        "PHP_MEMORY_LIMIT": "512M",
+        "PHP_UPLOAD_LIMIT": "2G",
+        "REDISHOST": "${{Redis.REDISHOST}}",
+        "REDISPASSWORD": "${{Redis.REDISPASSWORD}}",
+        "REDISPORT": "${{Redis.REDISPORT}}",
         "NEXTCLOUD_ADMIN_USER": null,
         "NEXTCLOUD_ADMIN_PASSWORD": null
       }
