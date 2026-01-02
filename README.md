@@ -146,18 +146,6 @@ Generate secrets: `openssl rand -hex 32`
 
 ## 🐛 Troubleshooting
 
-**Page not loading:**
-1. Double-check the URL: `https://your-domain.railway.app` (try both http and https, incognito mode)
-2. Check Railway dashboard → Nextcloud service → Deployments tab: Health should be "Healthy", Metrics should show CPU/memory usage >0%
-3. Test connectivity: Visit `https://your-domain.railway.app/test.php` (shows PHP info if working)
-4. Check browser dev tools (F12 → Network tab) for failing requests
-5. Restart service: Railway dashboard → Nextcloud service → Restart (wait 2-3 min)
-6. If still not working:
-   - Temporarily disable custom entrypoint: In Dockerfile, change `ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]` to `ENTRYPOINT ["/entrypoint.sh"]`
-   - Or set start command to `apache2-foreground` in service settings
-   - Redeploy and check if plain Nextcloud works
-7. Check Railway status for regional issues (asia-southeast1), try changing region if possible
-
 **Missing PostgreSQL environment variables:** Make sure you've set all environment variables in the Railway dashboard exactly as shown above. The service references like `${{Postgres.PGUSER}}` should auto-populate from your PostgreSQL service.
 
 **Setup wizard shows database fields:** Database should be pre-configured automatically. If you see database fields, check Railway logs for configuration errors.
