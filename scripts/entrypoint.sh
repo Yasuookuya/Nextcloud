@@ -28,21 +28,38 @@ fix_permissions() {
   echo "✅ Perms fixed"
 }
 
-# Config gen (persistent, idempotent)
-CONFIG_FILE="/var/www/html/data/config.php"
-if [ ! -f "$CONFIG_FILE" ]; then
-  export INSTANCEID="oc$(openssl rand -hex 10)"
-  export PASSWORDSALT="$(openssl rand -base64 30)"
-  export SECRET="$(openssl rand -base64 30)"
+# Install IF NEEDED (simple: no tables)
+if ! psql "$DATABASE_URL" -lqt | cut -d \| -f 1 | grep -qw oc_; then
+  echo "🏗️ Fresh install..."
+  su www-data -s /bin/bash -c "
+    cd /var/www/html &&
+    php occ maintenance:install \
+      --database 'pgsql' --database-host '$POSTGRES_HOST' --database-port '$POSTGRES_PORT' \
+      --database-name '$POSTGRES_DB' --database-user '$POSTGRES_USER' --database-pass '$POSTGRES_PASSWORD' \
+      --admin-user '$NEXTCLOUD_ADMIN_USER' --admin-pass '$NEXTCLOUD_ADMIN_PASSWORD' \
+      --data-dir '/var/www/html/data'
+  "
+  echo "✅ Installed"
+  # After install, copy config to persistent location
+  cp /var/www/html/config/config.php /var/www/html/data/config.php
+  chown www-data:www-data /var/www/html/data/config.php
 else
-  # Preserve
-  INSTANCEID=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['instanceid'] ?? 'oc$(openssl rand -hex 10)';")
-  PASSWORDSALT=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['passwordsalt'] ?? '$(openssl rand -base64 30)';")
-  SECRET=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['secret'] ?? '$(openssl rand -base64 30)';")
-fi
-export INSTANCEID PASSWORDSALT SECRET
+  echo "✅ Install skipped (existing DB)"
+  # For existing DB, create config if missing
+  CONFIG_FILE="/var/www/html/data/config.php"
+  if [ ! -f "$CONFIG_FILE" ]; then
+    export INSTANCEID="oc$(openssl rand -hex 10)"
+    export PASSWORDSALT="$(openssl rand -base64 30)"
+    export SECRET="$(openssl rand -base64 30)"
+  else
+    # Preserve
+    INSTANCEID=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['instanceid'] ?? 'oc$(openssl rand -hex 10)';")
+    PASSWORDSALT=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['passwordsalt'] ?? '$(openssl rand -base64 30)';")
+    SECRET=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['secret'] ?? '$(openssl rand -base64 30)';")
+  fi
+  export INSTANCEID PASSWORDSALT SECRET
 
-cat > /var/www/html/config/config.php << EOF
+  cat > /var/www/html/config/config.php << EOF
 <?php
 \$CONFIG = array (
   'dbtype' => 'pgsql',
@@ -76,28 +93,13 @@ cat > /var/www/html/config/config.php << EOF
 );
 EOF
 
-# Lint & persist
-php -l /var/www/html/config/config.php || { echo "❌ Config lint fail"; cat /var/www/html/config/config.php; exit 1; }
-cp /var/www/html/config/config.php "$CONFIG_FILE"
-chown www-data:www-data /var/www/html/config/config.php "$CONFIG_FILE"
+  # Lint & persist
+  php -l /var/www/html/config/config.php || { echo "❌ Config lint fail"; cat /var/www/html/config/config.php; exit 1; }
+  cp /var/www/html/config/config.php "$CONFIG_FILE"
+  chown www-data:www-data /var/www/html/config/config.php "$CONFIG_FILE"
+fi
 
 fix_permissions
-
-# Install IF NEEDED (simple: no tables or no config)
-if ! psql "$DATABASE_URL" -lqt | cut -d \| -f 1 | grep -qw oc_ || [ ! -f "$CONFIG_FILE" ]; then
-  echo "🏗️ Fresh install..."
-  su www-data -s /bin/bash -c "
-    cd /var/www/html &&
-    php occ maintenance:install \
-      --database 'pgsql' --database-host '$POSTGRES_HOST' --database-port '$POSTGRES_PORT' \
-      --database-name '$POSTGRES_DB' --database-user '$POSTGRES_USER' --database-pass '$POSTGRES_PASSWORD' \
-      --admin-user '$NEXTCLOUD_ADMIN_USER' --admin-pass '$NEXTCLOUD_ADMIN_PASSWORD' \
-      --data-dir '/var/www/html/data'
-  "
-  echo "✅ Installed"
-else
-  echo "✅ Install skipped (existing DB/config)"
-fi
 
 # Essentials ONLY (no upgrade/app:update → UI handles)
 su www-data -s /bin/bash -c "
