@@ -1,5 +1,5 @@
 [build]
-dockerfilePath = "./Dockerfile"
+builder = "docker"
 
 [deploy]
 startCommand = "/usr/local/bin/custom-entrypoint.sh"
