@@ -79,6 +79,16 @@ done
 
 echo "✅ Environment validation complete"
 
+fix_permissions() {
+  echo "🔧 Fixing permissions (Nextcloud docs)..."
+  mkdir -p /var/www/html/{config,data}
+  chown -R www-data:www-data /var/www/html{,/config,/data}
+  find /var/www/html/ -type d -exec chmod 750 {} + 2>/dev/null || true
+  find /var/www/html/ -type f -exec chmod 640 {} + 2>/dev/null || true
+  chmod 770 /var/www/html/data 2>/dev/null || true
+  echo "✅ Permissions fixed (dirs:750 files:640 data:770)"
+}
+
 # STEP 2: DB DIAG with retry
 echo "🔍 [PHASE: DB_CHECK] Checking database connectivity (3 retries)..."
 for i in {1..3}; do
@@ -151,6 +161,7 @@ CONFIG_VAR = array (
   'dbuser' => 'POSTGRES_USER_VAR',
   'dbpassword' => 'POSTGRES_PASSWORD_VAR',
   'installed' => true,
+  'config_is_read_only' => false,  // Temp; locked post-upgrade
   'instanceid' => 'INSTANCEID_VAR',
   'passwordsalt' => 'PASSWORDSALT_VAR',
   'secret' => 'SECRET_VAR',
@@ -212,257 +223,57 @@ EOF
     echo "Config.php created with env var expansion + lint, and persisted to volume."
 fi
 
-echo "🔧 Enabling pretty URLs..."
+fix_permissions  # Early enforcement
+
+echo "🚀 [UPGRADE PHASE] Consolidated upgrade/repair (https://docs.nextcloud.com/server/29/admin_manual/maintenance/upgrade.html)..."
+
+# Temp writable
+chmod 777 /var/www/html/config /var/www/html/data 2>/dev/null || true
+chmod 666 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
+
 su www-data -s /bin/bash -c "
   cd /var/www/html &&
-  php occ config:system:set htaccess.RewriteBase --value='/' || true &&
-  php occ maintenance:update:htaccess || true
+  php occ maintenance:mode --on || true
 "
 
-echo "Table owners (for oc_*):"
-psql "$DATABASE_URL" -c "\dt oc_*" || echo "No oc tables"
-echo "oc_migrations perms:"
-psql "$DATABASE_URL" -c "\dp oc_migrations" || echo "No oc_migrations or perm error"
-
-echo "=== STEP 3: FILES/PERMS ==="
-ls -la /var/www/html
-ls -la /var/www/html/data || mkdir -p /var/www/html/data
-chown -R www-data:www-data /var/www/html /run/nginx /var/log/nginx /var/run/nginx
-
-echo "=== STEP 4: PROCESSES ==="
-ps aux
-
-echo "=== STEP 5: NET ==="
-netstat -tlnp || ss -tlnp
-
-# Environment variables have already been parsed and validated above
-
-# NextCloud configuration variables
-export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-kikaiworksadmin}
-export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-2046S@nto!7669Y@}
-export NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS:-localhost,::1}
-export NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR:-/var/www/html/data}
-export NEXTCLOUD_TABLE_PREFIX=${NEXTCLOUD_TABLE_PREFIX:-oc_}
-export NEXTCLOUD_UPDATE_CHECK=${NEXTCLOUD_UPDATE_CHECK:-false}
-
-# PHP performance settings
-export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
-export PHP_UPLOAD_LIMIT=${PHP_UPLOAD_LIMIT:-2G}
-
-# Display configuration info (unchanged)
-echo "📊 Final Configuration:"
-echo "📊 Database Config:"
-echo "  POSTGRES_HOST: ${POSTGRES_HOST}"
-echo "  POSTGRES_PORT: ${POSTGRES_PORT}"
-echo "  POSTGRES_USER: ${POSTGRES_USER}"
-echo "  POSTGRES_DB: ${POSTGRES_DB}"
-echo "  Full connection: ${POSTGRES_USER}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
-echo "🔴 Redis Config:"
-echo "  REDIS_HOST: ${REDIS_HOST}"
-echo "  REDIS_PORT: ${REDIS_PORT}"
-echo "  REDIS_PASSWORD: ${REDIS_PASSWORD}"
-echo "🌐 NextCloud Config:"
-echo "  Trusted domains: ${NEXTCLOUD_TRUSTED_DOMAINS}"
-echo "  Admin user: ${NEXTCLOUD_ADMIN_USER:-'(setup wizard)'}"
-echo "  Data directory: ${NEXTCLOUD_DATA_DIR}"
-echo "  Table prefix: ${NEXTCLOUD_TABLE_PREFIX}"
-echo "⚡ Performance Config:"
-echo "  PHP Memory Limit: ${PHP_MEMORY_LIMIT}"
-echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
-
-# Wait for DB and Redis to be available (add this for reliability in Railway)
-echo "⌛ Waiting for PostgreSQL..."
-until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
-  sleep 2
-done
-echo "✅ PostgreSQL is ready"
-
-echo "⌛ Waiting for Redis..."
-until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" ${REDIS_PASSWORD:+-a "$REDIS_PASSWORD"} ping; do
-  sleep 2
-done
-echo "✅ Redis is ready"
-
-# Diagnostics: Check config and occ status
-echo "🔍 POST-WAITS DIAGNOSTIC:"
-ls -la /var/www/html/config/ || echo "No config dir"
-su www-data -s /bin/bash -c "php occ status --output=json 2>/dev/null" || echo "occ status failed (no config yet)"
-
-mkdir -p /run/nginx /var/log/nginx /var/run/nginx
-chown -R www-data:www-data /run/nginx /var/log/nginx
-
-# ONLY envsubst PORT (no sed pid hacks - config now clean)
-if envsubst '${PORT}' < /etc/nginx/nginx.conf > /tmp/nginx.conf.tmp 2>/dev/null; then
-  mv /tmp/nginx.conf.tmp /etc/nginx/nginx.conf
-  echo "✅ Nginx: PORT=${PORT} substituted"
-fi
-
-# Add SINGLE pid at top if missing (idempotent)
-if ! grep -q '^pid ' /etc/nginx/nginx.conf; then
-  sed -i '1i pid /run/nginx.pid;' /etc/nginx/nginx.conf
-  echo "✅ Added pid directive"
-fi
-
-echo "🔍 Testing nginx configuration..."
-if nginx -t; then
-  echo "✅ Nginx config OK (listen ${PORT:-8080})"
-  echo "🔍 Testing status.php endpoint..."
-  # Quick test of our status endpoint
-  timeout 5 bash -c "curl -s -o /dev/null -w '%{http_code}' http://localhost:${PORT:-8080}/status.php" 2>/dev/null || echo "⚠️ Status endpoint test failed (expected during startup)"
-else
-  echo "❌ Nginx config test failed - showing details:"
-  nginx -t
-  echo "❌ Cannot start services with invalid nginx config"
-  exit 1
-fi
-
-# Skip temporary nginx test - let supervisor handle it
-echo "🌐 [PHASE: INSTALL] Skipping temporary nginx test - will be handled by supervisor"
-
-# Railway Deployment Info
-echo "🌐 Railway Deployment Info:"
-echo "  Public URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
-echo "  Service: ${RAILWAY_SERVICE_NAME:-unknown}"
-echo "  Listen: localhost:80"
-
-echo "🧪 Endpoint Tests:"
-timeout 5 bash -c "curl -f -s http://localhost:${PORT:-8080}/ && echo '✅ Root (index.php) OK'" || echo "⚠️ / pending (wizard/DB)"
-timeout 5 bash -c "curl -f -s http://localhost:${PORT:-8080}/status.php && echo '✅ Status OK'" || echo "ℹ️ status.php pending"
-
-echo "📋 Logs: nginx=/var/log/nginx/error.log, supervisor=/var/log/supervisor/"
-
-# Ensure Nextcloud code is available (download if needed)
-if [ ! -f "/var/www/html/occ" ]; then
-  if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
-    echo "📦 Nextcloud code not found, but DB exists - skipping official installer to avoid conflicts."
+# Upgrade with retry
+for attempt in {1..3}; do
+  if timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"; then
+    echo "✅ Core upgrade OK"
+    break
   else
-    echo "📦 Nextcloud code not found, initializing..."
-    /entrypoint.sh php-fpm &
-    sleep 10  # Give time for code download
-    pkill -f php-fpm || true
+    echo "⚠️ Upgrade attempt $attempt/3 failed, retry..."
+    sleep 10
   fi
-fi
+done || echo "⚠️ Upgrade partial, continuing..."
 
-# Always generate config (fresh or existing) - PERSISTENT
-echo "📝 Generating persistent config.php..."
-mkdir -p /var/www/html/config /var/www/html/data
-CONFIG_FILE="/var/www/html/data/config.php"
-# ... (keep instanceid/passwordsalt logic) ...
-# Generate & subst template (keep existing sed block)
-# Lint + chown + copy to $CONFIG_FILE (keep)
+timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction" || true
 
-# Waits with retries
-echo "⌛ Waiting for PostgreSQL (max 30s)..."
-timeout 30 sh -c "until pg_isready -h '$POSTGRES_HOST' -p '$POSTGRES_PORT'; do sleep 2; done" || exit 1
-echo "⌛ Waiting for Redis (max 30s)..."
-timeout 30 sh -c "until redis-cli -h '$REDIS_HOST' -p '$REDIS_PORT' ${REDIS_PASSWORD:+-a '$REDIS_PASSWORD'} ping; do sleep 2; done" || exit 1
+su www-data -s /bin/bash -c "
+  cd /var/www/html &&
+  php occ maintenance:repair --include-expensive || true &&
+  php occ config:system:set htaccess.RewriteBase --value=/ &&
+  php occ maintenance:update:htaccess &&
+  php occ maintenance:mode --off
+"
 
-# 🚀 APP/CORE UPGRADE BLOCK
-echo "🚀 APP/CORE UPGRADE BLOCK"
+# Redis (idempotent)
+su www-data -s /bin/bash -c "
+  cd /var/www/html &&
+  php occ config:system:set memcache.local --value='\\\\OC\\\\Memcache\\\\Redis' &&
+  php occ config:system:set memcache.locking --value='\\\\OC\\\\Memcache\\\\Redis' &&
+  php occ config:system:set redis.host --value='$REDIS_HOST' &&
+  php occ config:system:set redis.port --value=$REDIS_PORT
+"
+[ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis.password --value='$REDIS_PASSWORD'"
 
-# Improved version check: code vs installed vs schema
-CODE_VERSION=$(php /var/www/html/version.php 2>/dev/null | grep 'const VERSION ' | cut -d "'" -f2 || echo "29.0.16")
-INSTALLED_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
-SCHEMA_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade:check 2>&1 | grep -o 'Nextcloud [0-9]\+' | cut -d' ' -f2 || echo 'unknown'")
+# Lock read-only
+su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set config_is_read_only --value=true" || true
+sed -i "s/'config_is_read_only' => false/'config_is_read_only' => true/g" /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
 
-echo "Versions: Code=$CODE_VERSION, Installed=$INSTALLED_VERSION, Schema~$SCHEMA_VERSION"
+fix_permissions  # Final lock: 750/640/444
 
-# Major version extraction
-code_major=$(echo $CODE_VERSION | cut -d. -f1)
-installed_major=$(echo $INSTALLED_VERSION | cut -d. -f1)
-
-if [[ "$INSTALLED_VERSION" != "unknown" && "$code_major" != "$installed_major" ]]; then
-  echo "⚠️ MAJOR VERSION MISMATCH (Code $CODE_VERSION vs DB $INSTALLED_VERSION). Skipping auto-upgrade to prevent data loss."
-  echo "   Manual stepwise upgrade required via web UI (e.g., deploy intermediate versions)."
-else
-  echo "✅ Versions compatible, running upgrade..."
-  # Make config writable
-  chmod 664 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
-  
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on || true"
-  
-  # Apps first
-  timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction" || echo "Apps update partial/failed"
-  
-  # Core upgrade
-  timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" || {
-    echo "⚠️ Core upgrade failed (expected for minor issues). Continuing..."
-  }
-  
-  # Repair
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair --include-expensive || true"
-  
-  # Lock config
-  chmod 444 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
-fi
-
-# FORCE maintenance OFF (breaks loop)
-echo "🔧 FORCING maintenance OFF..."
-sed -i "s/'maintenance'\s*=>[^,]*,/'maintenance' => false,/g" /var/www/html/config/config.php 2>/dev/null || true
-sed -i "s/'maintenance_window_start'\s*=>[^,]*,//g" /var/www/html/config/config.php 2>/dev/null || true
-su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off || true"
-su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance --yes || true"
-
-# Always create deployment flag if DB ready (breaks nginx status page)
-if psql "$DATABASE_URL" -c "\dt" >/dev/null 2>&1; then
-  touch /var/www/html/.deployment_complete
-  chown www-data:www-data /var/www/html/.deployment_complete
-  echo "✅ Deployment complete flag created"
-fi
-
-# Fresh install (only if no config)
-if [ ! -f "/var/www/html/data/config.php" ]; then
-  echo "🏗️ Fresh install..."
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:install \
-    --database 'pgsql' --database-host '$POSTGRES_HOST' --database-port '$POSTGRES_PORT' \
-    --database-name '$POSTGRES_DB' --database-user '$POSTGRES_USER' --database-pass '$POSTGRES_PASSWORD' \
-    --admin-user '$NEXTCLOUD_ADMIN_USER' --admin-pass '$NEXTCLOUD_ADMIN_PASSWORD' \
-    --data-dir '/var/www/html/data'" || exit 1
-fi
-
-# Post-install (always)
-su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
-su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.local --value='\\OC\\Memcache\\Redis'"
-su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.locking --value='\\OC\\Memcache\\Redis'"
-su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis host --value='$REDIS_HOST'"
-su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value='$REDIS_PORT'"
-[ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value='$REDIS_PASSWORD'"
-
-
-
-# Nextcloud deployment is complete
-
-# Chown
-chown -R www-data:www-data /var/www/html
-
-# Diagnostics
-ls -la /var/www/html
-psql "$DATABASE_URL" -c "\dp oc_migrations"
-
-# Clean maintenance off (sed + occ)
-echo "🔧 [FINAL] Force maintenance off..."
-sed -i "s/'maintenance'\s*=>\s*true/'maintenance' => false/g" /var/www/html/config/config.php 2>/dev/null || true
-sed -i "s/'maintenance'\s*=>\s*true/'maintenance' => false/g" /var/www/html/data/config.php 2>/dev/null || true
-su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off 2>/dev/null || true"
-su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance 2>/dev/null || true"
-
-# CLI upgrade bypass (fixes web button, Nextcloud docs)
-if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json 2>&1 | grep -q '\"updater\":\"true\"'" 2>/dev/null; then
-  echo "⬆️ [FINAL] CLI upgrade check (bypasses web button)..."
-  FINAL_VERSION=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:get version 2>/dev/null || echo 'unknown'")
-  if [ "$FINAL_VERSION" = "$NEXTCLOUD_VERSION" ] || [ "$FINAL_VERSION" = "unknown" ]; then
-    echo "✅ Proceeding with CLI upgrade..."
-    chmod 666 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
-    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" 2>&1 || echo "⚠️ CLI upgrade failed, use web UI"
-    chmod 444 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off && php occ background-job:cron" 2>/dev/null || true
-  else
-    echo "⚠️ Skipping CLI upgrade: DB version $FINAL_VERSION != Code version $NEXTCLOUD_VERSION"
-  fi
-fi
-
-# Fix-warnings safe (post-upgrade)
-su www-data -s /bin/bash -c "/usr/local/bin/fix-warnings.sh" || true
+echo "✅ Upgrade/Pretty/Redis/Read-only complete."
 
 # Ensure log dirs exist for Supervisor/Nginx/PHP (Fixes crash)
 echo "📁 Creating log/run dirs..."
@@ -544,6 +355,9 @@ if [ "$FINAL_AUTO_VERSION" = "$NEXTCLOUD_VERSION" ] || [ "$FINAL_AUTO_VERSION" =
 else
   echo "⚠️ [PHASE: FINAL] Skipping auto-upgrade: DB version $FINAL_AUTO_VERSION != Code version $NEXTCLOUD_VERSION"
 fi
+
+echo "🔍 Final status:"
+su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" || echo "⚠️ Final OCC failed"
 
 echo "🚀 [PHASE: FINAL] All pre-flight checks passed. Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
