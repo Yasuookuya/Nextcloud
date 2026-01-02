@@ -1,31 +1,57 @@
 #!/bin/bash
 set -e
 
-# Railway configuration - use environment variables, no hardcoded defaults
-# These MUST be set in Railway environment variables
+# Railway configuration - use correct Railway environment variables
 export PGSSLMODE=disable
 
-# Validate required Railway environment variables
-if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_PORT" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ] || [ -z "$POSTGRES_DB" ]; then
-  echo "❌ ERROR: Railway PostgreSQL environment variables not set!"
-  echo "   Required: POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB"
-  echo "   Please set these in your Railway project environment variables."
+# Railway provides DATABASE_URL and REDIS_URL automatically when services are attached
+# Parse DATABASE_URL for PostgreSQL connection details
+if [ -n "$DATABASE_URL" ]; then
+  echo "✅ DATABASE_URL found - parsing PostgreSQL connection details..."
+  export POSTGRES_HOST=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:[^@]*@\([^:]*\):.*|\1|p')
+  export POSTGRES_PORT=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:[^@]*@[^:]*:\([0-9]*\)/.*|\1|p')
+  export POSTGRES_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
+  export POSTGRES_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
+  export POSTGRES_DB=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
+else
+  echo "❌ ERROR: DATABASE_URL environment variable not set!"
+  echo "   Railway automatically provides DATABASE_URL when a PostgreSQL database is attached."
+  echo "   Please attach a PostgreSQL database to your Railway project."
   exit 1
 fi
 
-export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
+# Parse REDIS_URL for Redis connection details
+if [ -n "$REDIS_URL" ]; then
+  echo "✅ REDIS_URL found - parsing Redis connection details..."
+  # REDIS_URL format: redis://default:password@host:port
+  export REDIS_HOST=$(echo "$REDIS_URL" | sed -n 's|redis://[^@]*@\([^:]*\):.*|\1|p')
+  export REDIS_PORT=$(echo "$REDIS_URL" | sed -n 's|redis://[^@]*@[^:]*:\([0-9]*\)$|\1|p')
+  export REDIS_PASSWORD=$(echo "$REDIS_URL" | sed -n 's|redis://[^:]*:\([^@]*\)@.*|\1|p')
+elif [ -n "$REDISHOST" ] && [ -n "$REDISPORT" ]; then
+  # Fallback to individual Redis variables if REDIS_URL not available
+  echo "⚠️ REDIS_URL not found, using individual Redis variables..."
+  export REDIS_HOST="$REDISHOST"
+  export REDIS_PORT="$REDISPORT"
+  export REDIS_PASSWORD="${REDISPASSWORD:-}"
+else
+  echo "❌ ERROR: Redis configuration not found!"
+  echo "   Railway provides REDIS_URL when a Redis database is attached, or set REDISHOST/REDISPORT."
+  echo "   Please attach a Redis database to your Railway project."
+  exit 1
+fi
 
-if [ -z "$REDIS_HOST" ] || [ -z "$REDIS_PORT" ] || [ -z "$REDIS_PASSWORD" ]; then
-  echo "❌ ERROR: Railway Redis environment variables not set!"
-  echo "   Required: REDIS_HOST, REDIS_PORT, REDIS_PASSWORD"
-  echo "   Please set these in your Railway project environment variables."
+# Validate parsed variables
+if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_DB" ] || [ -z "$REDIS_HOST" ]; then
+  echo "❌ ERROR: Failed to parse database connection details from Railway environment variables!"
+  echo "   DATABASE_URL: ${DATABASE_URL:-'(not set)'}"
+  echo "   REDIS_URL: ${REDIS_URL:-'(not set)'}"
   exit 1
 fi
 
 export NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS:-"nextcloud-railway-template-website.up.railway.app,localhost,::1,RAILWAY_PRIVATE_DOMAIN,RAILWAY_STATIC_URL"}
 export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-"kikaiworksadmin"}
 export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-"2046S@nto!7669Y@"}
-export NEXTCLOUD_UPDATE_CHECK=${NEXTCLOUD_UPDATE_CHECK:-"false"}
+export NEXTCLOUD_UPDATE_CHECKER=${NEXTCLOUD_UPDATE_CHECKER:-"false"}
 export OVERWRITEPROTOCOL=${OVERWRITEPROTOCOL:-"https"}
 
 export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-"512M"}
@@ -220,43 +246,7 @@ ps aux
 echo "=== STEP 5: NET ==="
 netstat -tlnp || ss -tlnp
 
-# Check for environment variables - we need at least some PostgreSQL config
-# Check for Railway's PG* variables OR POSTGRES_* variables OR DATABASE_URL
-if [ -z "$POSTGRES_HOST" ] && [ -z "$DATABASE_URL" ] && [ -z "$POSTGRES_USER" ] && [ -z "$PGHOST" ] && [ -z "$PGUSER" ]; then
-    echo "❌ No PostgreSQL configuration found!"
-    echo "Set either individual POSTGRES_* variables, PG* variables, or DATABASE_URL"
-    echo "Available environment variables:"
-    env | grep -E "^(PG|POSTGRES|DATABASE)" | sort
-    exit 1
-fi
-
-# If DATABASE_URL is provided, parse it
-if [ -n "$DATABASE_URL" ] && [ -z "$POSTGRES_HOST" ]; then
-    echo "📊 Parsing DATABASE_URL..."
-    export POSTGRES_HOST=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:[^@]*@\([^:]*\):.*|\1|p')
-    export POSTGRES_PORT=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:[^@]*@[^:]*:\([0-9]*\)/.*|\1|p')
-    export POSTGRES_USER=$(echo $DATABASE_URL | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-    export POSTGRES_PASSWORD=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-    export POSTGRES_DB=$(echo $DATABASE_URL | sed -n 's|.*/\([^?]*\).*|\1|p')
-fi
-
-# Use Railway's standard PG* variables if POSTGRES_* aren't set
-export POSTGRES_HOST=${POSTGRES_HOST:-$PGHOST}
-export POSTGRES_PORT=${POSTGRES_PORT:-$PGPORT}
-export POSTGRES_USER=${POSTGRES_USER:-$PGUSER}
-export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-$PGPASSWORD}
-export POSTGRES_DB=${POSTGRES_DB:-$PGDATABASE}
-
-# Set final defaults if still missing
-export POSTGRES_HOST=${POSTGRES_HOST:-localhost}
-export POSTGRES_PORT=${POSTGRES_PORT:-5432}
-export POSTGRES_USER=${POSTGRES_USER:-postgres}
-export POSTGRES_DB=${POSTGRES_DB:-nextcloud}
-
-# Redis configuration - Railway uses REDISHOST, REDISPORT, REDISPASSWORD
-export REDIS_HOST=${REDIS_HOST:-${REDISHOST:-localhost}}
-export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
-export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
+# Environment variables have already been parsed and validated above
 
 # NextCloud configuration variables
 export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-kikaiworksadmin}
