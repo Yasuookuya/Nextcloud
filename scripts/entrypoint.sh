@@ -31,10 +31,25 @@ fix_permissions() {
 
 # Check if NextCloud is already installed (config.php exists)
 if [ -f "/var/www/html/data/config.php" ]; then
-  echo "✅ NextCloud already installed, using existing config"
+  echo "✅ NextCloud already installed, checking database configuration"
   # Copy existing config to working location
   cp /var/www/html/data/config.php /var/www/html/config/config.php
   chown www-data:www-data /var/www/html/config/config.php
+
+  # Check if database host matches current environment
+  CURRENT_DB_HOST=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['dbhost'] ?? '';")
+  if [ "$CURRENT_DB_HOST" != "$PGHOST:$PGPORT" ]; then
+    echo "🔄 Database host changed, updating config..."
+    su www-data -s /bin/bash -c "
+      cd /var/www/html &&
+      php occ config:system:set dbhost --value='$PGHOST:$PGPORT' &&
+      php occ config:system:set dbuser --value='$PGUSER' &&
+      php occ config:system:set dbpassword --value='$PGPASSWORD'
+    "
+    echo "✅ Database configuration updated"
+  else
+    echo "✅ Database configuration is current"
+  fi
 else
   echo "🏗️ Setting up automatic installation..."
   # Create autoconfig.php for automatic installation
