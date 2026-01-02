@@ -51,31 +51,16 @@ if [ -f "/var/www/html/data/config.php" ]; then
   fi
 
   if [ "$CONFIG_CHANGED" = true ]; then
-    echo "🔧 Updating configuration using PHP..."
-    # Create a temporary PHP script to update config
-    cat > /tmp/update_config.php << EOF
-<?php
-include '/var/www/html/config/config.php';
-\$CONFIG['dbhost'] = '$PGHOST:$PGPORT';
-\$CONFIG['dbuser'] = '$PGUSER';
-\$CONFIG['dbpassword'] = '$PGPASSWORD';
-if (isset(\$CONFIG['redis'])) {
-  \$CONFIG['redis']['host'] = '$REDISHOST';
-  \$CONFIG['redis']['port'] = $REDISPORT;
-  \$CONFIG['redis']['password'] = '$REDIS_PASSWORD';
-}
-
-// Write config directly
-\$fp = fopen('/var/www/html/config/config.php', 'w');
-fwrite(\$fp, "<?php\n");
-fwrite(\$fp, "\$CONFIG = ");
-fwrite(\$fp, var_export(\$CONFIG, true));
-fwrite(\$fp, ";\n");
-fclose(\$fp);
-echo "Config updated successfully\n";
-EOF
-    su www-data -s /bin/bash -c "cd /var/www/html && php /tmp/update_config.php"
-    rm /tmp/update_config.php
+    echo "🔧 Updating configuration using Nextcloud occ commands..."
+    su www-data -s /bin/bash -c "
+      cd /var/www/html &&
+      php occ config:system:set dbhost '$PGHOST:$PGPORT' &&
+      php occ config:system:set dbuser '$PGUSER' &&
+      php occ config:system:set dbpassword '$PGPASSWORD' &&
+      php occ config:system:set redis host '$REDISHOST' &&
+      php occ config:system:set redis port '$REDISPORT' &&
+      php occ config:system:set redis password '$REDIS_PASSWORD'
+    "
     echo "✅ Database and Redis configuration updated"
   else
     echo "✅ Database and Redis configuration is current"
