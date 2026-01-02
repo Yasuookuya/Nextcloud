@@ -19,9 +19,9 @@ RUN echo "📥 [BUILD: INSTALL] Installing Nextcloud from base image source..." 
 
 # [BUILD: DEPENDENCIES] Install additional tools
 RUN echo "📥 [BUILD: DEPENDENCIES] Installing additional packages..." && \
-    apt-get update && apt-get install -y gettext nginx supervisor curl postgresql-client procps net-tools bind9-utils bash redis-tools iproute2 php8.3-fpm php8.3-pgsql php8.3-redis php8.3-gd php8.3-curl php8.3-zip php8.3-xml php8.3-mbstring php8.3-intl && \
+    apt-get update && apt-get install -y gettext nginx supervisor curl postgresql-client procps net-tools bind9-utils bash redis-tools iproute2 php-fpm php-pgsql php-redis php-gd php-curl php-zip php-xml php-mbstring php-intl && \
     apt-get clean && \
-    ln -sf /usr/sbin/php-fpm8.3 /usr/bin/php-fpm && \
+    ln -sf /usr/sbin/php-fpm /usr/bin/php-fpm || true && \
     echo "✅ [BUILD: DEPENDENCIES] Package installation complete"
 
 # [BUILD: DIAGNOSTICS] Tool version checks
