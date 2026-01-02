@@ -6,10 +6,10 @@ A production-ready NextCloud deployment for Railway.com with PostgreSQL, Redis, 
 
 ## ✅ What's Included
 
-- **NextCloud** with PostgreSQL and Redis, Nginx + PHP-FPM
-- **Security optimizations** - PHP OPcache, security headers via Nginx
-- **Performance tuning** - Database indices, Redis caching configuration
-- **Railway integration** - Optimized for Railway deployment with volumes for persistence
+- **NextCloud** with PostgreSQL and Redis
+- **Security optimizations** - PHP OPcache, security headers
+- **Performance tuning** - Database indices, caching configuration  
+- **Railway integration** - Optimized for Railway deployment
 - **Fix script** - Resolves NextCloud security warnings
 
 ## 🚀 Deploy

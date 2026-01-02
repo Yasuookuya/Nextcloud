@@ -28,10 +28,10 @@
 
 ### Step 3: Add Database Services
 
-#### Add PostgreSQL:
+#### Add MySQL:
 1. **Click "Add Service"**
 2. **Select "Database"**
-3. **Choose "PostgreSQL"**
+3. **Choose "MySQL"**
 4. **Wait for deployment** (2-3 minutes)
 
 #### Add Redis:
@@ -47,14 +47,12 @@
 3. **Connect GitHub** (if not already connected)
 4. **Choose your forked repository**
 5. **Railway will auto-detect** the Dockerfile
-6. **Add Volumes for Persistence:**
-   - Go to Volumes tab
-   - Add volume "nextcloud-app" mounted to `/var/www/html` (for app code and config persistence)
-   - Add volume "nextcloud-data" mounted to `/data` (for user data)
-7. **Add Database Reference Variables:**
-   - Go to Variables tab (the railway.json handles most, but ensure these are set)
-   - Variables are mostly auto-set via railway.json, but verify in dashboard
-8. **Click "Deploy"**
+6. **Add Database Reference Variables:**
+   - Go to Variables tab
+   - Add: `DATABASE_URL` = `${{MySQL.MYSQL_URL}}`
+   - Add: `REDIS_URL` = `${{Redis.REDIS_URL}}`
+   - (Replace service names with your actual service names)
+7. **Click "Deploy"**
 
 **Wait for deployment** (5-10 minutes for first build)
 
@@ -124,11 +122,10 @@ HPB_URL = https://your-hpb-service-url.railway.app
 
 ## 🔧 Environment Variables Summary
 
-### Auto-provided by Railway (via railway.json):
-- PostgreSQL vars: `POSTGRES_HOST`, `POSTGRES_USER`, etc. ✅ (from PostgreSQL service)
-- Redis vars: `REDIS_HOST`, `REDIS_PORT`, etc. ✅ (from Redis service)
+### Auto-provided by Railway:
+- `DATABASE_URL` ✅ (from MySQL service)
+- `REDIS_URL` ✅ (from Redis service)
 - `RAILWAY_PUBLIC_DOMAIN` ✅ (your app URL)
-- Other vars like `NEXTCLOUD_TRUSTED_DOMAINS` ✅ (auto-set)
 
 ### Optional (for Talk HPB):
 - `SIGNALING_SECRET` (shared between NextCloud and HPB)
@@ -157,7 +154,7 @@ HPB_URL = https://your-hpb-service-url.railway.app
 - Check deployment logs for specific error messages
 
 ### Issue: "Database connection failed"
-**Solution**: Wait for PostgreSQL service to fully deploy before starting NextCloud
+**Solution**: Wait for MySQL service to fully deploy before starting NextCloud
 
 ### Issue: "Redis connection failed"  
 **Solution**: Ensure Redis service is running and healthy
@@ -170,15 +167,6 @@ HPB_URL = https://your-hpb-service-url.railway.app
 
 ### Issue: File uploads fail
 **Solution**: Check Railway storage limits, upgrade plan if needed
-
-### Issue: PostgreSQL privilege error (SQLSTATE[42501]) during install
-**Solution**: Reset the database schema to clear partial tables from failed deploys.
-Run in Railway shell:
-```
-railway shell
-psql $DATABASE_URL -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-```
-Then redeploy the NextCloud service. If you need to recover data, contact Railway support for DB backup before reset.
 
 ---
 

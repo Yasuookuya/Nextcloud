@@ -47,10 +47,6 @@ fi
 
 echo "✅ NextCloud is ready, proceeding with fixes..."
 
-# Update apps if needed (before DB fixes)
-echo "📱 Updating apps if needed..."
-run_occ app:update --all --no-interaction || echo "Apps skipped (upgrade state)"
-
 # Fix database issues
 echo "🗄️ Adding missing database columns..."
 run_occ db:add-missing-columns
@@ -70,28 +66,17 @@ echo "⚙️ Updating system configurations..."
 run_occ config:system:set maintenance_window_start --value=2 --type=integer
 run_occ config:system:set default_phone_region --value="US"
 
-# Enhanced Redis configuration (add password/port, prioritize Redis for local cache)
+# Enable recommended caching if Redis is available
 if [ -n "$REDIS_HOST" ]; then
     echo "🔴 Configuring Redis caching..."
-    run_occ config:system:set memcache.local --value="\\OC\\Memcache\\Redis"  # Prioritize Redis over APCu for better perf
+    run_occ config:system:set memcache.local --value="\\OC\\Memcache\\APCu"
     run_occ config:system:set memcache.distributed --value="\\OC\\Memcache\\Redis"
     run_occ config:system:set memcache.locking --value="\\OC\\Memcache\\Redis"
-    run_occ config:system:set redis host --value="$REDIS_HOST"
-    run_occ config:system:set redis port --value="${REDIS_PORT:-6379}"
-    if [ -n "$REDIS_PASSWORD" ]; then
-        run_occ config:system:set redis password --value="$REDIS_PASSWORD"
-    fi
 fi
 
 # Disable update checker for containerized deployments
 echo "📦 Configuring for containerized deployment..."
 run_occ config:system:set updatechecker --value=false --type=boolean
-
-# Add Railway-specific: Trusted proxies for reverse proxy (Railway's HTTPS)
-echo "🌐 Configuring trusted proxies for Railway..."
-run_occ config:system:set trusted_proxies 0 --value="127.0.0.1"  # Localhost for internal
-run_occ config:system:set trusted_proxies 1 --value="::1"  # IPv6
-# Add more if needed (e.g., Railway's internal IPs from docs)
 
 # Run final maintenance
 echo "🧹 Running final maintenance..."
