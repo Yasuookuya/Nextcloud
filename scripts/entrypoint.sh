@@ -51,14 +51,21 @@ if [ -f "/var/www/html/data/config.php" ]; then
   fi
 
   if [ "$CONFIG_CHANGED" = true ]; then
+    echo "🔧 Updating configuration using PHP..."
     su www-data -s /bin/bash -c "
       cd /var/www/html &&
-      php occ config:system:set dbhost --value='$PGHOST:$PGPORT' &&
-      php occ config:system:set dbuser --value='$PGUSER' &&
-      php occ config:system:set dbpassword --value='$PGPASSWORD' &&
-      php occ config:system:set redis host --value='$REDISHOST' &&
-      php occ config:system:set redis port --value='$REDISPORT' &&
-      php occ config:system:set redis password --value='$REDIS_PASSWORD'
+      php -r \"
+        include 'config/config.php';
+        \$CONFIG['dbhost'] = '$PGHOST:$PGPORT';
+        \$CONFIG['dbuser'] = '$PGUSER';
+        \$CONFIG['dbpassword'] = '$PGPASSWORD';
+        if (isset(\$CONFIG['redis'])) {
+          \$CONFIG['redis']['host'] = '$REDISHOST';
+          \$CONFIG['redis']['port'] = $REDISPORT;
+          \$CONFIG['redis']['password'] = '$REDIS_PASSWORD';
+        }
+        file_put_contents('config/config.php', '<?php\\n\$CONFIG = ' . var_export(\$CONFIG, true) . ';');
+      \"
     "
     echo "✅ Database and Redis configuration updated"
   else
