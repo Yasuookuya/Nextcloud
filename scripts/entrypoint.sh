@@ -345,16 +345,37 @@ timeout 30 sh -c "until pg_isready -h '$POSTGRES_HOST' -p '$POSTGRES_PORT'; do s
 echo "⌛ Waiting for Redis (max 30s)..."
 timeout 30 sh -c "until redis-cli -h '$REDIS_HOST' -p '$REDIS_PORT' ${REDIS_PASSWORD:+-a '$REDIS_PASSWORD'} ping; do sleep 2; done" || exit 1
 
-# SIMPLIFIED INSTALL/UPGRADE (single path, no deep nesting)
-if [ -f "$CONFIG_FILE" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ status" >/dev/null 2>&1; then
-  echo "✅ Nextcloud installed. Checking upgrade..."
-  if su www-data -s /bin/bash -c "cd /var/www/html && php occ status" | grep -q "require upgrade"; then
-    echo "⬆️ Upgrading..."
-    chmod 666 /var/www/html/config/config.php "$CONFIG_FILE"
-    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction" || exit 1
-    chmod 444 /var/www/html/config/config.php "$CONFIG_FILE"
+# ROBUST UPGRADE: Repair first, apps, then core (with retries)
+echo "🔍 Checking Nextcloud status for upgrade/repair..."
+if su www-data -s /bin/bash -c "cd /var/www/html && php occ status" >/dev/null 2>&1; then
+  STATUS_OUTPUT=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status")
+  if echo "$STATUS_OUTPUT" | grep -q "require upgrade"; then
+    echo "⬆️ UPGRADE REQUIRED - Running full CLI upgrade..."
+    # Clear web updater state
+    rm -f /var/www/html/data/updater-*.json /var/www/html/data/updater-*.log
+    chmod 777 /var/www/html/data /var/www/html/updater 2>/dev/null || true
+    # Maintenance ON + Repair/DB first
+    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on"
+    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair"
+    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-columns"
+    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-indices"
+    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction"
+    # Core upgrade (retry 3x)
+    for attempt in {1..3}; do
+      if timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose"; then
+        echo "✅ Upgrade success on attempt $attempt"
+        break
+      else
+        echo "⚠️ Upgrade attempt $attempt failed, retrying..."
+        sleep 10
+      fi
+    done
+    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
+  else
+    echo "✅ No core upgrade needed"
   fi
 else
+  # Fresh install block unchanged
   echo "🏗️ Fresh install..."
   su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:install \
     --database 'pgsql' --database-host '$POSTGRES_HOST' --database-port '$POSTGRES_PORT' \
