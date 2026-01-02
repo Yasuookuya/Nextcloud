@@ -36,19 +36,33 @@ if [ -f "/var/www/html/data/config.php" ]; then
   cp /var/www/html/data/config.php /var/www/html/config/config.php
   chown www-data:www-data /var/www/html/config/config.php
 
-  # Check if database host matches current environment
+  # Check if database and Redis configuration matches current environment
   CURRENT_DB_HOST=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['dbhost'] ?? '';")
+  CURRENT_REDIS_HOST=$(php -r "include '/var/www/html/config/config.php'; echo \$CONFIG['redis']['host'] ?? '';")
+
+  CONFIG_CHANGED=false
   if [ "$CURRENT_DB_HOST" != "$PGHOST:$PGPORT" ]; then
     echo "🔄 Database host changed, updating config..."
+    CONFIG_CHANGED=true
+  fi
+  if [ "$CURRENT_REDIS_HOST" != "$REDISHOST" ]; then
+    echo "🔄 Redis host changed, updating config..."
+    CONFIG_CHANGED=true
+  fi
+
+  if [ "$CONFIG_CHANGED" = true ]; then
     su www-data -s /bin/bash -c "
       cd /var/www/html &&
       php occ config:system:set dbhost --value='$PGHOST:$PGPORT' &&
       php occ config:system:set dbuser --value='$PGUSER' &&
-      php occ config:system:set dbpassword --value='$PGPASSWORD'
+      php occ config:system:set dbpassword --value='$PGPASSWORD' &&
+      php occ config:system:set redis host --value='$REDISHOST' &&
+      php occ config:system:set redis port --value='$REDISPORT' &&
+      php occ config:system:set redis password --value='$REDIS_PASSWORD'
     "
-    echo "✅ Database configuration updated"
+    echo "✅ Database and Redis configuration updated"
   else
-    echo "✅ Database configuration is current"
+    echo "✅ Database and Redis configuration is current"
   fi
 else
   echo "🏗️ Setting up automatic installation..."
