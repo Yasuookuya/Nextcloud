@@ -16,3 +16,4 @@ RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh 
 EXPOSE 8080
 
 ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]
+
