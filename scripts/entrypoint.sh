@@ -28,7 +28,7 @@ echo "✅ Env OK: Postgres=$PGHOST:$PGPORT Redis=$REDISHOST:$REDISPORT"
 # Wait DB/Redis
 echo "⌛ Waiting DB/Redis..."
 timeout 60 sh -c "until pg_isready -h $PGHOST -p $PGPORT; do sleep 2; done"
-timeout 120 sh -c "until redis-cli -h $REDISHOST -p $REDISPORT --user $REDISUSER ${REDIS_PASSWORD:+-a $REDIS_PASSWORD} ping; do sleep 2; done"
+timeout 120 sh -c "until redis-cli -h $REDISHOST -p $REDISPORT ${REDIS_PASSWORD:+-a $REDIS_PASSWORD} ping; do sleep 2; done"
 
 
 fix_permissions() {
