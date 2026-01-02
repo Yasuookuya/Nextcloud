@@ -149,14 +149,15 @@ fi
 
 fix_permissions
 
-# Test DB connection with current config
-echo "🔍 Testing DB connection..."
-if ! PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$POSTGRES_DB" -c "SELECT 1;" >/dev/null 2>&1; then
-  echo "❌ DB connection failed. Resetting config for fresh install."
-  rm -f /var/www/html/config/config.php /var/www/html/data/config.php
-  # Create autoconfig.php for reinstall
-  mkdir -p /var/www/html/config
-  cat > /var/www/html/config/autoconfig.php << EOF
+# Test DB connection with current config (only for existing installs)
+if [ -f "/var/www/html/data/config.php" ]; then
+  echo "🔍 Testing DB connection..."
+  if ! PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$POSTGRES_DB" -c "SELECT 1;" >/dev/null 2>&1; then
+    echo "❌ DB connection failed. Resetting config for fresh install."
+    rm -f /var/www/html/config/config.php /var/www/html/data/config.php
+    # Create autoconfig.php for reinstall
+    mkdir -p /var/www/html/config
+    cat > /var/www/html/config/autoconfig.php << EOF
 <?php
 \$AUTOCONFIG = array(
   "dbtype" => "pgsql",
@@ -176,25 +177,28 @@ if ! PGPASSWORD="$PGPASSWORD" psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$P
   ),
 );
 EOF
-  chown www-data:www-data /var/www/html/config/autoconfig.php
-  chmod 640 /var/www/html/config/autoconfig.php
-  echo "✅ Reset autoconfig created for reinstall"
-else
-  echo "✅ DB connection OK"
-fi
+    chown www-data:www-data /var/www/html/config/autoconfig.php
+    chmod 640 /var/www/html/config/autoconfig.php
+    echo "✅ Reset autoconfig created for reinstall"
+  else
+    echo "✅ DB connection OK"
+  fi
 
-# Essentials ONLY (upgrade for existing DBs, no app:update → UI handles)
-su www-data -s /bin/bash -c "
-  cd /var/www/html &&
-  echo '🔄 Checking for upgrades...' &&
-  php console.php maintenance:mode --on &&
-  php console.php upgrade --no-interaction || echo '⚠️ Upgrade failed or not needed' &&
-  php console.php maintenance:mode --off &&
-  php console.php maintenance:mode --off &&
-  php console.php config:system:set htaccess.RewriteBase --value=/ &&
-  php console.php maintenance:update:htaccess &&
-  php console.php config:system:set config_is_read_only --value=true
-"
+  # Essentials ONLY (upgrade for existing DBs, no app:update → UI handles)
+  su www-data -s /bin/bash -c "
+    cd /var/www/html &&
+    echo '🔄 Checking for upgrades...' &&
+    php console.php maintenance:mode --on &&
+    php console.php upgrade --no-interaction || echo '⚠️ Upgrade failed or not needed' &&
+    php console.php maintenance:mode --off &&
+    php console.php maintenance:mode --off &&
+    php console.php config:system:set htaccess.RewriteBase --value=/ &&
+    php console.php maintenance:update:htaccess &&
+    php console.php config:system:set config_is_read_only --value=true
+  "
+else
+  echo "✅ Fresh install - skipping upgrade commands (installation via web)"
+fi
 
 touch /var/www/html/.deployment_complete
 chown www-data:www-data /var/www/html/.deployment_complete
