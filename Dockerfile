@@ -1,38 +1,9 @@
 FROM nextcloud:32-fpm
 
-# [BUILD: BASE] Base image info
-RUN echo "🏗️ [BUILD: BASE] Using Nextcloud base image" && \
-    echo "📦 [BUILD: BASE] Nextcloud version check:" && \
-    php -r "echo 'PHP Version: ' . PHP_VERSION . PHP_EOL;" && \
-    ls -la /usr/src/nextcloud/version.php || echo "⚠️ [BUILD: BASE] Version file not found"
-
-# [BUILD: DEPENDENCIES] Install additional tools FIRST
-RUN echo "📥 [BUILD: DEPENDENCIES] Installing additional packages..." && \
-    apt-get update && apt-get install -y gettext-base nginx supervisor curl postgresql-client procps net-tools bind9-utils bash redis-tools iproute2 php8.3-fpm php8.3-pgsql php8.3-redis php8.3-gd php8.3-curl php8.3-zip php8.3-xml php8.3-mbstring php8.3-intl && \
-    apt-get clean && \
-    ln -sf /usr/sbin/php-fpm8.3 /usr/bin/php-fpm || true && \
-    echo "✅ [BUILD: DEPENDENCIES] Package installation complete"
-
-# [BUILD: DIAGNOSTICS] Tool version checks
-RUN echo "🔍 [BUILD: DIAGNOSTICS] Checking installed tools:" && \
-    echo "✅ Bash: $(bash --version 2>/dev/null | head -1 || echo 'ready')" && \
-    echo "✅ Redis CLI: $(redis-cli --version 2>/dev/null || echo 'ready')" && \
-    echo "✅ Postgres client: $(psql --version 2>/dev/null | head -1 || echo 'ready')" && \
-    echo "✅ Nginx: $(nginx -v 2>&1 || echo 'ready')" && \
-    echo "✅ PHP: $(php --version | head -1 || echo 'ready')" && \
-    echo "✅ IP route: $(ip route 2>/dev/null | head -1 || echo 'ready')" && \
-    echo "✅ Nslookup: $(nslookup -version 2>/dev/null | head -1 || echo 'ready')"
-
-# [BUILD: INSTALL] Install Nextcloud from base image source
-RUN echo "📥 [BUILD: INSTALL] Installing Nextcloud from base image source..." && \
-    if [ -d /usr/src/nextcloud ]; then \
-        cp -r /usr/src/nextcloud/* /var/www/html/ 2>/dev/null || true && \
-        chown -R www-data:www-data /var/www/html && \
-        echo "✅ Nextcloud files copied from /usr/src/nextcloud"; \
-    else \
-        echo "⚠️ Nextcloud source not found, assuming files are pre-installed"; \
-    fi && \
-    ls -la /var/www/html/ | head -5
+# Install additional packages
+RUN apt-get update && apt-get install -y \
+    gettext-base nginx supervisor curl postgresql-client redis-tools && \
+    apt-get clean
 
 # [BUILD: COPY] Copy configuration files
 RUN echo "📋 [BUILD: COPY] Copying configuration files..."
