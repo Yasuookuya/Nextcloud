@@ -243,33 +243,61 @@ if psql "$DATABASE_URL" -c "\dt oc_*" >/dev/null 2>&1; then
   fi
 fi
 
-echo "🚀 [UPGRADE PHASE] Consolidated upgrade/repair (https://docs.nextcloud.com/server/29/admin_manual/maintenance/upgrade.html)..."
+if [ "$DB_HAS_TABLES" = true ]; then
+  echo "🚀 [UPGRADE PHASE] Consolidated upgrade/repair (https://docs.nextcloud.com/server/29/admin_manual/maintenance/upgrade.html)..."
 
-su www-data -s /bin/bash -c "
-  cd /var/www/html &&
-  php occ maintenance:mode --on || true
-"
+  su www-data -s /bin/bash -c "
+    cd /var/www/html &&
+    php occ maintenance:mode --on || true
+  "
 
-# Upgrade with retry
-for attempt in {1..3}; do
-  if timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"; then
-    echo "✅ Core upgrade OK"
-    break
-  else
-    echo "⚠️ Upgrade attempt $attempt/3 failed, retry..."
-    sleep 10
-  fi
-done || echo "⚠️ Upgrade partial, continuing..."
+  # Upgrade with retry
+  for attempt in {1..3}; do
+    if timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction"; then
+      echo "✅ Core upgrade OK"
+      break
+    else
+      echo "⚠️ Upgrade attempt $attempt/3 failed, retry..."
+      sleep 10
+    fi
+  done || echo "⚠️ Upgrade partial, continuing..."
 
-timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction" || true
+  timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction" || true
 
-su www-data -s /bin/bash -c "
-  cd /var/www/html &&
-  php occ maintenance:repair --include-expensive || true &&
-  php occ config:system:set htaccess.RewriteBase --value=/ &&
-  php occ maintenance:update:htaccess &&
-  php occ maintenance:mode --off
-"
+  su www-data -s /bin/bash -c "
+    cd /var/www/html &&
+    php occ maintenance:repair --include-expensive || true &&
+    php occ config:system:set htaccess.RewriteBase --value=/ &&
+    php occ maintenance:update:htaccess &&
+    php occ maintenance:mode --off
+  "
+else
+  echo "🏗️ [FRESH INSTALL] Performing fresh Nextcloud 29.0.16 installation..."
+
+  su www-data -s /bin/bash -c "
+    cd /var/www/html &&
+    php occ maintenance:install \
+      --database 'pgsql' --database-host '$POSTGRES_HOST' --database-port '$POSTGRES_PORT' \
+      --database-name '$POSTGRES_DB' --database-user '$POSTGRES_USER' --database-pass '$POSTGRES_PASSWORD' \
+      --admin-user '$NEXTCLOUD_ADMIN_USER' --admin-pass '$NEXTCLOUD_ADMIN_PASSWORD' \
+      --data-dir '/var/www/html/data' || echo '⚠️ Fresh install may have completed partially'
+  "
+
+  su www-data -s /bin/bash -c "
+    cd /var/www/html &&
+    php occ config:system:set memcache.local --value='\\\\OC\\\\Memcache\\\\Redis' &&
+    php occ config:system:set memcache.locking --value='\\\\OC\\\\Memcache\\\\Redis' &&
+    php occ config:system:set redis.host --value='$REDIS_HOST' &&
+    php occ config:system:set redis.port --value=$REDIS_PORT
+  "
+  [ -n "$REDIS_PASSWORD" ] && su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis.password --value='$REDIS_PASSWORD'"
+
+  su www-data -s /bin/bash -c "
+    cd /var/www/html &&
+    php occ config:system:set htaccess.RewriteBase --value=/ &&
+    php occ maintenance:update:htaccess
+  "
+fi
 
 # Redis (idempotent)
 su www-data -s /bin/bash -c "
