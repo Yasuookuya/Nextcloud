@@ -52,21 +52,23 @@ if [ -f "/var/www/html/data/config.php" ]; then
 
   if [ "$CONFIG_CHANGED" = true ]; then
     echo "🔧 Updating configuration using PHP..."
-    su www-data -s /bin/bash -c "
-      cd /var/www/html &&
-      php -r \"
-        include 'config/config.php';
-        \$CONFIG['dbhost'] = '$PGHOST:$PGPORT';
-        \$CONFIG['dbuser'] = '$PGUSER';
-        \$CONFIG['dbpassword'] = '$PGPASSWORD';
-        if (isset(\$CONFIG['redis'])) {
-          \$CONFIG['redis']['host'] = '$REDISHOST';
-          \$CONFIG['redis']['port'] = $REDISPORT;
-          \$CONFIG['redis']['password'] = '$REDIS_PASSWORD';
-        }
-        file_put_contents('config/config.php', '<?php\\n\$CONFIG = ' . var_export(\$CONFIG, true) . ';');
-      \"
-    "
+    # Create a temporary PHP script to update config
+    cat > /tmp/update_config.php << EOF
+<?php
+include '/var/www/html/config/config.php';
+\$CONFIG['dbhost'] = '$PGHOST:$PGPORT';
+\$CONFIG['dbuser'] = '$PGUSER';
+\$CONFIG['dbpassword'] = '$PGPASSWORD';
+if (isset(\$CONFIG['redis'])) {
+  \$CONFIG['redis']['host'] = '$REDISHOST';
+  \$CONFIG['redis']['port'] = $REDISPORT;
+  \$CONFIG['redis']['password'] = '$REDIS_PASSWORD';
+}
+file_put_contents('/var/www/html/config/config.php', '<?php\n\$CONFIG = ' . var_export(\$CONFIG, true) . ';');
+echo "Config updated successfully\n";
+EOF
+    su www-data -s /bin/bash -c "cd /var/www/html && php /tmp/update_config.php"
+    rm /tmp/update_config.php
     echo "✅ Database and Redis configuration updated"
   else
     echo "✅ Database and Redis configuration is current"
