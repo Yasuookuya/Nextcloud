@@ -1,57 +1,34 @@
 #!/bin/bash
 set -e
 
-# Railway configuration - use correct Railway environment variables
+# Railway configuration - use the actual Railway environment variables provided
 export PGSSLMODE=disable
 
-# Railway provides DATABASE_URL and REDIS_URL automatically when services are attached
-# Parse DATABASE_URL for PostgreSQL connection details
-if [ -n "$DATABASE_URL" ]; then
-  echo "✅ DATABASE_URL found - parsing PostgreSQL connection details..."
-  export POSTGRES_HOST=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:[^@]*@\([^:]*\):.*|\1|p')
-  export POSTGRES_PORT=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:[^@]*@[^:]*:\([0-9]*\)/.*|\1|p')
-  export POSTGRES_USER=$(echo "$DATABASE_URL" | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-  export POSTGRES_PASSWORD=$(echo "$DATABASE_URL" | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-  export POSTGRES_DB=$(echo "$DATABASE_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
-else
-  echo "❌ ERROR: DATABASE_URL environment variable not set!"
-  echo "   Railway automatically provides DATABASE_URL when a PostgreSQL database is attached."
-  echo "   Please attach a PostgreSQL database to your Railway project."
+# Railway provides individual POSTGRES_* and REDIS_* variables directly
+# Validate required Railway environment variables
+if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_PORT" ] || [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_DB" ]; then
+  echo "❌ ERROR: Railway PostgreSQL environment variables not set!"
+  echo "   Required: POSTGRES_HOST, POSTGRES_PORT, POSTGRES_USER, POSTGRES_DB"
+  echo "   Please ensure PostgreSQL database is attached to your Railway project."
   exit 1
 fi
 
-# Parse REDIS_URL for Redis connection details
-if [ -n "$REDIS_URL" ]; then
-  echo "✅ REDIS_URL found - parsing Redis connection details..."
-  # REDIS_URL format: redis://default:password@host:port
-  export REDIS_HOST=$(echo "$REDIS_URL" | sed -n 's|redis://[^@]*@\([^:]*\):.*|\1|p')
-  export REDIS_PORT=$(echo "$REDIS_URL" | sed -n 's|redis://[^@]*@[^:]*:\([0-9]*\)$|\1|p')
-  export REDIS_PASSWORD=$(echo "$REDIS_URL" | sed -n 's|redis://[^:]*:\([^@]*\)@.*|\1|p')
-elif [ -n "$REDISHOST" ] && [ -n "$REDISPORT" ]; then
-  # Fallback to individual Redis variables if REDIS_URL not available
-  echo "⚠️ REDIS_URL not found, using individual Redis variables..."
-  export REDIS_HOST="$REDISHOST"
-  export REDIS_PORT="$REDISPORT"
-  export REDIS_PASSWORD="${REDISPASSWORD:-}"
-else
-  echo "❌ ERROR: Redis configuration not found!"
-  echo "   Railway provides REDIS_URL when a Redis database is attached, or set REDISHOST/REDISPORT."
-  echo "   Please attach a Redis database to your Railway project."
+if [ -z "$REDIS_HOST" ] || [ -z "$REDIS_PORT" ]; then
+  echo "❌ ERROR: Railway Redis environment variables not set!"
+  echo "   Required: REDIS_HOST, REDIS_PORT"
+  echo "   Please ensure Redis database is attached to your Railway project."
   exit 1
 fi
 
-# Validate parsed variables
-if [ -z "$POSTGRES_HOST" ] || [ -z "$POSTGRES_DB" ] || [ -z "$REDIS_HOST" ]; then
-  echo "❌ ERROR: Failed to parse database connection details from Railway environment variables!"
-  echo "   DATABASE_URL: ${DATABASE_URL:-'(not set)'}"
-  echo "   REDIS_URL: ${REDIS_URL:-'(not set)'}"
-  exit 1
-fi
+# Set defaults for optional variables
+export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-""}
+export REDIS_PASSWORD=${REDIS_HOST_PASSWORD:-""}  # Railway uses REDIS_HOST_PASSWORD
+export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
 
 export NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS:-"nextcloud-railway-template-website.up.railway.app,localhost,::1,RAILWAY_PRIVATE_DOMAIN,RAILWAY_STATIC_URL"}
 export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-"kikaiworksadmin"}
 export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-"2046S@nto!7669Y@"}
-export NEXTCLOUD_UPDATE_CHECKER=${NEXTCLOUD_UPDATE_CHECKER:-"false"}
+export NEXTCLOUD_UPDATE_CHECK=${NEXTCLOUD_UPDATE_CHECK:-"false"}
 export OVERWRITEPROTOCOL=${OVERWRITEPROTOCOL:-"https"}
 
 export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-"512M"}
@@ -254,7 +231,7 @@ export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-2046S@nto!7669Y@}
 export NEXTCLOUD_TRUSTED_DOMAINS=${NEXTCLOUD_TRUSTED_DOMAINS:-localhost,::1}
 export NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR:-/var/www/html/data}
 export NEXTCLOUD_TABLE_PREFIX=${NEXTCLOUD_TABLE_PREFIX:-oc_}
-export NEXTCLOUD_UPDATE_CHECKER=${NEXTCLOUD_UPDATE_CHECKER:-false}
+export NEXTCLOUD_UPDATE_CHECK=${NEXTCLOUD_UPDATE_CHECK:-false}
 
 # PHP performance settings
 export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
