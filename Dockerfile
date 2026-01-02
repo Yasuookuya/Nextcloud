@@ -1,9 +1,5 @@
 FROM nextcloud:latest
 
-# Fix Railway-specific MPM conflict permanently in the image
-RUN a2dismod mpm_event mpm_worker && \
-    a2enmod mpm_prefork
-
 # Install additional packages and PHP extensions
 RUN apt-get update && apt-get install -y \
     smbclient \

@@ -138,8 +138,4 @@ echo "🐛 DEBUG: Current working directory: $(pwd)"
 echo "🐛 DEBUG: Contents of /usr/local/bin/:"
 ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
 
-# Fix for Railway Apache MPM conflict
-a2dismod mpm_event mpm_worker || true
-a2enmod mpm_prefork || true
-
 exec /entrypoint.sh apache2-foreground
