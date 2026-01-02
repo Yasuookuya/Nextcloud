@@ -47,6 +47,10 @@ fi
 
 echo "✅ NextCloud is ready, proceeding with fixes..."
 
+# Update apps if needed (before DB fixes)
+echo "📱 Updating apps if needed..."
+run_occ app:update --all --no-interaction || echo "Apps skipped (upgrade state)"
+
 # Fix database issues
 echo "🗄️ Adding missing database columns..."
 run_occ db:add-missing-columns

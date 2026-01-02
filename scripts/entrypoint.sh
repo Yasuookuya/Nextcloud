@@ -345,37 +345,42 @@ timeout 30 sh -c "until pg_isready -h '$POSTGRES_HOST' -p '$POSTGRES_PORT'; do s
 echo "⌛ Waiting for Redis (max 30s)..."
 timeout 30 sh -c "until redis-cli -h '$REDIS_HOST' -p '$REDIS_PORT' ${REDIS_PASSWORD:+-a '$REDIS_PASSWORD'} ping; do sleep 2; done" || exit 1
 
-# ROBUST UPGRADE: Repair first, apps, then core (with retries)
-echo "🔍 Checking Nextcloud status for upgrade/repair..."
-if su www-data -s /bin/bash -c "cd /var/www/html && php occ status" >/dev/null 2>&1; then
-  STATUS_OUTPUT=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status")
-  if echo "$STATUS_OUTPUT" | grep -q "require upgrade"; then
-    echo "⬆️ UPGRADE REQUIRED - Running full CLI upgrade..."
-    # Clear web updater state
-    rm -f /var/www/html/data/updater-*.json /var/www/html/data/updater-*.log
-    chmod 777 /var/www/html/data /var/www/html/updater 2>/dev/null || true
-    # Maintenance ON + Repair/DB first
-    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on"
-    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair"
-    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-columns"
-    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-indices"
-    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction"
-    # Core upgrade (retry 3x)
-    for attempt in {1..3}; do
-      if timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose"; then
-        echo "✅ Upgrade success on attempt $attempt"
-        break
-      else
-        echo "⚠️ Upgrade attempt $attempt failed, retrying..."
-        sleep 10
-      fi
-    done
-    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
+# UPGRADE LOOP: Apps + Core + Repair until clean (handles apps)
+echo "🔍 Full status check/upgrade loop..."
+MAX_RETRIES=5
+for retry in $(seq 1 $MAX_RETRIES); do
+  STATUS=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json 2>&1 | grep -E 'version|updater|apps'" || echo "failed")
+  if [[ "$STATUS" == *"updater\":\"true"* ]] || echo "$STATUS" | grep -q "require.*upgrade" || echo "$STATUS" | grep -q "apps.*update"; then
+    echo "🔄 Retry $retry/$MAX_RETRIES: Apps/Core upgrade needed"
+    rm -rf /var/www/html/data/updater-* /var/www/html/updater/.step
+    chmod -R 777 /var/www/html/data /var/www/html/updater 2>/dev/null || true
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --on || true"
+
+    # Apps first (key!)
+    timeout 900 su www-data -s /bin/bash -c "cd /var/www/html && php occ app:update --all --no-interaction --verbose" || echo "Apps partial"
+
+    # DB prep
+    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-columns || true"
+    timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ db:add-missing-indices || true"
+
+    # Core
+    timeout 1200 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" || echo "Core partial"
+
+    # Repair
+    timeout 600 su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:repair --include-expensive"
+
+    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off"
+
+    sleep 5  # Settle
   else
-    echo "✅ No core upgrade needed"
+    echo "✅ Clean after $retry retries"
+    break
   fi
-else
-  # Fresh install block unchanged
+  [ $retry -eq $MAX_RETRIES ] && echo "⚠️ Max retries - manual occ needed"
+done
+
+# Fresh install (only if no config)
+if [ ! -f "/var/www/html/data/config.php" ]; then
   echo "🏗️ Fresh install..."
   su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:install \
     --database 'pgsql' --database-host '$POSTGRES_HOST' --database-port '$POSTGRES_PORT' \
