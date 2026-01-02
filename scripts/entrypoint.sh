@@ -390,20 +390,24 @@ chown -R www-data:www-data /var/www/html
 ls -la /var/www/html
 psql "$DATABASE_URL" -c "\dp oc_migrations"
 
-# Disable maintenance mode (simplified, reliable approach)
-if [ -f "/var/www/html/config/config.php" ]; then
-  echo "🔧 Disabling maintenance mode..."
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>/dev/null || true
-  sed -i "s/'maintenance' => true/'maintenance' => false/g" /var/www/html/config/config.php 2>/dev/null || true
-  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance" 2>/dev/null || true
-  echo "✅ Maintenance mode disabled"
+# Robust maintenance off (occ + sed, www-data)
+echo "🔧 [FINAL] Force maintenance off..."
+su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off 2>/dev/null || true"
+sed -i "s/'maintenance'\s*=>\s*true/'maintenance' => false/g" /var/www/html/config/config.php 2>/dev/null || true
+sed -i "s/'maintenance'\s*=>\s*true/'maintenance' => false/g" /var/www/html/data/config.php 2>/dev/null || true
+su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:delete maintenance 2>/dev/null || true"
+
+# Auto-upgrade if needed (fixes button, Nextcloud docs)
+if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json 2>&1 | grep -q '\"updater\":\"true\"'" ; then
+  echo "⬆️ [FINAL] Auto-upgrading (timeout 5min)..."
+  chmod 666 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
+  timeout 300 su www-data -s /bin/bash -c "cd /var/www/html && php occ upgrade --no-interaction --verbose" || echo "⚠️ Upgrade skipped (web UI fallback)"
+  chmod 444 /var/www/html/config/config.php /var/www/html/data/config.php 2>/dev/null || true
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off && php occ background-job:cron" || true
 fi
 
-# Run fix-warnings if config exists and Nextcloud is installed
-if [ -f "/var/www/html/config/config.php" ]; then
-  echo "🔧 Running fix-warnings script..."
-  /usr/local/bin/fix-warnings.sh || echo "⚠️ Fix-warnings script failed, but continuing..."
-fi
+# Fix-warnings safe (post-upgrade)
+su www-data -s /bin/bash -c "/usr/local/bin/fix-warnings.sh" || true
 
 # Ensure log dirs exist for Supervisor/Nginx/PHP (Fixes crash)
 echo "📁 Creating log/run dirs..."
@@ -420,23 +424,11 @@ echo "  - Admin User: ${NEXTCLOUD_ADMIN_USER}"
 echo "  - Database: PostgreSQL (${POSTGRES_DB})"
 echo "  - Cache: Redis (${REDIS_HOST}:${REDIS_PORT})"
 echo "  - Services: nginx + php-fpm + cron"
-echo "� [PHASE: FINAL] Access URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
+echo "🔗 [PHASE: FINAL] Access URL: https://${RAILWAY_PUBLIC_DOMAIN:-'your-app.up.railway.app'}"
 
 # Final health check and service preparation
 if [ -f "/var/www/html/config/config.php" ]; then
   echo "✅ [PHASE: FINAL] Config file exists"
-
-  # Final maintenance mode check and force disable
-  echo "🔧 [PHASE: FINAL] Final maintenance mode check..."
-  MAINT_STATUS=$(su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode" 2>/dev/null || echo "unknown")
-  if [[ "$MAINT_STATUS" == *"enabled"* ]] || [[ "$MAINT_STATUS" == *"true"* ]]; then
-    echo "⚠️ [PHASE: FINAL] Maintenance mode is still enabled - forcing disable..."
-    su www-data -s /bin/bash -c "cd /var/www/html && php occ maintenance:mode --off" 2>&1 || echo "⚠️ Could not disable maintenance mode via occ"
-    # Force via config edit
-    sed -i "s/'maintenance' => true/'maintenance' => false/g" /var/www/html/config/config.php || echo "⚠️ Config edit failed"
-  else
-    echo "✅ [PHASE: FINAL] Maintenance mode is disabled"
-  fi
 
   # Check Nextcloud status
   if su www-data -s /bin/bash -c "cd /var/www/html && php occ status --output=json" >/dev/null 2>&1; then
