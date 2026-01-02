@@ -29,74 +29,39 @@ fix_permissions() {
   echo "✅ Perms fixed"
 }
 
-# Install IF NEEDED (simple: no tables)
-if ! psql "$DATABASE_URL" -c "\dt oc_*" >/dev/null 2>&1; then
-  echo "🏗️ Fresh install..."
-  su www-data -s /bin/bash -c "
-    cd /var/www/html &&
-    php occ maintenance:install \
-      --database 'pgsql' --database-host '$POSTGRES_HOST' --database-port '$POSTGRES_PORT' \
-      --database-name '$POSTGRES_DB' --database-user '$POSTGRES_USER' --database-pass '$POSTGRES_PASSWORD' \
-      --admin-user '$NEXTCLOUD_ADMIN_USER' --admin-pass '$NEXTCLOUD_ADMIN_PASSWORD' \
-      --data-dir '/var/www/html/data'
-  "
-  echo "✅ Installed"
-  # After install, copy config to persistent location
-  cp /var/www/html/config/config.php /var/www/html/data/config.php
-  chown www-data:www-data /var/www/html/data/config.php
+# Check if NextCloud is already installed (config.php exists)
+if [ -f "/var/www/html/data/config.php" ]; then
+  echo "✅ NextCloud already installed, using existing config"
+  # Copy existing config to working location
+  cp /var/www/html/data/config.php /var/www/html/config/config.php
+  chown www-data:www-data /var/www/html/config/config.php
 else
-  echo "✅ Install skipped (existing DB)"
-  # For existing DB, create config if missing
-  CONFIG_FILE="/var/www/html/data/config.php"
-  if [ ! -f "$CONFIG_FILE" ]; then
-    export INSTANCEID="oc$(openssl rand -hex 10)"
-    export PASSWORDSALT="$(openssl rand -base64 30)"
-    export SECRET="$(openssl rand -base64 30)"
-  else
-    # Preserve
-    INSTANCEID=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['instanceid'] ?? 'oc$(openssl rand -hex 10)';")
-    PASSWORDSALT=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['passwordsalt'] ?? '$(openssl rand -base64 30)';")
-    SECRET=$(php -r "include '$CONFIG_FILE'; echo \$CONFIG['secret'] ?? '$(openssl rand -base64 30)';")
-  fi
-  export INSTANCEID PASSWORDSALT SECRET
-
-  cat > /var/www/html/config/config.php << EOF
+  echo "🏗️ Setting up automatic installation..."
+  # Create autoconfig.php for automatic installation
+  mkdir -p /var/www/html/config
+  cat > /var/www/html/config/autoconfig.php << EOF
 <?php
-\$CONFIG = array (
-  'dbtype' => 'pgsql',
-  'dbhost' => '$POSTGRES_HOST',
-  'dbport' => '$POSTGRES_PORT',
-  'dbtableprefix' => 'oc_',
-  'dbname' => '$POSTGRES_DB',
-  'dbuser' => '$POSTGRES_USER',
-  'dbpassword' => '$POSTGRES_PASSWORD',
-  'installed' => true,
-  'instanceid' => '$INSTANCEID',
-  'passwordsalt' => '$PASSWORDSALT',
-  'secret' => '$SECRET',
-  'trusted_domains' => array (
-    0 => '${RAILWAY_PUBLIC_DOMAIN:-nextcloud.railway.app}',
-    1 => 'localhost', 2 => '::1',
-    3 => '${RAILWAY_PRIVATE_DOMAIN:-}',
-    4 => '${RAILWAY_STATIC_URL:-}',
-  ),
-  'datadirectory' => '/var/www/html/data',
-  'overwrite.cli.url' => 'https://${RAILWAY_PUBLIC_DOMAIN:-nextcloud.railway.app}',
-  'overwriteprotocol' => 'https',
-  'htaccess.RewriteBase' => '/',
-  'memcache.local' => '\\OC\\Memcache\\Redis',
-  'memcache.locking' => '\\OC\\Memcache\\Redis',
-  'redis' => array (
-    'host' => '$REDIS_HOST', 'port' => '$REDIS_PORT',
-    'password' => '${REDIS_PASSWORD:-}',
+\$AUTOCONFIG = array(
+  "dbtype" => "pgsql",
+  "dbname" => "$POSTGRES_DB",
+  "dbuser" => "$POSTGRES_USER",
+  "dbpass" => "$POSTGRES_PASSWORD",
+  "dbhost" => "$POSTGRES_HOST:$POSTGRES_PORT",
+  "dbtableprefix" => "oc_",
+  "directory" => "/var/www/html/data",
+  "adminlogin" => "$NEXTCLOUD_ADMIN_USER",
+  "adminpass" => "$NEXTCLOUD_ADMIN_PASSWORD",
+  "trusted_domains" => array(
+    0 => "localhost",
+    1 => "${RAILWAY_PUBLIC_DOMAIN:-nextcloud.railway.app}",
+    2 => "${RAILWAY_PRIVATE_DOMAIN:-}",
+    3 => "${RAILWAY_STATIC_URL:-}",
   ),
 );
 EOF
-
-  # Lint & persist
-  php -l /var/www/html/config/config.php || { echo "❌ Config lint fail"; cat /var/www/html/config/config.php; exit 1; }
-  cp /var/www/html/config/config.php "$CONFIG_FILE"
-  chown www-data:www-data /var/www/html/config/config.php "$CONFIG_FILE"
+  chown www-data:www-data /var/www/html/config/autoconfig.php
+  chmod 640 /var/www/html/config/autoconfig.php
+  echo "✅ Autoconfig.php created for automatic installation"
 fi
 
 fix_permissions
