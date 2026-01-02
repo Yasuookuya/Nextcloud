@@ -505,5 +505,15 @@ else
   echo "✅ [PHASE: FINAL] Supervisor config OK"
 fi
 
+# Auto-upgrade (www-data, Nextcloud docs)
+echo "⬆️ [PHASE: FINAL] Checking for Nextcloud updates..."
+su www-data -s /bin/bash -c '
+  cd /var/www/html &&
+  php occ maintenance:mode --on &&
+  php occ upgrade --no-interaction --verbose &&
+  php occ maintenance:mode --off &&
+  php occ background-job:cron
+' || echo "⚠️ [PHASE: FINAL] Auto-upgrade skipped (non-fatal)"
+
 echo "🚀 [PHASE: FINAL] All pre-flight checks passed. Starting Supervisor..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
