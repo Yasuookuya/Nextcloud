@@ -209,6 +209,6 @@ su www-data -s /bin/bash -c "cd /var/www/html && php console.php status"
 
 # Nginx subst + supervisor
 envsubst '\${PORT}' < /etc/nginx/nginx.conf > /tmp/nginx.conf && mv /tmp/nginx.conf /etc/nginx/nginx.conf
-nginx -t && php-fpm -t || exit 1
+nginx -t || exit 1
 
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
