@@ -131,6 +131,12 @@ else
     echo "✅ Skipping autoconfig.php creation"
 fi
 
+# Fix Apache MPM configuration to prevent conflicts
+echo "🔧 Fixing Apache MPM configuration..."
+a2dismod --force mpm_event mpm_worker || true
+a2enmod mpm_prefork || true
+echo "✅ Apache MPM configuration fixed"
+
 # Forward to original NextCloud entrypoint
 echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
 echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
