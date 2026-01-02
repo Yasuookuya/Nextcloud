@@ -3,21 +3,21 @@ set -e
 
 # Railway env (plugins auto-injected)
 export PGSSLMODE=disable
-export DATABASE_URL="postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB"
-export REDIS_PASSWORD="${REDIS_HOST_PASSWORD:-}"
+export DATABASE_URL="postgresql://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$POSTGRES_DB"
+export REDIS_PASSWORD="${REDISHOST_PASSWORD:-}"
 
 # Validate
-if [ -z "$POSTGRES_HOST" ] || [ -z "$REDIS_HOST" ]; then
+if [ -z "$PGHOST" ] || [ -z "$REDISHOST" ]; then
   echo "❌ Missing DB/Redis vars"
   exit 1
 fi
 
-echo "✅ Env OK: Postgres=$POSTGRES_HOST Redis=$REDIS_HOST"
+echo "✅ Env OK: Postgres=$PGHOST Redis=$REDISHOST"
 
 # Wait DB/Redis
 echo "⌛ Waiting DB/Redis..."
-timeout 60 sh -c "until pg_isready -h $POSTGRES_HOST -p $POSTGRES_PORT; do sleep 2; done"
-timeout 60 sh -c "until redis-cli -h $REDIS_HOST -p $REDIS_PORT ${REDIS_PASSWORD:+-a $REDIS_PASSWORD} ping; do sleep 2; done"
+timeout 60 sh -c "until pg_isready -h $PGHOST -p $PGPORT; do sleep 2; done"
+timeout 60 sh -c "until redis-cli -h $REDISHOST -p $REDISPORT ${REDIS_PASSWORD:+-a $REDIS_PASSWORD} ping; do sleep 2; done"
 
 
 fix_permissions() {
@@ -44,9 +44,9 @@ else
 \$AUTOCONFIG = array(
   "dbtype" => "pgsql",
   "dbname" => "$POSTGRES_DB",
-  "dbuser" => "$POSTGRES_USER",
-  "dbpass" => "$POSTGRES_PASSWORD",
-  "dbhost" => "$POSTGRES_HOST:$POSTGRES_PORT",
+  "dbuser" => "$PGUSER",
+  "dbpass" => "$PGPASSWORD",
+  "dbhost" => "$PGHOST:$PGPORT",
   "dbtableprefix" => "oc_",
   "directory" => "/var/www/html/data",
   "adminlogin" => "$NEXTCLOUD_ADMIN_USER",
