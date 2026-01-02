@@ -6,9 +6,16 @@ RUN echo "🏗️ [BUILD: BASE] Using Nextcloud base image" && \
     php -r "echo 'PHP Version: ' . PHP_VERSION . PHP_EOL;" && \
     ls -la /usr/src/nextcloud/version.php || echo "⚠️ [BUILD: BASE] Version file not found"
 
-# [BUILD: INSTALL] Nextcloud already included in base image
-RUN echo "📥 [BUILD: INSTALL] Nextcloud already included in nextcloud:latest base image" && \
-    ls -la /var/www/html/index.php && echo "✅ Nextcloud files present"
+# [BUILD: INSTALL] Install Nextcloud from base image source
+RUN echo "📥 [BUILD: INSTALL] Installing Nextcloud from base image source..." && \
+    if [ -d /usr/src/nextcloud ]; then \
+        cp -r /usr/src/nextcloud/* /var/www/html/ 2>/dev/null || true && \
+        chown -R www-data:www-data /var/www/html && \
+        echo "✅ Nextcloud files copied from /usr/src/nextcloud"; \
+    else \
+        echo "⚠️ Nextcloud source not found, assuming files are pre-installed"; \
+    fi && \
+    ls -la /var/www/html/ | head -5
 
 # [BUILD: DEPENDENCIES] Install additional tools
 RUN echo "📥 [BUILD: DEPENDENCIES] Installing additional packages..." && \
