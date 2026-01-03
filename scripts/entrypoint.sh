@@ -148,7 +148,7 @@ if [ ! -f /var/www/html/config/config.php ]; then
         # Create hook for autoconfig setup
         mkdir -p /docker-entrypoint-hooks.d/before-starting
 
-        cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
+        cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << EOF
 #!/bin/bash
 echo "🔧 Creating autoconfig.php for automatic setup..."
 mkdir -p /var/www/html/config
@@ -174,6 +174,7 @@ chown www-data:www-data /var/www/html/config/autoconfig.php
 chmod 640 /var/www/html/config/autoconfig.php
 echo "✅ Autoconfig.php created for automatic installation"
 EOF
+        chown root:root /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
         chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
     else
         echo "✅ No admin credentials - NextCloud setup wizard will be used"
@@ -183,9 +184,11 @@ else
     echo "📁 config.php exists – normal startup"
 fi
 
-# Ensure data directory marker file exists
-echo "# Nextcloud data directory" > /var/www/html/data/.ncdata
-chown www-data:www-data /var/www/html/data/.ncdata
+# Ensure data directory marker file exists (only create if missing)
+if [ ! -f /var/www/html/data/.ncdata ]; then
+    echo "# Nextcloud data directory" > /var/www/html/data/.ncdata
+    chown www-data:www-data /var/www/html/data/.ncdata
+fi
 
 # Forward to original NextCloud entrypoint
 echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
