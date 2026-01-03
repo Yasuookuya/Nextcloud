@@ -211,7 +211,7 @@ cat > /var/www/html/config/autoconfig.php << AUTOEOF
     "redis" => array(
         "host" => "${REDIS_HOST}",
         "port" => ${REDIS_PORT},
-        "password" => "${REDIS_PASSWORD}",
+        "auth" => "${REDIS_PASSWORD}",
     ),
 );
 AUTOEOF
