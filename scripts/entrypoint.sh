@@ -166,6 +166,7 @@ END \$\$;
 echo "🔧 Setting Nextcloud directory permissions..."
 chown -R www-data:www-data /var/www/html
 chmod -R 750 /var/www/html
+mkdir -p /var/www/html/data
 echo "# Nextcloud data directory" > /var/www/html/data/.ncdata
 chown www-data:www-data /var/www/html/data/.ncdata
 
