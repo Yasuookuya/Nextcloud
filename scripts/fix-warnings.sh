@@ -4,10 +4,6 @@
 
 set -e
 
-echo "⚠️  DEPRECATED: Full fixes now auto-run in entrypoint.sh on startup!"
-echo "ℹ️  Run only for manual re-fixes (e.g., after DB schema changes)."
-echo ""
-
 echo "🔧 Fixing NextCloud Security & Setup Warnings..."
 echo "⚠️  IMPORTANT: This script should only be run AFTER NextCloud setup is complete!"
 echo ""

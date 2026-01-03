@@ -31,7 +31,7 @@ RUN a2enconf security apache-security && \
     (a2enmod php8.3 || a2enmod php || echo "PHP module detection will be handled in entrypoint")
 
 # Copy supervisor configuration
-COPY config/supervisord.conf /etc/supervisor/supervisord.conf
+COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Copy custom entrypoint and maintenance scripts
 COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
