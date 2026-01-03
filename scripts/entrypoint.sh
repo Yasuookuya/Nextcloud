@@ -141,24 +141,26 @@ else
 fi
 
 # Clean up any leftover database tables from failed installations
-echo "🧹 Cleaning up old Nextcloud database tables..."
+echo "🧹 Completely resetting Nextcloud database..."
 PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "
-DROP TABLE IF EXISTS
-  oc_accounts, oc_accounts_data, oc_activity, oc_activity_mq, oc_addressbookchanges, oc_addressbooks,
-  oc_appconfig, oc_authtoken, oc_bruteforce_attempts, oc_calendar_invitations, oc_calendar_reminders,
-  oc_calendar_resources, oc_calendar_rooms, oc_calendarchanges, oc_calendars, oc_calendarsubscriptions,
-  oc_cards, oc_cards_properties, oc_circle_members, oc_circles, oc_comments, oc_comments_read_markers,
-  oc_credentials, oc_dav_cal_proxy, oc_dav_shares, oc_directlink, oc_federated_reshares, oc_file_locks,
-  oc_filecache, oc_files_trash, oc_flow_checks, oc_flow_operations, oc_group_admin, oc_group_user,
-  oc_groups, oc_jobs, oc_login_flow_v2, oc_migrations, oc_mounts, oc_notifications, oc_oauth2_access_tokens,
-  oc_oauth2_clients, oc_oauth2_codes, oc_preferences, oc_privacy_admins, oc_properties,
-  oc_richdocuments_assets, oc_richdocuments_wopi, oc_share, oc_share_external, oc_shares, oc_storages,
-  oc_systemtag, oc_systemtag_group, oc_systemtag_object_mapping, oc_talk_attendees, oc_talk_bridges,
-  oc_talk_calls, oc_talk_commands, oc_talk_participants, oc_talk_rooms, oc_talk_sessions,
-  oc_text_documents, oc_text_sessions, oc_text_steps, oc_trusted_servers, oc_twofactor_backupcodes,
-  oc_twofactor_providers, oc_user_status, oc_user_transfer_owner, oc_users, oc_vcategory,
-  oc_vcategory_to_object, oc_webauthn, oc_whats_new CASCADE;
-" 2>/dev/null || echo "No old tables to clean or database not ready yet"
+DO \$\$
+DECLARE
+    r RECORD;
+BEGIN
+    -- Drop all tables in all schemas
+    FOR r IN (SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
+        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.tablename) || ' CASCADE';
+    END LOOP;
+
+    -- Drop all sequences in all schemas
+    FOR r IN (SELECT schemaname, sequencename FROM pg_sequences WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
+        EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.sequencename) || ' CASCADE';
+    END LOOP;
+
+    -- Reset sequences
+    PERFORM setval(oid, 1, false) FROM pg_class WHERE relkind = 'S';
+END \$\$;
+" 2>/dev/null || echo "Database cleanup completed or database not ready yet"
 
 # Forward to original NextCloud entrypoint
 echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
