@@ -61,32 +61,11 @@ A production-ready NextCloud deployment for Railway.com with PostgreSQL, Redis, 
 
 ## 🔧 Post-Deployment
 
-### Step 1: Complete NextCloud Setup
-1. **Visit your Railway URL** - you should see the NextCloud setup wizard
-2. **Create your admin account** using the web interface
-3. **Wait for setup to complete** - you should see the NextCloud dashboard
+### Complete NextCloud Setup (Fully Automated)
+1. **Visit your Railway URL** → Setup wizard (manual) or auto-install (if `NEXTCLOUD_ADMIN_*` set).
+2. **~1-2min wait** → Auto-fixes run: DB optimized, Redis/caches enabled, security warnings cleared!
 
-### Step 2: Fix Security Warnings (Optional)
-**IMPORTANT**: Only run this AFTER step 1 is complete.
-
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login and connect to your project
-railway login
-railway link
-
-# Run the fix script (only after setup is complete)
-railway run /usr/local/bin/fix-warnings-DISABLED.sh
-```
-
-This automatically:
-- Adds missing database columns/indices
-- Runs mimetype migrations
-- Configures maintenance window  
-- Sets default phone region
-- Enables Redis caching
+✅ **No manual scripts needed** - permanent auto-fixes in entrypoint.sh. Refresh admin Overview: 0 warnings.
 
 ## 🏆 Performance Backend (Optional)
 
