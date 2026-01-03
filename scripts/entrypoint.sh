@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+# Force redeployment to clear cache
+
 echo "🔧 Configuring Apache MPM for Railway compatibility..."
 a2dismod mpm_event mpm_worker 2>/dev/null || true
 a2enmod mpm_prefork 2>/dev/null || true
