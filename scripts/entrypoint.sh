@@ -129,6 +129,14 @@ cat > /var/www/html/config/autoconfig.php << AUTOEOF
         0 => "localhost",
         1 => "${RAILWAY_PUBLIC_DOMAIN}",
     ),
+    "memcache.local" => "\\OC\\Memcache\\APCu",
+    "memcache.distributed" => "\\OC\\Memcache\\Redis",
+    "memcache.locking" => "\\OC\\Memcache\\Redis",
+    "redis" => array(
+        "host" => "${REDIS_HOST}",
+        "port" => ${REDIS_PORT},
+        "password" => "${REDIS_PASSWORD}",
+    ),
 );
 AUTOEOF
 chown www-data:www-data /var/www/html/config/autoconfig.php
