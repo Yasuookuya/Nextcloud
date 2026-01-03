@@ -7,10 +7,13 @@ echo "🔧 Configuring Apache MPM for Railway compatibility..."
 a2dismod mpm_event mpm_worker 2>/dev/null || true
 a2enmod mpm_prefork 2>/dev/null || true
 
-echo "🚀 Starting NextCloud Railway deployment..."
+echo "🔧 Configuring Apache AllowOverride for .htaccess support..."
+sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
+
+echo "� Starting NextCloud Railway deployment..."
 echo "🐛 DEBUG: Current script: $0"
 echo "🐛 DEBUG: Process ID: $$"
-echo "🐛 DEBUG: All running scripts:"
+echo "�🐛 DEBUG: All running scripts:"
 ps aux | grep -E "(entrypoint|fix-warnings)" || echo "No matching processes found"
 
 # Debug: Print all environment variables starting with POSTGRES or REDIS
@@ -145,4 +148,3 @@ echo "🐛 DEBUG: Contents of /usr/local/bin/:"
 ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
 
 exec /entrypoint.sh apache2-foreground
-
