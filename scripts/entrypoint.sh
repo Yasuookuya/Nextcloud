@@ -75,7 +75,7 @@ export PHP_UPLOAD_LIMIT=${PHP_UPLOAD_LIMIT:-2G}
 
 # Configure Apache for Railway's PORT
 export PORT=${PORT:-80}
-echo "Listen $PORT" > /etc/apache2/ports.conf
+echo "Listen 0.0.0.0:$PORT" > /etc/apache2/ports.conf
 
 # Configure Apache virtual host for Railway
 cat > /etc/apache2/sites-available/000-default.conf << EOF
