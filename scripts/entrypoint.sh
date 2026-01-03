@@ -7,7 +7,8 @@ echo "🔧 Configuring Apache MPM for Railway compatibility..."
 a2dismod mpm_event mpm_worker 2>/dev/null || true
 a2enmod mpm_prefork 2>/dev/null || true
 
-echo "🔧 Configuring Apache AllowOverride for .htaccess support..."
+echo "🔧 Configuring Apache AllowOverride and rewrite for .htaccess support..."
+a2enmod rewrite 2>/dev/null || true
 sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
 
 echo "� Starting NextCloud Railway deployment..."
