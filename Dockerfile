@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
+# Install PHP extensions 
 RUN pecl install smbclient \
     && docker-php-ext-enable smbclient \
     && docker-php-ext-install pgsql pdo_pgsql
