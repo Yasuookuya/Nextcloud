@@ -99,6 +99,12 @@ echo "⚡ Performance Config:"
 echo "  PHP Memory Limit: ${PHP_MEMORY_LIMIT}"
 echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
 
+# Initialize Nextcloud code into volume if empty (official Docker behavior)
+if [ ! -f /var/www/html/occ ]; then
+  echo "📦 Nextcloud code not found in volume – restoring from image"
+  rsync -a --delete /usr/src/nextcloud/ /var/www/html/
+fi
+
 # Wait for NextCloud entrypoint to initialize first
 echo "🌟 Starting NextCloud with original entrypoint..."
 
