@@ -175,10 +175,19 @@ EOF
     fi
 fi
 
-# Fix Nextcloud directory permissions after volume mount
-echo "🔧 Setting Nextcloud directory permissions..."
+# Force Nextcloud permissions (Railway volume fix - must run every boot)
+echo "🔐 Forcing Nextcloud permissions (Railway volume fix)..."
 chown -R www-data:www-data /var/www/html
-chmod -R 750 /var/www/html
+chmod 750 /var/www/html
+chmod 770 /var/www/html/config
+chmod 770 /var/www/html/data
+
+# Ensure config directory exists and is writable
+mkdir -p /var/www/html/config
+chown -R www-data:www-data /var/www/html/config
+chmod 770 /var/www/html/config
+
+# Ensure data directory exists
 mkdir -p /var/www/html/data
 echo "# Nextcloud data directory" > /var/www/html/data/.ncdata
 chown www-data:www-data /var/www/html/data/.ncdata
