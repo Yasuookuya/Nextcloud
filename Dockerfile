@@ -29,6 +29,7 @@ COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.con
 
 # Enable Apache configurations and modules
 RUN a2enconf security apache-security \
+    && a2dismod mpm_worker mpm_prefork || true \
     && a2enmod rewrite headers env dir mime \
     && (a2enmod php8.3 || a2enmod php || echo "PHP module detection handled in entrypoint")
 
