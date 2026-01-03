@@ -137,11 +137,28 @@ a2dismod --force mpm_event mpm_worker || true
 a2enmod mpm_prefork || true
 echo "✅ Apache MPM configuration fixed"
 
-# Forward to original NextCloud entrypoint
-echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
-echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
-echo "🐛 DEBUG: Current working directory: $(pwd)"
-echo "🐛 DEBUG: Contents of /usr/local/bin/:"
-ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
+# NEW: Warm-up if installed (critical for cold start)
+if [ -f /var/www/html/config/config.php ] && grep -q "'installed' => true," /var/www/html/config/config.php 2>/dev/null; then
+    echo "✅ Installed - warming opcache/Redis/caches (15s)..."
+    
+    # Disable debug/log spam (huge slowdown!)
+    su www-data -s /bin/bash -c "php occ config:system:set debug --value=false --type=boolean --no-interaction >/dev/null 2>&1" || true
+    su www-data -s /bin/bash -c "php occ config:system:set loglevel --value=2 --no-interaction >/dev/null 2>&1" || true
+    su www-data -s /bin/bash -c "php occ background:cron --no-interaction >/dev/null 2>&1" || true
+    
+    # Fast repairs
+    su www-data -s /bin/bash -c "php occ maintenance:repair --quiet --no-interaction >/dev/null 2>&1" || true
+    su www-data -s /bin/bash -c "php occ db:add-missing-indices --quiet --no-interaction >/dev/null 2>&1" || true
+    su www-data -s /bin/bash -c "php occ files:scan --all --shallow --quiet --no-interaction >/dev/null 2>&1" || true
+    
+    # Warm opcache: CLI index.php
+    timeout 20 su www-data -s /bin/bash -c "php index.php --version >/dev/null 2>&1" || true
+    
+    echo "✅ Warm-up complete"
+else
+    echo "⏳ Not installed - run occ install manually"
+fi
 
-exec /entrypoint.sh apache2-foreground
+# NEW: Start supervisord (Apache + cron auto)
+echo "🚀 Starting supervisord..."
+exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
