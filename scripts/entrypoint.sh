@@ -199,6 +199,13 @@ cat > /var/www/html/config/autoconfig.php << AUTOEOF
         0 => "localhost",
         1 => "${RAILWAY_PUBLIC_DOMAIN}",
     ),
+    "memcache.locking" => "\\OC\\Memcache\\Redis",
+    "memcache.distributed" => "\\OC\\Memcache\\Redis",
+    "redis" => array(
+        "host" => "${REDIS_HOST}",
+        "port" => ${REDIS_PORT},
+        "password" => "${REDIS_PASSWORD}",
+    ),
 );
 AUTOEOF
 chown www-data:www-data /var/www/html/config/autoconfig.php
@@ -227,5 +234,10 @@ echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
 echo "🐛 DEBUG: Current working directory: $(pwd)"
 echo "🐛 DEBUG: Contents of /usr/local/bin/:"
 ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
+
+# Clean up any existing Apache processes to prevent port binding conflicts
+echo "🧹 Cleaning up any existing Apache processes..."
+pkill -f apache2 || true
+sleep 1
 
 exec /entrypoint.sh apache2-foreground
