@@ -145,3 +145,4 @@ echo "🐛 DEBUG: Contents of /usr/local/bin/:"
 ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
 
 exec /entrypoint.sh apache2-foreground
+
