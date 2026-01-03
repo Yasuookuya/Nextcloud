@@ -1,5 +1,8 @@
 FROM nextcloud:latest
 
+# Force Railway to rebuild and use updated entrypoint.sh without MPM conflicts
+RUN echo "Cache bust - updated entrypoint.sh" > /tmp/cache-bust
+
 # Install additional packages and PHP extensions
 RUN apt-get update && apt-get install -y \
     smbclient \
