@@ -162,10 +162,10 @@ BEGIN
 END \$\$;
 " 2>/dev/null || echo "Database cleanup completed or database not ready yet"
 
-# Fix data directory permissions after volume mount
-echo "🔧 Setting data directory permissions..."
-chown -R www-data:www-data /var/www/html/data
-chmod -R 750 /var/www/html/data
+# Fix Nextcloud directory permissions after volume mount
+echo "🔧 Setting Nextcloud directory permissions..."
+chown -R www-data:www-data /var/www/html
+chmod -R 750 /var/www/html
 echo "# Nextcloud data directory" > /var/www/html/data/.ncdata
 chown www-data:www-data /var/www/html/data/.ncdata
 
