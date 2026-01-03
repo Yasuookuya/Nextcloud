@@ -206,13 +206,14 @@ cat > /var/www/html/config/autoconfig.php << AUTOEOF
         0 => "localhost",
         1 => "${RAILWAY_PUBLIC_DOMAIN}",
     ),
-    "memcache.locking" => "\\OC\\Memcache\\Redis",
-    "memcache.distributed" => "\\OC\\Memcache\\Redis",
-    "redis" => array(
-        "host" => "${REDIS_HOST}",
-        "port" => ${REDIS_PORT},
-        "auth" => "${REDIS_PASSWORD}",
-    ),
+    # Temporarily disabled Redis due to connectivity issues
+    # "memcache.locking" => "\\OC\\Memcache\\Redis",
+    # "memcache.distributed" => "\\OC\\Memcache\\Redis",
+    # "redis" => array(
+    #     "host" => "${REDIS_HOST}",
+    #     "port" => ${REDIS_PORT},
+    #     "auth" => "${REDIS_PASSWORD}",
+    # ),
 );
 AUTOEOF
 chown www-data:www-data /var/www/html/config/autoconfig.php
