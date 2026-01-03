@@ -140,27 +140,31 @@ else
     echo "✅ Skipping autoconfig.php creation"
 fi
 
-# Clean up any leftover database tables from failed installations
-echo "🧹 Completely resetting Nextcloud database..."
-PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "
-DO \$\$
-DECLARE
-    r RECORD;
-BEGIN
-    -- Drop all tables in all schemas
-    FOR r IN (SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
-        EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.tablename) || ' CASCADE';
-    END LOOP;
+# Only clean database on first install to avoid destroying existing data
+if [ ! -f /var/www/html/config/config.php ]; then
+    echo "🧹 First install - resetting Nextcloud database..."
+    PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "
+    DO \$\$
+    DECLARE
+        r RECORD;
+    BEGIN
+        -- Drop all tables in all schemas
+        FOR r IN (SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
+            EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.tablename) || ' CASCADE';
+        END LOOP;
 
-    -- Drop all sequences in all schemas
-    FOR r IN (SELECT schemaname, sequencename FROM pg_sequences WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
-        EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.sequencename) || ' CASCADE';
-    END LOOP;
+        -- Drop all sequences in all schemas
+        FOR r IN (SELECT schemaname, sequencename FROM pg_sequences WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
+            EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.sequencename) || ' CASCADE';
+        END LOOP;
 
-    -- Reset sequences
-    PERFORM setval(oid, 1, false) FROM pg_class WHERE relkind = 'S';
-END \$\$;
-" 2>/dev/null || echo "Database cleanup completed or database not ready yet"
+        -- Reset sequences
+        PERFORM setval(oid, 1, false) FROM pg_class WHERE relkind = 'S';
+    END \$\$;
+    " 2>/dev/null || echo "Database cleanup completed or database not ready yet"
+else
+    echo "📁 Existing installation detected - skipping database reset"
+fi
 
 # Fix Nextcloud directory permissions after volume mount
 echo "🔧 Setting Nextcloud directory permissions..."
