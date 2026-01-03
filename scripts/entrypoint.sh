@@ -105,17 +105,23 @@ if [ ! -f /var/www/html/occ ]; then
   rsync -a --delete /usr/src/nextcloud/ /var/www/html/
 fi
 
+# Force Nextcloud permissions immediately after code restore (Railway volume fix)
+echo "🔐 Forcing Nextcloud permissions (early)..."
+mkdir -p /var/www/html/config /var/www/html/data
+chown -R www-data:www-data /var/www/html
+chmod 750 /var/www/html
+chmod 770 /var/www/html/config
+chmod 770 /var/www/html/data
+
 # Wait for NextCloud entrypoint to initialize first
 echo "🌟 Starting NextCloud with original entrypoint..."
 
-# Check if Nextcloud is already installed
-if [ -f /var/www/html/config/config.php ]; then
-    echo "📁 Existing installation detected - skipping database reset and autoconfig"
-else
-    echo "🆕 First install detected - proceeding with setup"
+# Always provide autoconfig if config.php is missing (fixes Railway volume issues)
+if [ ! -f /var/www/html/config/config.php ]; then
+    echo "🧩 config.php missing – forcing autoconfig setup"
 
     # Only clean database on first install to avoid destroying existing data
-    echo "🧹 First install - resetting Nextcloud database..."
+    echo "🧹 config.php missing – resetting Nextcloud database..."
     PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "
     DO \$\$
     DECLARE
@@ -173,22 +179,11 @@ EOF
         echo "✅ No admin credentials - NextCloud setup wizard will be used"
         echo "✅ Skipping autoconfig.php creation"
     fi
+else
+    echo "📁 config.php exists – normal startup"
 fi
 
-# Force Nextcloud permissions (Railway volume fix - must run every boot)
-echo "🔐 Forcing Nextcloud permissions (Railway volume fix)..."
-chown -R www-data:www-data /var/www/html
-chmod 750 /var/www/html
-chmod 770 /var/www/html/config
-chmod 770 /var/www/html/data
-
-# Ensure config directory exists and is writable
-mkdir -p /var/www/html/config
-chown -R www-data:www-data /var/www/html/config
-chmod 770 /var/www/html/config
-
-# Ensure data directory exists
-mkdir -p /var/www/html/data
+# Ensure data directory marker file exists
 echo "# Nextcloud data directory" > /var/www/html/data/.ncdata
 chown www-data:www-data /var/www/html/data/.ncdata
 
