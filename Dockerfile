@@ -1,4 +1,4 @@
-FROM nextcloud:latest
+FROM nextcloud:fpm
 
 # Force Railway to rebuild and use updated entrypoint.sh without MPM conflicts
 RUN echo "Cache bust - updated entrypoint.sh" > /tmp/cache-bust
