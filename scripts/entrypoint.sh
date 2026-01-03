@@ -102,13 +102,41 @@ echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
 # Wait for NextCloud entrypoint to initialize first
 echo "🌟 Starting NextCloud with original entrypoint..."
 
-# Set up autoconfig.php if admin credentials are provided
-if [ -n "${NEXTCLOUD_ADMIN_USER:-}" ] && [ "${NEXTCLOUD_ADMIN_USER}" != "" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ] && [ "${NEXTCLOUD_ADMIN_PASSWORD}" != "" ]; then
-    echo "✅ Admin credentials provided - will create autoconfig.php"
-    # Create hook for autoconfig setup
-    mkdir -p /docker-entrypoint-hooks.d/before-starting
-    
-    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
+# Check if Nextcloud is already installed
+if [ -f /var/www/html/config/config.php ]; then
+    echo "📁 Existing installation detected - skipping database reset and autoconfig"
+else
+    echo "🆕 First install detected - proceeding with setup"
+
+    # Only clean database on first install to avoid destroying existing data
+    echo "🧹 First install - resetting Nextcloud database..."
+    PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "
+    DO \$\$
+    DECLARE
+        r RECORD;
+    BEGIN
+        -- Drop all tables in all schemas
+        FOR r IN (SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
+            EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.tablename) || ' CASCADE';
+        END LOOP;
+
+        -- Drop all sequences in all schemas
+        FOR r IN (SELECT schemaname, sequencename FROM pg_sequences WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
+            EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.sequencename) || ' CASCADE';
+        END LOOP;
+
+        -- Reset sequences
+        PERFORM setval(oid, 1, false) FROM pg_class WHERE relkind = 'S';
+    END \$\$;
+    " 2>/dev/null || echo "Database cleanup completed or database not ready yet"
+
+    # Set up autoconfig.php if admin credentials are provided
+    if [ -n "${NEXTCLOUD_ADMIN_USER:-}" ] && [ "${NEXTCLOUD_ADMIN_USER}" != "" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ] && [ "${NEXTCLOUD_ADMIN_PASSWORD}" != "" ]; then
+        echo "✅ Admin credentials provided - will create autoconfig.php"
+        # Create hook for autoconfig setup
+        mkdir -p /docker-entrypoint-hooks.d/before-starting
+
+        cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
 #!/bin/bash
 echo "🔧 Creating autoconfig.php for automatic setup..."
 mkdir -p /var/www/html/config
@@ -134,36 +162,11 @@ chown www-data:www-data /var/www/html/config/autoconfig.php
 chmod 640 /var/www/html/config/autoconfig.php
 echo "✅ Autoconfig.php created for automatic installation"
 EOF
-    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
-else
-    echo "✅ No admin credentials - NextCloud setup wizard will be used"
-    echo "✅ Skipping autoconfig.php creation"
-fi
-
-# Only clean database on first install to avoid destroying existing data
-if [ ! -f /var/www/html/config/config.php ]; then
-    echo "🧹 First install - resetting Nextcloud database..."
-    PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "
-    DO \$\$
-    DECLARE
-        r RECORD;
-    BEGIN
-        -- Drop all tables in all schemas
-        FOR r IN (SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
-            EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.tablename) || ' CASCADE';
-        END LOOP;
-
-        -- Drop all sequences in all schemas
-        FOR r IN (SELECT schemaname, sequencename FROM pg_sequences WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
-            EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.sequencename) || ' CASCADE';
-        END LOOP;
-
-        -- Reset sequences
-        PERFORM setval(oid, 1, false) FROM pg_class WHERE relkind = 'S';
-    END \$\$;
-    " 2>/dev/null || echo "Database cleanup completed or database not ready yet"
-else
-    echo "📁 Existing installation detected - skipping database reset"
+        chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
+    else
+        echo "✅ No admin credentials - NextCloud setup wizard will be used"
+        echo "✅ Skipping autoconfig.php creation"
+    fi
 fi
 
 # Fix Nextcloud directory permissions after volume mount
