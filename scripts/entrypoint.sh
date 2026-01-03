@@ -1,16 +1,6 @@
 #!/bin/bash
 set -e
 
-# Ensure Apache uses prefork MPM for Nextcloud compatibility
-echo "🔧 Configuring Apache MPM for Nextcloud..."
-if [ -f /etc/apache2/mods-available/mpm_prefork.load ]; then
-    a2dismod mpm_event 2>/dev/null || true
-    a2enmod mpm_prefork 2>/dev/null || true
-    echo "✅ Apache MPM configured to use prefork"
-else
-    echo "⚠️  MPM prefork module not found, skipping MPM configuration"
-fi
-
 echo "🚀 Starting NextCloud Railway deployment..."
 echo "🐛 DEBUG: Current script: $0"
 echo "🐛 DEBUG: Process ID: $$"
@@ -129,54 +119,20 @@ cat > /var/www/html/config/autoconfig.php << AUTOEOF
         0 => "localhost",
         1 => "${RAILWAY_PUBLIC_DOMAIN}",
     ),
-    "memcache.local" => "\\OC\\Memcache\\APCu",
-    "memcache.distributed" => "\\OC\\Memcache\\Redis",
-    "memcache.locking" => "\\OC\\Memcache\\Redis",
-    "redis" => array(
-        "host" => "${REDIS_HOST}",
-        "port" => ${REDIS_PORT},
-        "password" => "${REDIS_PASSWORD}",
-    ),
 );
 AUTOEOF
 chown www-data:www-data /var/www/html/config/autoconfig.php
 chmod 640 /var/www/html/config/autoconfig.php
 echo "✅ Autoconfig.php created for automatic installation"
 EOF
-chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
+    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
 else
     echo "✅ No admin credentials - NextCloud setup wizard will be used"
     echo "✅ Skipping autoconfig.php creation"
 fi
 
-# Always ensure Redis configuration in config.php
-echo "🔧 Ensuring Redis configuration in config.php..."
-mkdir -p /docker-entrypoint-hooks.d/before-starting
-cat > /docker-entrypoint-hooks.d/before-starting/02-redis-config.sh << 'EOF'
-#!/bin/bash
-if [ -f /var/www/html/config/config.php ]; then
-    echo "🔧 Updating Redis configuration in existing config.php..."
-    php -r "
-    \$config = include '/var/www/html/config/config.php';
-    \$config['memcache.local'] = '\\OC\\Memcache\\APCu';
-    \$config['memcache.distributed'] = '\\OC\\Memcache\\Redis';
-    \$config['memcache.locking'] = '\\OC\\Memcache\\Redis';
-    \$config['redis'] = array(
-        'host' => '${REDIS_HOST}',
-        'port' => ${REDIS_PORT},
-        'password' => '${REDIS_PASSWORD}',
-    );
-    file_put_contents('/var/www/html/config/config.php', '<?php\nreturn ' . var_export(\$config, true) . ';');
-    "
-    echo "✅ Redis configuration updated in config.php"
-else
-    echo "ℹ️  config.php not found, skipping Redis config update (will be set via autoconfig)"
-fi
-EOF
-chmod +x /docker-entrypoint-hooks.d/before-starting/02-redis-config.sh
-
 # Forward to original NextCloud entrypoint
-echo "� DEBUG: About to exec original NextCloud entrypoint"
+echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
 echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
 echo "🐛 DEBUG: Current working directory: $(pwd)"
 echo "🐛 DEBUG: Contents of /usr/local/bin/:"
