@@ -145,7 +145,14 @@ if [ ! -f /var/www/html/config/config.php ]; then
 
     # Wait for Postgres to be ready before proceeding
     echo "⏳ Waiting for Postgres to be ready..."
+    MAX_RETRIES=30
+    i=0
     until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c '\q' 2>/dev/null; do
+      i=$((i+1))
+      if [ $i -ge $MAX_RETRIES ]; then
+        echo "❌ Postgres not responding after $MAX_RETRIES attempts"
+        exit 1
+      fi
       echo "Waiting for Postgres..."
       sleep 2
     done
