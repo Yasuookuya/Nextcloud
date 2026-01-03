@@ -143,14 +143,40 @@ chown www-data:www-data /var/www/html/config/autoconfig.php
 chmod 640 /var/www/html/config/autoconfig.php
 echo "✅ Autoconfig.php created for automatic installation"
 EOF
-    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
+chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
 else
     echo "✅ No admin credentials - NextCloud setup wizard will be used"
     echo "✅ Skipping autoconfig.php creation"
 fi
 
+# Always ensure Redis configuration in config.php
+echo "🔧 Ensuring Redis configuration in config.php..."
+mkdir -p /docker-entrypoint-hooks.d/before-starting
+cat > /docker-entrypoint-hooks.d/before-starting/02-redis-config.sh << 'EOF'
+#!/bin/bash
+if [ -f /var/www/html/config/config.php ]; then
+    echo "🔧 Updating Redis configuration in existing config.php..."
+    php -r "
+    \$config = include '/var/www/html/config/config.php';
+    \$config['memcache.local'] = '\\OC\\Memcache\\APCu';
+    \$config['memcache.distributed'] = '\\OC\\Memcache\\Redis';
+    \$config['memcache.locking'] = '\\OC\\Memcache\\Redis';
+    \$config['redis'] = array(
+        'host' => '${REDIS_HOST}',
+        'port' => ${REDIS_PORT},
+        'password' => '${REDIS_PASSWORD}',
+    );
+    file_put_contents('/var/www/html/config/config.php', '<?php\nreturn ' . var_export(\$config, true) . ';');
+    "
+    echo "✅ Redis configuration updated in config.php"
+else
+    echo "ℹ️  config.php not found, skipping Redis config update (will be set via autoconfig)"
+fi
+EOF
+chmod +x /docker-entrypoint-hooks.d/before-starting/02-redis-config.sh
+
 # Forward to original NextCloud entrypoint
-echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
+echo "� DEBUG: About to exec original NextCloud entrypoint"
 echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
 echo "🐛 DEBUG: Current working directory: $(pwd)"
 echo "🐛 DEBUG: Contents of /usr/local/bin/:"
