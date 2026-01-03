@@ -74,13 +74,16 @@ export NEXTCLOUD_UPDATE_CHECKER=${NEXTCLOUD_UPDATE_CHECKER:-false}
 export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
 export PHP_UPLOAD_LIMIT=${PHP_UPLOAD_LIMIT:-2G}
 
-# Configure Apache for Railway's PORT
+# Configure Apache for Railway's PORT (IPv4 + IPv6)
 export PORT=${PORT:-80}
-echo "Listen 0.0.0.0:$PORT" > /etc/apache2/ports.conf
+cat > /etc/apache2/ports.conf << EOF
+Listen 0.0.0.0:$PORT
+Listen [::]:$PORT
+EOF
 
-# Configure Apache virtual host for Railway
+# Configure Apache virtual host for Railway (IPv4 + IPv6)
 cat > /etc/apache2/sites-available/000-default.conf << EOF
-<VirtualHost *:${PORT}>
+<VirtualHost *:${PORT} [::]:${PORT}>
     ServerAdmin webmaster@localhost
     DocumentRoot /var/www/html
     ServerName localhost
@@ -139,6 +142,14 @@ echo "🌟 Starting NextCloud with original entrypoint..."
 # Always provide autoconfig if config.php is missing (fixes Railway volume issues)
 if [ ! -f /var/www/html/config/config.php ]; then
     echo "🧩 config.php missing – forcing autoconfig setup"
+
+    # Wait for Postgres to be ready before proceeding
+    echo "⏳ Waiting for Postgres to be ready..."
+    until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c '\q' 2>/dev/null; do
+      echo "Waiting for Postgres..."
+      sleep 2
+    done
+    echo "✅ Postgres is ready"
 
     # Only clean database on first install to avoid destroying existing data
     echo "🧹 config.php missing – resetting Nextcloud database..."
