@@ -155,22 +155,18 @@ mkdir -p /docker-entrypoint-hooks.d/before-starting
 cat > /docker-entrypoint-hooks.d/before-starting/02-redis-config.sh << 'EOF'
 #!/bin/bash
 if [ -f /var/www/html/config/config.php ]; then
-    echo "🔧 Updating Redis configuration in existing config.php..."
+    echo "🔧 Updating memcache configuration in existing config.php..."
     php -r "
     \$config = include '/var/www/html/config/config.php';
     \$config['memcache.local'] = '\\OC\\Memcache\\APCu';
-    \$config['memcache.distributed'] = '\\OC\\Memcache\\Redis';
-    \$config['memcache.locking'] = '\\OC\\Memcache\\Redis';
-    \$config['redis'] = array(
-        'host' => '${REDIS_HOST}',
-        'port' => ${REDIS_PORT},
-        'password' => '${REDIS_PASSWORD}',
-    );
+    \$config['memcache.distributed'] = '\\OC\\Memcache\\APCu';
+    \$config['memcache.locking'] = '\\OC\\Memcache\\APCu';
+    unset(\$config['redis']);
     file_put_contents('/var/www/html/config/config.php', '<?php\nreturn ' . var_export(\$config, true) . ';');
     "
-    echo "✅ Redis configuration updated in config.php"
+    echo "✅ Memcache configuration updated in config.php"
 else
-    echo "ℹ️  config.php not found, skipping Redis config update (will be set via autoconfig)"
+    echo "ℹ️  config.php not found, skipping memcache config update (will be set via autoconfig)"
 fi
 EOF
 chmod +x /docker-entrypoint-hooks.d/before-starting/02-redis-config.sh
