@@ -1,6 +1,16 @@
 #!/bin/bash
 set -e
 
+# Ensure Apache uses prefork MPM for Nextcloud compatibility
+echo "🔧 Configuring Apache MPM for Nextcloud..."
+if [ -f /etc/apache2/mods-available/mpm_prefork.load ]; then
+    a2dismod mpm_event 2>/dev/null || true
+    a2enmod mpm_prefork 2>/dev/null || true
+    echo "✅ Apache MPM configured to use prefork"
+else
+    echo "⚠️  MPM prefork module not found, skipping MPM configuration"
+fi
+
 echo "🚀 Starting NextCloud Railway deployment..."
 echo "🐛 DEBUG: Current script: $0"
 echo "🐛 DEBUG: Process ID: $$"
