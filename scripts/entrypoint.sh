@@ -88,6 +88,7 @@ cat > /etc/apache2/sites-available/000-default.conf << EOF
     DocumentRoot /var/www/html
     ServerName localhost
 
+
     <Directory /var/www/html/>
         Options +FollowSymlinks
         AllowOverride All
