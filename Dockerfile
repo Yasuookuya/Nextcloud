@@ -1,9 +1,5 @@
 FROM nextcloud:latest
 
-# Install Node.js 20 for building Nextcloud frontend assets (official support)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs
-
 # Install additional packages and PHP extensions
 RUN apt-get update && apt-get install -y \
     smbclient \
@@ -41,9 +37,6 @@ COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh
-
-# Note: Nextcloud Docker images are production-ready with pre-built assets
-# No need to build them during Docker build
 
 # Create necessary directories and set permissions
 RUN mkdir -p /var/log/supervisor && \

@@ -134,42 +134,6 @@ if [ ! -f /var/www/html/occ ]; then
   rsync -a --delete /usr/src/nextcloud/ /var/www/html/
 fi
 
-# Build Nextcloud frontend assets if missing (after volume mount)
-if [ ! -d "/var/www/html/js" ] || [ ! -d "/var/www/html/css" ]; then
-    echo "🚧 Building Nextcloud frontend assets..."
-
-    # Ensure we have Node.js and npm
-    if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
-        echo "❌ Node.js or npm not found - cannot build assets"
-        echo "Please check your Dockerfile for Node.js installation"
-        exit 1
-    fi
-
-    # Ensure proper permissions for asset building
-    echo "🔐 Setting permissions for asset building..."
-    chown -R www-data:www-data /var/www/html 2>/dev/null || echo "⚠️ Could not set ownership, continuing anyway"
-
-    # Build assets (permissions already set above)
-    cd /var/www/html
-    echo "📦 Installing npm dependencies..."
-    if ! npm install --no-audit --no-fund; then
-        echo "❌ npm install failed"
-        exit 1
-    fi
-
-    echo "🏗️ Building frontend assets..."
-    # Set memory limit for Node.js to prevent Railway crashes
-    export NODE_OPTIONS="--max-old-space-size=256"
-    if ! npm run build; then
-        echo "❌ npm run build failed"
-        exit 1
-    fi
-
-    echo "✅ Frontend assets built successfully"
-else
-    echo "✅ Frontend assets already exist - skipping build"
-fi
-
 # Force Nextcloud permissions immediately after code restore (Railway volume fix)
 echo "🔐 Forcing Nextcloud permissions (early)..."
 mkdir -p /var/www/html/config /var/www/html/data /var/www/html/data/sessions
@@ -292,9 +256,6 @@ if [ -f /var/www/html/occ ]; then
 
     echo "💻 Setting CLI URL..."
     php /var/www/html/occ config:system:set overwrite.cli.url --value="https://$RAILWAY_PUBLIC_DOMAIN" --type=string 2>/dev/null || echo "CLI URL already configured"
-
-    echo "🔧 Updating .htaccess for proper asset serving..."
-    php /var/www/html/occ maintenance:update:htaccess 2>/dev/null || echo ".htaccess update failed - will be handled at runtime"
 
     echo "✅ NextCloud configuration enforced"
 else
