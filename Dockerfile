@@ -42,9 +42,6 @@ COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh
 
-# Update .htaccess for proper asset serving
-RUN php occ maintenance:update:htaccess
-
 # Create necessary directories and set permissions
 RUN mkdir -p /var/log/supervisor && \
     # Ensure NextCloud files are present and accessible

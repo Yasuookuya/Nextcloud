@@ -257,6 +257,9 @@ if [ -f /var/www/html/occ ]; then
     echo "💻 Setting CLI URL..."
     php /var/www/html/occ config:system:set overwrite.cli.url --value="https://$RAILWAY_PUBLIC_DOMAIN" --type=string 2>/dev/null || echo "CLI URL already configured"
 
+    echo "🔧 Updating .htaccess for proper asset serving..."
+    php /var/www/html/occ maintenance:update:htaccess 2>/dev/null || echo ".htaccess update failed - will be handled at runtime"
+
     echo "✅ NextCloud configuration enforced"
 else
     echo "⚠️ NextCloud occ command not available yet, configuration will be applied after startup"
