@@ -130,11 +130,12 @@ fi
 
 # Force Nextcloud permissions immediately after code restore (Railway volume fix)
 echo "🔐 Forcing Nextcloud permissions (early)..."
-mkdir -p /var/www/html/config /var/www/html/data
+mkdir -p /var/www/html/config /var/www/html/data /var/www/html/data/sessions
 chown -R www-data:www-data /var/www/html
 chmod 750 /var/www/html
 chmod 770 /var/www/html/config
 chmod 770 /var/www/html/data
+chmod 770 /var/www/html/data/sessions
 
 # Wait for NextCloud entrypoint to initialize first
 echo "🌟 Starting NextCloud with original entrypoint..."
@@ -206,14 +207,13 @@ cat > /var/www/html/config/autoconfig.php << AUTOEOF
         0 => "localhost",
         1 => "${RAILWAY_PUBLIC_DOMAIN}",
     ),
-    # Temporarily disabled Redis due to connectivity issues
-    # "memcache.locking" => "\\OC\\Memcache\\Redis",
-    # "memcache.distributed" => "\\OC\\Memcache\\Redis",
-    # "redis" => array(
-    #     "host" => "${REDIS_HOST}",
-    #     "port" => ${REDIS_PORT},
-    #     "auth" => "${REDIS_PASSWORD}",
-    # ),
+    "memcache.locking" => "\\OC\\Memcache\\Redis",
+    "memcache.distributed" => "\\OC\\Memcache\\Redis",
+    "redis" => array(
+        "host" => "${REDIS_HOST}",
+        "port" => ${REDIS_PORT},
+        "auth" => "${REDIS_PASSWORD}",
+    ),
 );
 AUTOEOF
 chown www-data:www-data /var/www/html/config/autoconfig.php
