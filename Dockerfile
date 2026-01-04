@@ -38,12 +38,6 @@ COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh
 
-# Build Nextcloud frontend assets during Docker build (before volume mount)
-WORKDIR /var/www/html
-RUN npm install --no-audit --no-fund && \
-    export NODE_OPTIONS="--max-old-space-size=256" && \
-    npm run build
-
 # Create necessary directories and set permissions
 RUN mkdir -p /var/log/supervisor && \
     # Ensure NextCloud files are present and accessible
