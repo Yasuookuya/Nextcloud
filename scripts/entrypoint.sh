@@ -6,8 +6,6 @@ if [ -f /var/www/html/config/config.php ]; then
     chown www-data:www-data /var/www/html/config/config.php
     chmod 660 /var/www/html/config/config.php
 fi
-chown -R www-data:www-data /var/www/html/config
-chmod 770 /var/www/html/config
 
 # Force redeployment to clear cache
 
