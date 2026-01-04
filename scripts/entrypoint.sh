@@ -58,15 +58,8 @@ export POSTGRES_PORT=${POSTGRES_PORT:-5432}
 export POSTGRES_USER=${POSTGRES_USER:-postgres}
 export POSTGRES_DB=${POSTGRES_DB:-nextcloud}
 
-# Redis configuration - Only set if Redis is actually configured
-if [ -n "${REDISHOST:-}" ] && [ -n "${REDISPASSWORD:-}" ]; then
-    export REDIS_HOST=${REDIS_HOST:-${REDISHOST:-localhost}}
-    export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
-    export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
-    echo "🔴 Redis configured - will use for caching and sessions"
-else
-    echo "🔴 Redis not configured - using file-based sessions"
-fi
+# Force file-based sessions - disable Redis completely
+echo "🔴 Redis disabled - using file-based sessions with APCu caching"
 
 # NextCloud configuration variables
 export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-}
@@ -213,13 +206,8 @@ cat > /var/www/html/config/autoconfig.php << AUTOEOF
         0 => "localhost",
         1 => "${RAILWAY_PUBLIC_DOMAIN}",
     ),
-    "memcache.locking" => "\\OC\\Memcache\\Redis",
-    "memcache.distributed" => "\\OC\\Memcache\\Redis",
-    "redis" => array(
-        "host" => "${REDIS_HOST}",
-        "port" => ${REDIS_PORT},
-        "auth" => "${REDIS_PASSWORD}",
-    ),
+    "memcache.locking" => "\\OC\\Memcache\\APCu",
+    "memcache.distributed" => "\\OC\\Memcache\\APCu",
 );
 AUTOEOF
 chown www-data:www-data /var/www/html/config/autoconfig.php
