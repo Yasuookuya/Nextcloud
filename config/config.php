@@ -6,6 +6,7 @@ $CONFIG = array (
     'memcache.local' => '\OC\Memcache\APCu',
     'memcache.distributed' => '\OC\Memcache\APCu',
     'redis' => false,
+    'custom_csp_policy' => "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;",
 );
 
 // Force PHP to use files for session storage (overrides Railway entrypoint)
