@@ -42,10 +42,6 @@ COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh
 
-# Build Nextcloud frontend assets
-WORKDIR /var/www/html
-RUN npm install && npm run build
-
 # Update .htaccess for proper asset serving
 RUN php occ maintenance:update:htaccess
 
