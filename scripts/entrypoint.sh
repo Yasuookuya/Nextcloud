@@ -180,46 +180,10 @@ if [ ! -f /var/www/html/config/config.php ]; then
     END \$\$;
     " 2>/dev/null || echo "Database cleanup completed or database not ready yet"
 
-    # Set up autoconfig.php if admin credentials are provided
-    if [ -n "${NEXTCLOUD_ADMIN_USER:-}" ] && [ "${NEXTCLOUD_ADMIN_USER}" != "" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ] && [ "${NEXTCLOUD_ADMIN_PASSWORD}" != "" ]; then
-        echo "✅ Admin credentials provided - will create autoconfig.php"
-        # Create hook for autoconfig setup
-        mkdir -p /docker-entrypoint-hooks.d/before-starting
-
-        cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << EOF
-#!/bin/bash
-echo "🔧 Creating autoconfig.php for automatic setup..."
-mkdir -p /var/www/html/config
-cat > /var/www/html/config/autoconfig.php << AUTOEOF
-<?php
-\$AUTOCONFIG = array(
-    "dbtype" => "pgsql",
-    "dbname" => "${POSTGRES_DB}",
-    "dbuser" => "${POSTGRES_USER}",
-    "dbpass" => "${POSTGRES_PASSWORD}",
-    "dbhost" => "${POSTGRES_HOST}:${POSTGRES_PORT:-5432}",
-    "dbtableprefix" => "${NEXTCLOUD_TABLE_PREFIX}",
-    "directory" => "${NEXTCLOUD_DATA_DIR}",
-    "adminlogin" => "${NEXTCLOUD_ADMIN_USER}",
-    "adminpass" => "${NEXTCLOUD_ADMIN_PASSWORD}",
-    "trusted_domains" => array(
-        0 => "localhost",
-        1 => "${RAILWAY_PUBLIC_DOMAIN}",
-    ),
-    "memcache.locking" => "\\OC\\Memcache\\APCu",
-    "memcache.distributed" => "\\OC\\Memcache\\APCu",
-);
-AUTOEOF
-chown www-data:www-data /var/www/html/config/autoconfig.php
-chmod 640 /var/www/html/config/autoconfig.php
-echo "✅ Autoconfig.php created for automatic installation"
-EOF
-        chown root:root /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
-        chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
-    else
-        echo "✅ No admin credentials - NextCloud setup wizard will be used"
-        echo "✅ Skipping autoconfig.php creation"
-    fi
+    # DISABLED: Autoconfig.php creation - causing syntax errors
+    # Will use manual installation instead
+    echo "✅ Using manual NextCloud installation (setup wizard)"
+    echo "✅ Skipping autoconfig.php creation to avoid syntax errors"
 else
     echo "📁 config.php exists – normal startup"
 fi
@@ -254,7 +218,7 @@ fi
 echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
 echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
 echo "🐛 DEBUG: Current working directory: $(pwd)"
-echo "🐛 DEBUG: Contents of /usr/local/bin/:"
+echo "� DEBUG: Contents of /usr/local/bin/:"
 ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
 
 # Clean up any existing Apache processes to prevent port binding conflicts
