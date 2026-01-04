@@ -58,10 +58,15 @@ export POSTGRES_PORT=${POSTGRES_PORT:-5432}
 export POSTGRES_USER=${POSTGRES_USER:-postgres}
 export POSTGRES_DB=${POSTGRES_DB:-nextcloud}
 
-# Redis configuration - Railway uses REDISHOST, REDISPORT, REDISPASSWORD
-export REDIS_HOST=${REDIS_HOST:-${REDISHOST:-localhost}}
-export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
-export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
+# Redis configuration - Only set if Redis is actually configured
+if [ -n "${REDISHOST:-}" ] && [ -n "${REDISPASSWORD:-}" ]; then
+    export REDIS_HOST=${REDIS_HOST:-${REDISHOST:-localhost}}
+    export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
+    export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
+    echo "🔴 Redis configured - will use for caching and sessions"
+else
+    echo "🔴 Redis not configured - using file-based sessions"
+fi
 
 # NextCloud configuration variables
 export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-}
