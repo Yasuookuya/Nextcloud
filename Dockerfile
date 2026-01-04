@@ -48,7 +48,6 @@ RUN mkdir -p /var/log/supervisor && \
     ls -la /var/www/html/ && \
     # Set proper ownership and permissions
     chown -R www-data:www-data /var/www/html && \
-    chown -R www-data:www-data /var/www/html/css /var/www/html/js && \
     find /var/www/html -type f -exec chmod 644 {} \; && \
     find /var/www/html -type d -exec chmod 755 {} \; && \
     chmod +x /usr/local/bin/custom-entrypoint.sh
