@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Fix permissions on config directory and config.php for Nextcloud installer
+chown -R www-data:www-data /var/www/html/config || true
+chmod 770 /var/www/html/config || true
+
 # Force redeployment to clear cache
 
 echo "🔧 Configuring Apache MPM for Railway compatibility..."
