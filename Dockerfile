@@ -1,5 +1,9 @@
 FROM nextcloud:apache
 
+# Install Node.js for building frontend assets
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
 # Install additional packages and PHP extensions
 RUN apt-get update && apt-get install -y \
     smbclient \
@@ -38,12 +42,20 @@ COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh
 
+# Build Nextcloud frontend assets
+WORKDIR /var/www/html
+RUN npm install && npm run build
+
+# Update .htaccess for proper asset serving
+RUN php occ maintenance:update:htaccess
+
 # Create necessary directories and set permissions
 RUN mkdir -p /var/log/supervisor && \
     # Ensure NextCloud files are present and accessible
     ls -la /var/www/html/ && \
     # Set proper ownership and permissions
     chown -R www-data:www-data /var/www/html && \
+    chown -R www-data:www-data /var/www/html/css /var/www/html/js && \
     find /var/www/html -type f -exec chmod 644 {} \; && \
     find /var/www/html -type d -exec chmod 755 {} \; && \
     chmod +x /usr/local/bin/custom-entrypoint.sh
