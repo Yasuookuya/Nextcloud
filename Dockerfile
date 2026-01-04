@@ -42,9 +42,8 @@ COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh
 
-# Build Nextcloud frontend assets
-WORKDIR /var/www/html
-RUN npm install && npm run build
+# Note: Nextcloud Docker images are production-ready with pre-built assets
+# No need to build them during Docker build
 
 # Create necessary directories and set permissions
 RUN mkdir -p /var/log/supervisor && \
