@@ -134,8 +134,14 @@ if [ ! -f /var/www/html/occ ]; then
   rsync -a --delete /usr/src/nextcloud/ /var/www/html/
 fi
 
-# Note: Nextcloud assets are pre-built in the nextcloud:apache image
-# No need to build them at runtime
+# Build Nextcloud frontend assets if missing (after volume mount)
+if [ ! -d "/var/www/html/js" ] || [ ! -d "/var/www/html/css" ]; then
+    echo "🚧 Building Nextcloud frontend assets..."
+    cd /var/www/html
+    npm install
+    npm run build
+    echo "✅ Frontend assets built successfully"
+fi
 
 # Force Nextcloud permissions immediately after code restore (Railway volume fix)
 echo "🔐 Forcing Nextcloud permissions (early)..."
