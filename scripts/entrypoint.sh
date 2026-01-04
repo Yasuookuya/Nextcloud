@@ -137,10 +137,36 @@ fi
 # Build Nextcloud frontend assets if missing (after volume mount)
 if [ ! -d "/var/www/html/js" ] || [ ! -d "/var/www/html/css" ]; then
     echo "🚧 Building Nextcloud frontend assets..."
+
+    # Ensure we have Node.js and npm
+    if ! command -v node &> /dev/null || ! command -v npm &> /dev/null; then
+        echo "❌ Node.js or npm not found - cannot build assets"
+        echo "Please check your Dockerfile for Node.js installation"
+        exit 1
+    fi
+
+    # Ensure proper permissions for asset building
+    echo "🔐 Setting permissions for asset building..."
+    chown -R www-data:www-data /var/www/html 2>/dev/null || echo "⚠️ Could not set ownership, continuing anyway"
+
+    # Build assets (permissions already set above)
     cd /var/www/html
-    npm install
-    npm run build
+    echo "📦 Installing npm dependencies..."
+    if ! npm install --no-audit --no-fund; then
+        echo "❌ npm install failed"
+        exit 1
+    fi
+
+    echo "🏗️ Building frontend assets..."
+    # Limit memory usage for Railway constraints
+    if ! npm run build -- --max-old-space-size=256; then
+        echo "❌ npm run build failed"
+        exit 1
+    fi
+
     echo "✅ Frontend assets built successfully"
+else
+    echo "✅ Frontend assets already exist - skipping build"
 fi
 
 # Force Nextcloud permissions immediately after code restore (Railway volume fix)
