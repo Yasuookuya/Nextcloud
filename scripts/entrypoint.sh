@@ -158,8 +158,9 @@ if [ ! -d "/var/www/html/js" ] || [ ! -d "/var/www/html/css" ]; then
     fi
 
     echo "🏗️ Building frontend assets..."
-    # Limit memory usage for Railway constraints
-    if ! npm run build -- --max-old-space-size=256; then
+    # Set memory limit for Node.js to prevent Railway crashes
+    export NODE_OPTIONS="--max-old-space-size=256"
+    if ! npm run build; then
         echo "❌ npm run build failed"
         exit 1
     fi

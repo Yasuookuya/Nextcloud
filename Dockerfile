@@ -1,7 +1,7 @@
 FROM nextcloud:latest
 
-# Install Node.js 22 for building Nextcloud frontend assets
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+# Install Node.js 20 for building Nextcloud frontend assets (official support)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
 # Install additional packages and PHP extensions
