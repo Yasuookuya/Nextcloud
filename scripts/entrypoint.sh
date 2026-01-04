@@ -194,25 +194,25 @@ if [ ! -f /var/www/html/data/.ncdata ]; then
     chown www-data:www-data /var/www/html/data/.ncdata
 fi
 
-# Configure NextCloud for Railway environment
-echo "🔧 Configuring NextCloud for Railway deployment..."
-if [ -f /var/www/html/occ ]; then
-    echo "⚙️ Setting trusted proxies..."
-    php /var/www/html/occ config:system:set trusted_proxies 0 --value="0.0.0.0/0" --type=string 2>/dev/null || echo "Trusted proxies already configured"
+# # Configure NextCloud for Railway environment
+# echo "🔧 Configuring NextCloud for Railway deployment..."
+# if [ -f /var/www/html/occ ]; then
+#     echo "⚙️ Setting trusted proxies..."
+#     php /var/www/html/occ config:system:set trusted_proxies 0 --value="0.0.0.0/0" --type=string 2>/dev/null || echo "Trusted proxies already configured"
 
-    echo "🔒 Setting HTTPS protocol..."
-    php /var/www/html/occ config:system:set overwriteprotocol --value="https" --type=string 2>/dev/null || echo "Protocol already configured"
+#     echo "🔒 Setting HTTPS protocol..."
+#     php /var/www/html/occ config:system:set overwriteprotocol --value="https" --type=string 2>/dev/null || echo "Protocol already configured"
 
-    echo "🌐 Setting host override..."
-    php /var/www/html/occ config:system:set overwritehost --value="$RAILWAY_PUBLIC_DOMAIN" --type=string 2>/dev/null || echo "Host already configured"
+#     echo "🌐 Setting host override..."
+#     php /var/www/html/occ config:system:set overwritehost --value="$RAILWAY_PUBLIC_DOMAIN" --type=string 2>/dev/null || echo "Host already configured"
 
-    echo "💻 Setting CLI URL..."
-    php /var/www/html/occ config:system:set overwrite.cli.url --value="https://$RAILWAY_PUBLIC_DOMAIN" --type=string 2>/dev/null || echo "CLI URL already configured"
+#     echo "💻 Setting CLI URL..."
+#     php /var/www/html/occ config:system:set overwrite.cli.url --value="https://$RAILWAY_PUBLIC_DOMAIN" --type=string 2>/dev/null || echo "CLI URL already configured"
 
-    echo "✅ NextCloud configuration enforced"
-else
-    echo "⚠️ NextCloud occ command not available yet, configuration will be applied after startup"
-fi
+#     echo "✅ NextCloud configuration enforced"
+# else
+#     echo "⚠️ NextCloud occ command not available yet, configuration will be applied after startup"
+# fi
 
 # Forward to original NextCloud entrypoint
 echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
