@@ -1,9 +1,13 @@
 #!/bin/bash
 set -e
 
-# Fix permissions on config directory and config.php for Nextcloud installer
-chown -R www-data:www-data /var/www/html/config || true
-chmod 770 /var/www/html/config || true
+# Ensure Nextcloud can overwrite config.php even if Railway creates it as root
+if [ -f /var/www/html/config/config.php ]; then
+    chown www-data:www-data /var/www/html/config/config.php
+    chmod 660 /var/www/html/config/config.php
+fi
+chown -R www-data:www-data /var/www/html/config
+chmod 770 /var/www/html/config
 
 # Force redeployment to clear cache
 
