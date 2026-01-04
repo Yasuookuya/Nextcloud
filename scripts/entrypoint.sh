@@ -1,6 +1,18 @@
 #!/bin/bash
 set -e
 
+# 🔄 Auto-restore config.php from backup if missing
+CONFIG_FILE=/var/www/html/config/config.php
+BACKUP_FILE=/var/www/html/config/config.php.backup.bak
+
+if [ ! -f "$CONFIG_FILE" ] && [ -f "$BACKUP_FILE" ]; then
+    echo "🧩 config.php missing – restoring from backup..."
+    cp "$BACKUP_FILE" "$CONFIG_FILE"
+    chown www-data:www-data "$CONFIG_FILE"
+    chmod 660 "$CONFIG_FILE"
+    echo "✅ config.php restored from backup"
+fi
+
 # Ensure Nextcloud can overwrite config.php even if Railway creates it as root
 if [ -f /var/www/html/config/config.php ]; then
     chown www-data:www-data /var/www/html/config/config.php
