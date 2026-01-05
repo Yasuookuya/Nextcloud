@@ -41,6 +41,11 @@ a2dismod mpm_event mpm_worker 2>/dev/null || true
 a2enmod mpm_prefork
 echo "4 OK"
 
+echo "🚀 === 4.5. APACHE SECURITY === "
+a2enconf security apache-security
+a2enmod rewrite headers env dir mime php8.3 || a2enmod php
+echo "4.5 OK"
+
 echo "🚀 === 5. AUTOCONFIG HOOK === "
 if [ -n "\$NEXTCLOUD_ADMIN_USER" ] && [ -n "\$NEXTCLOUD_ADMIN_PASSWORD" ]; then
   mkdir -p /docker-entrypoint-hooks.d/before-starting
