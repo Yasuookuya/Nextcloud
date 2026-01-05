@@ -1,4 +1,4 @@
-FROM nextcloud:latest
+FROM nextcloud:fpm
 
 # Install additional packages and PHP extensions
 RUN apt-get update && apt-get install -y \
