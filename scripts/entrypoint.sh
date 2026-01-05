@@ -41,8 +41,8 @@ EOF
 
 # Reload configs
 a2enconf apache-mpm security apache-security
-apache2ctl configtest && apache2ctl graceful
-echo "Apache FPM OK"
+# apache2ctl configtest && apache2ctl graceful || echo "Apache reload WARN"
+echo "Apache config ready (supervisor starts)"
 
 echo "🚀 === 5. AUTOCONFIG HOOK === "
 if [ -n "\$NEXTCLOUD_ADMIN_USER" ] && [ -n "\$NEXTCLOUD_ADMIN_PASSWORD" ]; then
