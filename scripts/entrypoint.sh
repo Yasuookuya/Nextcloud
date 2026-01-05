@@ -90,62 +90,48 @@ echo "⚡ Performance Config:"
 echo "  PHP Memory Limit: ${PHP_MEMORY_LIMIT}"
 echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
 
-# Wait for NextCloud entrypoint to initialize first
 echo "🌟 Starting NextCloud with original entrypoint..."
 
-# Set up autoconfig.php if admin credentials are provided
-if [ -n "${NEXTCLOUD_ADMIN_USER:-}" ] && [ "${NEXTCLOUD_ADMIN_USER}" != "" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ] && [ "${NEXTCLOUD_ADMIN_PASSWORD}" != "" ]; then
-    echo "✅ Admin credentials provided - will create autoconfig.php"
-    # Create hook for autoconfig setup
-    mkdir -p /docker-entrypoint-hooks.d/before-starting
-    
-    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << EOF
-#!/bin/bash
-echo "🔧 Creating autoconfig.php for automatic setup..."
-mkdir -p /var/www/html/config
-cat > /var/www/html/config/autoconfig.php << 'PHP_EOF'
+# Create autoconfig.php if admin credentials are provided
+if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then
+    echo "✅ Admin credentials provided - creating autoconfig.php"
+    mkdir -p /var/www/html/config
+    cat > /var/www/html/config/autoconfig.php << EOF
 <?php
 \$AUTOCONFIG = array(
-    "dbtype" => "pgsql",
-    "dbname" => "$POSTGRES_DB",
-    "dbuser" => "$POSTGRES_USER",
-    "dbpass" => "$POSTGRES_PASSWORD",
-    "dbhost" => "$POSTGRES_HOST:$POSTGRES_PORT",
-    "dbtableprefix" => "$NEXTCLOUD_TABLE_PREFIX",
-    "directory" => "$NEXTCLOUD_DATA_DIR",
-    "adminlogin" => "$NEXTCLOUD_ADMIN_USER",
-    "adminpass" => "$NEXTCLOUD_ADMIN_PASSWORD",
-    "trusted_domains" => array(
-        0 => "localhost",
-        1 => "$RAILWAY_PUBLIC_DOMAIN",
+    'dbtype' => 'pgsql',
+    'dbname' => '$POSTGRES_DB',
+    'dbuser' => '$POSTGRES_USER',
+    'dbpass' => '$POSTGRES_PASSWORD',
+    'dbhost' => '$POSTGRES_HOST:$POSTGRES_PORT',
+    'dbtableprefix' => '$NEXTCLOUD_TABLE_PREFIX',
+    'directory' => '$NEXTCLOUD_DATA_DIR',
+    'adminlogin' => '$NEXTCLOUD_ADMIN_USER',
+    'adminpass' => '$NEXTCLOUD_ADMIN_PASSWORD',
+    'trusted_domains' => array(
+        0 => 'localhost',
+        1 => '$RAILWAY_PUBLIC_DOMAIN',
+        2 => 'engineering.kikaiworks.com',
+    ),
+    'overwriteprotocol' => 'https',
+    'overwritehost' => '$RAILWAY_PUBLIC_DOMAIN',
+    'trusted_proxies' => array(
+        0 => '100.0.0.0/8',
+    ),
+    'memcache.local' => '\\OC\\Memcache\\Redis',
+    'redis' => array(
+        'host' => '$REDIS_HOST',
+        'port' => '$REDIS_PORT',
+        'password' => '$REDIS_PASSWORD',
+        'user' => 'default',
     ),
 );
-PHP_EOF
-chown www-data:www-data /var/www/html/config/autoconfig.php
-chmod 640 /var/www/html/config/autoconfig.php
-echo "✅ Autoconfig.php created for automatic installation"
-
-echo "🔧 Running occ maintenance:install..."
-cd /var/www/html && php occ maintenance:install --database pgsql --database-name "$POSTGRES_DB" --database-host "$POSTGRES_HOST:$POSTGRES_PORT" --database-user "$POSTGRES_USER" --database-pass "$POSTGRES_PASSWORD" --admin-user "$NEXTCLOUD_ADMIN_USER" --admin-pass "$NEXTCLOUD_ADMIN_PASSWORD" --data-dir "$NEXTCLOUD_DATA_DIR"
-
-echo "🔧 Configuring Redis in config.php..."
-cd /var/www/html && php occ config:system:set memcache.local --value "\\OC\\Memcache\\Redis"
-cd /var/www/html && php occ config:system:set redis host --value "$REDIS_HOST"
-cd /var/www/html && php occ config:system:set redis port --value "$REDIS_PORT"
-if [ -n "$REDIS_PASSWORD" ]; then
-  cd /var/www/html && php occ config:system:set redis password --value "$REDIS_PASSWORD"
-  cd /var/www/html && php occ config:system:set redis user --value 'default'
-fi
-
-# Secure config ownership
-chown -R www-data:www-data /var/www/html/config
-
-echo "✅ Nextcloud installed and Redis configured"
 EOF
-    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
+    chown www-data:www-data /var/www/html/config/autoconfig.php
+    chmod 640 /var/www/html/config/autoconfig.php
+    echo "✅ Autoconfig.php created for automatic installation"
 else
     echo "✅ No admin credentials - NextCloud setup wizard will be used"
-    echo "✅ Skipping autoconfig.php creation"
 fi
 
 # Forward to original NextCloud entrypoint
