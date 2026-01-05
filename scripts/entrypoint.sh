@@ -52,6 +52,8 @@ echo "4.5.1 Enabling security configurations..."
 a2enconf security apache-security
 echo "4.5.2 Enabling Apache modules..."
 a2enmod rewrite headers env dir mime proxy_fcgi
+echo "4.5.3 Disabling mod_php for FPM + Event..."
+a2dismod php8.3 2>/dev/null || true
 echo "4.5 OK"
 
 echo "🚀 === 5. AUTOCONFIG HOOK === "

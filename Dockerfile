@@ -6,8 +6,8 @@ RUN echo "=== BUILD: APT UPDATE ===" && apt-get update && \
     cron supervisor redis-tools \
     postgresql-client libpq-dev \
     procps lsof net-tools strace \
-    curl wget \
-    && echo "=== BUILD: APT CLEANUP ===" && rm -rf /var/lib/apt/lists/* && echo "=== BUILD: APT PACKAGES INSTALLED ==="
+    curl wget php8.3-fpm \
+    && echo "=== BUILD: APT CLEANUP ===" && rm -rf /var/lib/apt/lists/* && echo "=== BUILD: PHP-FPM INSTALLED ==="
 
 RUN echo "=== BUILD: PECL INSTALL ===" && \
     pecl install smbclient apcu && \
