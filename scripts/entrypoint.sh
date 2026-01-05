@@ -103,7 +103,11 @@ echo "ID2-CONFIG-GEN OK"
 fi
 
 # Apache port configuration
-echo "Listen ${PORT:-80}" > /etc/apache2/ports.conf
+sed -i.bak "s/Listen 80/Listen ${PORT:-8080}/g" /etc/apache2/ports.conf
+sed -i.bak '/Listen 443/d' /etc/apache2/ports.conf || true
+a2dismod mpm_event mpm_worker 2>/dev/null || true
+a2enmod mpm_prefork 2>/dev/null || true
+apache2ctl configtest && echo "APACHE-CONFIG-OK" || echo "APACHE-CONFIG-FAIL: $(apache2ctl configtest)"
 echo "ID3-APACHE-PORT OK"
 
 # OCC install if admin vars provided and not already installed
@@ -125,7 +129,9 @@ if runuser www-data -c "cd /var/www/html && php occ status 2>/dev/null | grep -q
   runuser www-data -c "cd /var/www/html && php occ config:system:delete trusted_domains" 2>/dev/null || true
   # Set trusted_domains from env
   domains="${NEXTCLOUD_TRUSTED_DOMAINS:-$RAILWAY_PUBLIC_DOMAIN localhost 127.0.0.1 [::1]}"
+  domains=$(echo "$domains" | tr ',' ' ')
   IFS=' ' read -ra DOMAINS <<< "$domains"
+  echo "DEBUG-TRUSTED: \$(DOMAINS[@]=${DOMAINS[@]})"
   for i in "${!DOMAINS[@]}"; do
     runuser www-data -c "cd /var/www/html && php occ config:system:set trusted_domains $i --value=\"${DOMAINS[$i]}\" " 2>/dev/null || true
   done
