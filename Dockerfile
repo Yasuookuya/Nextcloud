@@ -26,8 +26,7 @@ COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.con
 
 # Enable Apache configs and modules
 RUN a2enconf security apache-security && \
-    a2enmod rewrite headers env dir mime && \
-    a2enmod mpm_prefork
+    a2enmod rewrite headers env dir mime
 
 # Copy supervisor config
 COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
