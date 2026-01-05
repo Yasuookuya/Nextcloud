@@ -101,6 +101,32 @@ else
 fi
 echo "8.2 Pre-supervisor: FPM socket prep..."
 mkdir -p /run/php && chown -R www-data:www-data /run/php /var/log/php-fpm* && chmod 777 /run/php && chown www-data /run/php/php-fpm.* 2>/dev/null || true
+
+# FPM config fallback
+if [ ! -f /usr/local/etc/php-fpm.d/www.conf ]; then
+cat > /usr/local/etc/php-fpm.d/www.conf << 'EOF'
+[global]
+daemonize = no
+error_log = /proc/self/fd/2
+
+[www]
+user = www-data
+group = www-data
+listen = /run/php/php8.3-fpm.sock
+listen.mode = 0660
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+pm.process_idle_timeout = 10s
+pm.max_requests = 500
+catch_workers_output = yes
+php_admin_value[memory_limit] = 512M
+EOF
+fi
+chown www-data /usr/local/etc/php-fpm.d/www.conf 2>/dev/null || true
+
 echo "8.2 FPM socket ready"
 
 echo "🚀 === 9. POST-INSTALL FIXES ==="
