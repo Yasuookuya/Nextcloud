@@ -1,4 +1,4 @@
-FROM nextcloud:latest
+FROM nextcloud:32-apache
 
 # Install additional packages and PHP extensions
 RUN apt-get update && apt-get install -y \
