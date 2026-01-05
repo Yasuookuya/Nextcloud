@@ -19,9 +19,13 @@
         "REDIS_HOST": "${{Redis.RAILWAY_PRIVATE_DOMAIN}}",
         "REDIS_HOST_PORT": "${{Redis.REDISPORT}}",
         "REDIS_HOST_PASSWORD": "${{Redis.REDIS_PASSWORD}}",
-        "NEXTCLOUD_TRUSTED_DOMAINS": "${{RAILWAY_PUBLIC_DOMAIN}} localhost",
+        "NEXTCLOUD_TRUSTED_DOMAINS": "${{RAILWAY_PUBLIC_DOMAIN}} localhost engineering.kikaiworks.com",
         "NEXTCLOUD_ADMIN_USER": null,
-        "NEXTCLOUD_ADMIN_PASSWORD": null
+        "NEXTCLOUD_ADMIN_PASSWORD": null,
+        "OVERWRITEPROTOCOL": "https",
+        "OVERWRITEHOST": "${{RAILWAY_PUBLIC_DOMAIN}}",
+        "PORT": "80",
+        "TRUSTED_PROXIES": "100.0.0.0/8"
       }
     }
   }
