@@ -2,19 +2,25 @@
 set -e
 
 echo "🚀 === 1. ENV VARS ==="
-echo "1.1 Setting PostgreSQL environment variables..."
-export POSTGRES_HOST=\${POSTGRES_HOST:-\$PGHOST}
-export POSTGRES_PORT=\${POSTGRES_PORT:-\$PGPORT:-5432}
-export POSTGRES_USER=\${POSTGRES_USER:-\$PGUSER:-postgres}
-export POSTGRES_PASSWORD=\${POSTGRES_PASSWORD:-\$PGPASSWORD}
-export POSTGRES_DB=\${POSTGRES_DB:-\$PGDATABASE:-railway}
-echo "1.2 Setting Redis environment variables..."
-export REDIS_HOST=\${REDIS_HOST:-\$REDISHOST}
-export REDIS_PORT=\${REDIS_PORT:-\$REDISPORT:-6379}
-export REDIS_PASSWORD=\${REDIS_PASSWORD:-\$REDISPASSWORD}
-export REDIS_USER=\${REDIS_USER:-\$REDISUSER:-default}
-echo "DB: \$POSTGRES_HOST:\$POSTGRES_PORT/\$POSTGRES_DB (\$POSTGRES_USER)"
-echo "Redis: \$REDIS_HOST:\$REDIS_PORT (\$REDIS_USER)"
+# FIXED: No backslash escapes, use PG* std + fallback
+export PGHOST="${PGHOST:-}"
+export PGPORT="${PGPORT:-5432}"
+export PGUSER="${PGUSER:-postgres}"
+export PGPASSWORD="${PGPASSWORD:-}"
+export PGDATABASE="${PGDATABASE:-nextcloud}"
+export POSTGRES_HOST="$PGHOST"
+export POSTGRES_PORT="$PGPORT"
+export POSTGRES_USER="$PGUSER"
+export POSTGRES_PASSWORD="$PGPASSWORD"
+export POSTGRES_DB="$PGDATABASE"
+
+export REDIS_HOST="${REDIS_HOST:-}"
+export REDIS_PORT="${REDIS_PORT:-6379}"
+export REDIS_PASSWORD="${REDIS_PASSWORD:-}"
+export REDIS_USER="${REDIS_USER:-default}"
+
+echo "DB: $POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB ($POSTGRES_USER)"
+echo "Redis: $REDIS_HOST:$REDIS_PORT ($REDIS_USER)"
 echo "1 OK"
 
 echo "🚀 === 2. APACHE PORTS === "
@@ -56,6 +62,12 @@ echo "4.5.3 Disabling mod_php for FPM + Event..."
 a2dismod php8.3 2>/dev/null || true
 echo "4.5 OK"
 
+echo "🚀 === 4.6 APACHE FULL RELOAD (fix thread-safety) ==="
+a2dismod php8.3 2>/dev/null || true  # Ensure mod_php off
+a2enmod proxy_fcgi setenvif  # FPM support
+apache2ctl configtest && apache2ctl graceful || echo "Apache reload WARN"
+echo "4.6 OK"
+
 echo "🚀 === 5. AUTOCONFIG HOOK === "
 if [ -n "\$NEXTCLOUD_ADMIN_USER" ] && [ -n "\$NEXTCLOUD_ADMIN_PASSWORD" ]; then
   mkdir -p /docker-entrypoint-hooks.d/before-starting
@@ -90,7 +102,7 @@ echo "6.1 Installing APCu extension..."
 docker-php-ext-install apcu 2>/dev/null || true
 echo "6.2 Configuring NextCloud memcache..."
 if [ -f /var/www/html/config/config.php ] && grep -q "installed" /var/www/html/config/config.php 2>/dev/null; then
-  su www-data -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\\\OCP\\\\Memcache\\\\APCu" || true
+  runuser -u www-data -- cd /var/www/html && php occ config:system:set memcache.local --value=\\OCP\\Memcache\\APCu || true
   echo "6.2 APCu set (installed)"
 else
   echo "6.2 Skipping occ (first run)"
@@ -107,7 +119,7 @@ echo "🚀 === 8. SUPERVISOR DEBUG START ==="
 echo "Processes: apache2 cron nextcloud-cron php-fpm8.3"
 echo "8.1 Checking Nextcloud status..."
 if [ -f /var/www/html/config/config.php ] && grep -q "installed" /var/www/html/config/config.php 2>/dev/null; then
-  su www-data -c "cd /var/www/html && php occ status --output=json" 2>/dev/null || echo "occ ready but deferred"
+  runuser -u www-data -- cd /var/www/html && php occ status --output=json 2>/dev/null || echo "occ ready but deferred"
 else
   echo "Nextcloud status check deferred (first run)"
 fi

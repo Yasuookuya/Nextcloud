@@ -19,6 +19,10 @@ RUN echo "=== BUILD: PECL INSTALL ===" && \
     echo "apc.enable_cli=1" >> /usr/local/etc/php/conf.d/apcu.ini && \
     echo "=== BUILD: PHP EXTENSIONS COMPLETED ==="
 
+RUN usermod -s /bin/bash www-data && \
+    a2dismod php8.3 2>/dev/null || true && \
+    echo "=== BUILD: WWW-DATA SHELL & MOD_PHP DISABLED ==="
+
 COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
 
 COPY config/security.conf /etc/apache2/conf-available/security.conf
