@@ -1,14 +1,5 @@
 <?php
 $CONFIG = array (
-    'session_save_handler' => 'files',
-    'session_save_path' => __DIR__ . '/../data/sessions',
-    // Force APCu for local caching, disable Redis completely
-    'memcache.local' => '\OC\Memcache\APCu',
-    'memcache.distributed' => '\OC\Memcache\APCu',
-    'redis' => false,
+    // Minimal config - Redis and performance settings handled by nextcloud-optimizations.php
     'custom_csp_policy' => "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;",
 );
-
-// Force PHP to use files for session storage (overrides Railway entrypoint)
-ini_set('session.save_handler', 'files');
-ini_set('session.save_path', __DIR__ . '/../data/sessions');

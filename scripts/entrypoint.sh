@@ -96,5 +96,9 @@ echo "7.1 Running Apache configuration test..."
 apache2ctl configtest && echo "Apache OK" || echo "Apache WARN"
 echo "7 OK"
 
-echo "🚀 === 8. SUPERVISOR START ==="
+echo "🚀 === 8. SUPERVISOR DEBUG START ==="
+echo "Processes: apache2 cron nextcloud-cron php-fpm8.3"
+echo "8.1 Checking Nextcloud status..."
+su www-data -c "cd /var/www/html && php occ status --output=json 2>/dev/null || echo 'Nextcloud status check deferred (first run)'"
+echo "8.2 Starting supervisor..."
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf

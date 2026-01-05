@@ -37,6 +37,7 @@ RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh 
 
 RUN echo "=== BUILD: CREATE LOG DIR ===" && \
     mkdir -p /var/log/supervisor /var/log/php-fpm /run/php && \
+    echo "=== DEBUG: LOG DIRS /run/php READY ===" && \
     echo "=== BUILD: SET OWNERSHIP ===" && \
     chown -R www-data:www-data /var/www/html /var/log/supervisor /var/log/php-fpm /run/php && \
     echo "=== BUILD: SET FILE PERMS ===" && \
