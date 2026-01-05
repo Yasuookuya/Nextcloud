@@ -69,11 +69,16 @@ export PORT=${PORT:-80}
 echo "Listen $PORT" > /etc/apache2/ports.conf
 echo "✅ Apache configured for port: $PORT"
 
-# 🔧 CRITICAL: Fix vhost ports (Railway fix)
-echo "🔧 Patching Apache vhosts for dynamic $PORT..."
-for conf in /etc/apache2/sites-available/*.conf /etc/apache2/sites-enabled/*.conf /etc/apache2/ports.conf; do
-  [ -f "$conf" ] && sed -i.bak "s|:\\([0-9][0-9]*\\)|:${PORT}|g; s|*:80[0-9]*|*:${PORT}|g; s|Listen 80[0-9]*|Listen ${PORT}|g; s|Listen 443|#Listen 443|g" "$conf" && echo "Patched $conf"
-done
+# 🔧 CRITICAL: Fix Apache server configuration for Railway
+echo "🔧 Configuring Apache server settings for Railway..."
+sed -i.bak \
+  -e "s|#ServerName www.example.com|ServerName ${RAILWAY_PUBLIC_DOMAIN}|g" \
+  -e "s|ServerAdmin webmaster@localhost|ServerAdmin admin@${RAILWAY_PUBLIC_DOMAIN}|g" \
+  -e '/DocumentRoot/a CustomLog /var/log/apache2/nextcloud_access.log combined' \
+  /etc/apache2/sites-enabled/000-default.conf \
+  /etc/apache2/sites-available/000-default.conf || true
+echo "ServerAlias *" >> /etc/apache2/sites-enabled/000-default.conf
+echo "UseCanonicalName Off" >> /etc/apache2/apache2.conf
 apache2ctl configtest || echo "⚠️ Config warnings (check logs)"
 
 # Display configuration info
