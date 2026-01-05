@@ -14,6 +14,8 @@ RUN apt-get update && apt-get install -y \
 
 RUN apt-get install -y procps lsof net-tools
 
+# Install smbclient PHP extension and ensure PostgreSQL support
+RUN pecl install smbclient \
     && docker-php-ext-enable smbclient \
     && docker-php-ext-install pgsql pdo_pgsql
 
