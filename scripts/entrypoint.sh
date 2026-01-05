@@ -90,65 +90,48 @@ echo "⚡ Performance Config:"
 echo "  PHP Memory Limit: ${PHP_MEMORY_LIMIT}"
 echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
 
-echo "🌟 Starting NextCloud with original entrypoint..."
-
-# Create autoconfig.php if admin credentials are provided
+# Create full config.php if admin credentials are provided
 if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then
-    echo "✅ Admin credentials provided - creating autoconfig.php"
+    echo "✅ Admin credentials provided - creating full config.php"
     mkdir -p /var/www/html/config
-    cat > /var/www/html/config/autoconfig.php << EOF
+    cat > /var/www/html/config/config.php << EOF
 <?php
-\$AUTOCONFIG = array(
-    'dbtype' => 'pgsql',
-    'dbname' => '$POSTGRES_DB',
-    'dbuser' => '$POSTGRES_USER',
-    'dbpass' => '$POSTGRES_PASSWORD',
-    'dbhost' => '$POSTGRES_HOST:$POSTGRES_PORT',
-    'dbtableprefix' => '$NEXTCLOUD_TABLE_PREFIX',
-    'directory' => '$NEXTCLOUD_DATA_DIR',
-    'adminlogin' => '$NEXTCLOUD_ADMIN_USER',
-    'adminpass' => '$NEXTCLOUD_ADMIN_PASSWORD',
-    'trusted_domains' => array(
-        0 => 'localhost',
-        1 => '$RAILWAY_PUBLIC_DOMAIN',
-        2 => 'engineering.kikaiworks.com',
-    ),
-    'overwriteprotocol' => 'https',
-    'overwritehost' => '$RAILWAY_PUBLIC_DOMAIN',
-    'trusted_proxies' => array(
-        0 => '100.0.0.0/8',
-    ),
-    'memcache.local' => '\\OC\\Memcache\\Redis',
-    'redis' => array(
-        'host' => '$REDIS_HOST',
-        'port' => '$REDIS_PORT',
-        'password' => '$REDIS_PASSWORD',
-        'user' => 'default',
-    ),
+\$CONFIG = array (
+  'instanceid' => '',
+  'passwordsalt' => '$(openssl rand -base64 30)',
+  'secret' => '$(openssl rand -base64 30)',
+  'trusted_domains' => 
+  array (
+    0 => 'localhost',
+    1 => '${RAILWAY_PUBLIC_DOMAIN}',
+    2 => 'engineering.kikaiworks.com',
+  ),
+  'datadirectory' => '${NEXTCLOUD_DATA_DIR}',
+  'dbtype' => 'pgsql',
+  'version' => '32.0.3.2',
+  'dbname' => '${POSTGRES_DB}',
+  'dbhost' => '${POSTGRES_HOST}:${POSTGRES_PORT}',
+  'dbuser' => '${POSTGRES_USER}',
+  'dbpassword' => '${POSTGRES_PASSWORD}',
+  'installed' => true,
+  'theme' => '',
+  'loglevel' => 2,
+  'maintenance' => false,
+  'overwrite.cli.url' => 'https://${RAILWAY_PUBLIC_DOMAIN}',
+  'overwriteprotocol' => 'https',
+  'overwritehost' => '${RAILWAY_PUBLIC_DOMAIN}',
+  'trusted_proxies' => 
+  array (
+    0 => '100.0.0.0/8',
+  ),
+  'memcache.local' => '\\OC\\Memcache\\Redis',
+  'redis' => 
+  array (
+    'host' => '${REDIS_HOST}',
+    'port' => '${REDIS_PORT}',
+    'password' => '${REDIS_PASSWORD}',
+    'user' => 'default',
+  ),
 );
-EOF
-    chown www-data:www-data /var/www/html/config/autoconfig.php
-    chmod 640 /var/www/html/config/autoconfig.php
-    echo "✅ Autoconfig.php created for automatic installation"
-else
-    echo "✅ No admin credentials - NextCloud setup wizard will be used"
-fi
 
-# Forward to original NextCloud entrypoint
-echo "🔧 Fixing Apache MPM runtime..."
-# Comment out conflicting MPM LoadModule lines in all conf
-find /etc/apache2 -name "*.conf" -o -name "*.load" | xargs sed -i '/LoadModule.*mpm_\(event\|worker\)_module/ s/^/#/'
-# Remove conflicting MPM files (real or symlink)
-rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf
-# Link prefork
-ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load
-ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
-apache2ctl configtest || echo "Apache configtest warning - continuing"
-
-echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
-echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
-echo "🐛 DEBUG: Current working directory: $(pwd)"
-echo "🐛 DEBUG: Contents of /usr/local/bin/:"
-ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
-
-exec /entrypoint.sh apache2-foreground
+\$CONFIG['logfile'] = '/var/www/html/data/nextcloud.log';
