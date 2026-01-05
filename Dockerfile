@@ -10,9 +10,10 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     libpq-dev \
     curl \
+    procps \
+    lsof \
+    net-tools \
     && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get install -y procps lsof net-tools
 
 # Install smbclient PHP extension and ensure PostgreSQL support
 RUN pecl install smbclient \
