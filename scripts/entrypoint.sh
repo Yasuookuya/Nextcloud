@@ -132,7 +132,10 @@ echo "🔧 Configuring Redis in config.php..."
 su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.local --value \"\\\\OC\\\\Memcache\\\\Redis\""
 su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis host --value \"${REDIS_HOST}\""
 su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value \"${REDIS_PORT:-6379}\""
-su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value \"${REDIS_PASSWORD}\""
+if [ -n "${REDIS_PASSWORD}" ]; then
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value \"${REDIS_PASSWORD}\""
+  su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis user --value 'default'"
+fi
 
 echo "✅ Nextcloud installed and Redis configured"
 EOF
