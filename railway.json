@@ -12,6 +12,7 @@
   "environments": {
     "production": {
       "variables": {
+        "PORT": "8080",
         "PGHOST": "${{Postgres.RAILWAY_PRIVATE_DOMAIN}}",
         "PGPORT": "${{Postgres.PGPORT}}",
         "PGUSER": "${{Postgres.PGUSER}}",
