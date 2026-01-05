@@ -8,9 +8,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pecl install smbclient && \
-    docker-php-ext-enable smbclient && \
-    docker-php-ext-install pgsql pdo_pgsql apcu && \
+RUN pecl install smbclient apcu && \
+    docker-php-ext-enable smbclient apcu && \
+    docker-php-ext-install pgsql pdo_pgsql && \
     echo "apc.enable_cli=1" >> /usr/local/etc/php/conf.d/apcu.ini
 
 COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
