@@ -1,6 +1,6 @@
 FROM nextcloud:latest
 
-# Install additional packages
+# Install additional packages and PHP extensions
 RUN apt-get update && apt-get install -y \
     smbclient \
     libsmbclient-dev \
@@ -24,28 +24,26 @@ COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
 COPY config/security.conf /etc/apache2/conf-available/security.conf
 COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.conf
 
-# Enable Apache configs and modules
+# Enable Apache configurations and modules (minimal, MPM handled in entrypoint)
 RUN a2enconf security apache-security && \
     a2enmod rewrite headers env dir mime
 
-# Disable all other MPMs explicitly
-RUN a2dismod mpm_prefork mpm_worker mpm_event || true
-
-# Copy supervisor config
+# Copy supervisor configuration
 COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Copy custom entrypoint and fix script
+# Copy custom scripts
 COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh
 
-# Set ownership and permissions
+# Set permissions for NextCloud
 RUN chown -R www-data:www-data /var/www/html && \
     find /var/www/html -type f -exec chmod 644 {} \; && \
     find /var/www/html -type d -exec chmod 755 {} \;
 
+# Expose HTTP port
 EXPOSE 80
 
 # Use custom entrypoint
 ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]
-CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["apache2-foreground"]
