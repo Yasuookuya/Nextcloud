@@ -126,15 +126,15 @@ chmod 640 /var/www/html/config/autoconfig.php
 echo "✅ Autoconfig.php created for automatic installation"
 
 echo "🔧 Running occ maintenance:install..."
-gosu www-data "cd /var/www/html && php occ maintenance:install --database pgsql --database-name \"$POSTGRES_DB\" --database-host \"$POSTGRES_HOST:$POSTGRES_PORT\" --database-user \"$POSTGRES_USER\" --database-pass \"$POSTGRES_PASSWORD\" --admin-user \"$NEXTCLOUD_ADMIN_USER\" --admin-pass \"$NEXTCLOUD_ADMIN_PASSWORD\" --data-dir \"$NEXTCLOUD_DATA_DIR\""
+/usr/bin/gosu www-data "cd /var/www/html && php occ maintenance:install --database pgsql --database-name \"$POSTGRES_DB\" --database-host \"$POSTGRES_HOST:$POSTGRES_PORT\" --database-user \"$POSTGRES_USER\" --database-pass \"$POSTGRES_PASSWORD\" --admin-user \"$NEXTCLOUD_ADMIN_USER\" --admin-pass \"$NEXTCLOUD_ADMIN_PASSWORD\" --data-dir \"$NEXTCLOUD_DATA_DIR\""
 
 echo "🔧 Configuring Redis in config.php..."
-gosu www-data "cd /var/www/html && php occ config:system:set memcache.local --value \"\\\\OC\\\\Memcache\\\\Redis\""
-gosu www-data "cd /var/www/html && php occ config:system:set redis host --value \"$REDIS_HOST\""
-gosu www-data "cd /var/www/html && php occ config:system:set redis port --value \"$REDIS_PORT\""
+/usr/bin/gosu www-data "cd /var/www/html && php occ config:system:set memcache.local --value \"\\\\OC\\\\Memcache\\\\Redis\""
+/usr/bin/gosu www-data "cd /var/www/html && php occ config:system:set redis host --value \"$REDIS_HOST\""
+/usr/bin/gosu www-data "cd /var/www/html && php occ config:system:set redis port --value \"$REDIS_PORT\""
 if [ -n "$REDIS_PASSWORD" ]; then
-  gosu www-data "cd /var/www/html && php occ config:system:set redis password --value \"$REDIS_PASSWORD\""
-  gosu www-data "cd /var/www/html && php occ config:system:set redis user --value 'default'"
+  /usr/bin/gosu www-data "cd /var/www/html && php occ config:system:set redis password --value \"$REDIS_PASSWORD\""
+  /usr/bin/gosu www-data "cd /var/www/html && php occ config:system:set redis user --value 'default'"
 fi
 
 echo "✅ Nextcloud installed and Redis configured"
