@@ -152,10 +152,10 @@ EOF
         sed -i "s|POSTGRES_HOST_PLACEHOLDER|${POSTGRES_HOST}|g" /var/www/html/config/config.php
         sed -i "s|POSTGRES_PORT_PLACEHOLDER|${POSTGRES_PORT}|g" /var/www/html/config/config.php
         sed -i "s|POSTGRES_USER_PLACEHOLDER|${POSTGRES_USER}|g" /var/www/html/config/config.php
-        sed -i "
-    chown www-data:www-data /var/www/html/config/config.php
-    chmod 640 /var/www/html/config/config.php
-    echo "✅ Config.php created with all settings"
+        sed -i "s|POSTGRES_PASSWORD_PLACEHOLDER|${POSTGRES_PASSWORD}|g" /var/www/html/config/config.php
+        chown www-data:www-data /var/www/html/config/config.php
+        chmod 640 /var/www/html/config/config.php
+        echo "✅ Config.php created with all settings"
 else
     echo "✅ No admin credentials - NextCloud setup wizard will be used"
 fi
