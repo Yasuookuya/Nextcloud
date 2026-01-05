@@ -1,38 +1,10 @@
 #!/bin/bash
 set -e
 
-# 🔄 Auto-restore config.php from backup if missing
-CONFIG_FILE=/var/www/html/config/config.php
-BACKUP_FILE=/var/www/html/config/config.php.backup.bak
-
-if [ ! -f "$CONFIG_FILE" ] && [ -f "$BACKUP_FILE" ]; then
-    echo "🧩 config.php missing – restoring from backup..."
-    cp "$BACKUP_FILE" "$CONFIG_FILE"
-    chown www-data:www-data "$CONFIG_FILE"
-    chmod 660 "$CONFIG_FILE"
-    echo "✅ config.php restored from backup"
-fi
-
-# Ensure Nextcloud can overwrite config.php even if Railway creates it as root
-if [ -f /var/www/html/config/config.php ]; then
-    chown www-data:www-data /var/www/html/config/config.php
-    chmod 660 /var/www/html/config/config.php
-fi
-
-# Force redeployment to clear cache
-
-echo "🔧 Configuring Apache MPM for Railway compatibility..."
-a2dismod mpm_event mpm_worker 2>/dev/null || true
-a2enmod mpm_prefork 2>/dev/null || true
-
-echo "🔧 Configuring Apache AllowOverride and rewrite for .htaccess support..."
-a2enmod rewrite 2>/dev/null || true
-sed -i 's|AllowOverride None|AllowOverride All|g' /etc/apache2/apache2.conf
-
-echo "� Starting NextCloud Railway deployment..."
+echo "🚀 Starting NextCloud Railway deployment..."
 echo "🐛 DEBUG: Current script: $0"
 echo "🐛 DEBUG: Process ID: $$"
-echo "�🐛 DEBUG: All running scripts:"
+echo "🐛 DEBUG: All running scripts:"
 ps aux | grep -E "(entrypoint|fix-warnings)" || echo "No matching processes found"
 
 # Debug: Print all environment variables starting with POSTGRES or REDIS
@@ -76,8 +48,10 @@ export POSTGRES_PORT=${POSTGRES_PORT:-5432}
 export POSTGRES_USER=${POSTGRES_USER:-postgres}
 export POSTGRES_DB=${POSTGRES_DB:-nextcloud}
 
-# Force file-based sessions - disable Redis completely
-echo "🔴 Redis disabled - using file-based sessions with APCu caching"
+# Redis configuration - Railway uses REDISHOST, REDISPORT, REDISPASSWORD
+export REDIS_HOST=${REDIS_HOST:-${REDISHOST:-localhost}}
+export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
+export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
 
 # NextCloud configuration variables
 export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-}
@@ -90,32 +64,9 @@ export NEXTCLOUD_UPDATE_CHECKER=${NEXTCLOUD_UPDATE_CHECKER:-false}
 export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
 export PHP_UPLOAD_LIMIT=${PHP_UPLOAD_LIMIT:-2G}
 
-# Configure Apache for Railway's PORT (IPv4 + IPv6)
+# Configure Apache for Railway's PORT
 export PORT=${PORT:-80}
-cat > /etc/apache2/ports.conf << EOF
-Listen 0.0.0.0:$PORT
-Listen [::]:$PORT
-EOF
-
-# Configure Apache virtual host for Railway (IPv4 + IPv6)
-cat > /etc/apache2/sites-available/000-default.conf << EOF
-<VirtualHost *:${PORT} [::]:${PORT}>
-    ServerAdmin webmaster@localhost
-    DocumentRoot /var/www/html
-    ServerName localhost
-
-
-    <Directory /var/www/html/>
-        Options +FollowSymlinks
-        AllowOverride All
-        Require all granted
-    </Directory>
-
-    ErrorLog \${APACHE_LOG_DIR}/error.log
-    CustomLog \${APACHE_LOG_DIR}/access.log combined
-</VirtualHost>
-EOF
-
+echo "Listen $PORT" > /etc/apache2/ports.conf
 echo "✅ Apache configured for port: $PORT"
 
 # Display configuration info  
@@ -139,109 +90,52 @@ echo "⚡ Performance Config:"
 echo "  PHP Memory Limit: ${PHP_MEMORY_LIMIT}"
 echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
 
-# Initialize Nextcloud code into volume if empty (official Docker behavior)
-if [ ! -f /var/www/html/occ ]; then
-  echo "📦 Nextcloud code not found in volume – restoring from image"
-  rsync -a --delete /usr/src/nextcloud/ /var/www/html/
-fi
-
-# Force Nextcloud permissions immediately after code restore (Railway volume fix)
-echo "🔐 Forcing Nextcloud permissions (early)..."
-mkdir -p /var/www/html/config /var/www/html/data /var/www/html/data/sessions
-chown -R www-data:www-data /var/www/html
-chmod 750 /var/www/html
-chmod 770 /var/www/html/config
-chmod 770 /var/www/html/data
-chmod 770 /var/www/html/data/sessions
-
 # Wait for NextCloud entrypoint to initialize first
 echo "🌟 Starting NextCloud with original entrypoint..."
 
-# Always provide autoconfig if config.php is missing (fixes Railway volume issues)
-if [ ! -f /var/www/html/config/config.php ]; then
-    echo "🧩 config.php missing – forcing autoconfig setup"
-
-    # Wait for Postgres to be ready before proceeding
-    echo "⏳ Waiting for Postgres to be ready..."
-    MAX_RETRIES=30
-    i=0
-    until PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c '\q' 2>/dev/null; do
-      i=$((i+1))
-      if [ $i -ge $MAX_RETRIES ]; then
-        echo "❌ Postgres not responding after $MAX_RETRIES attempts"
-        exit 1
-      fi
-      echo "Waiting for Postgres..."
-      sleep 2
-    done
-    echo "✅ Postgres is ready"
-
-    # Only clean database on first install to avoid destroying existing data
-    echo "🧹 config.php missing – resetting Nextcloud database..."
-    PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DB -c "
-    DO \$\$
-    DECLARE
-        r RECORD;
-    BEGIN
-        -- Drop all tables in all schemas
-        FOR r IN (SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
-            EXECUTE 'DROP TABLE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.tablename) || ' CASCADE';
-        END LOOP;
-
-        -- Drop all sequences in all schemas
-        FOR r IN (SELECT schemaname, sequencename FROM pg_sequences WHERE schemaname NOT IN ('pg_catalog', 'information_schema')) LOOP
-            EXECUTE 'DROP SEQUENCE IF EXISTS ' || quote_ident(r.schemaname) || '.' || quote_ident(r.sequencename) || ' CASCADE';
-        END LOOP;
-
-        -- Reset sequences
-        PERFORM setval(oid, 1, false) FROM pg_class WHERE relkind = 'S';
-    END \$\$;
-    " 2>/dev/null || echo "Database cleanup completed or database not ready yet"
-
-    # DISABLED: Autoconfig.php creation - causing syntax errors
-    # Will use manual installation instead
-    echo "✅ Using manual NextCloud installation (setup wizard)"
-    echo "✅ Skipping autoconfig.php creation to avoid syntax errors"
+# Set up autoconfig.php if admin credentials are provided
+if [ -n "${NEXTCLOUD_ADMIN_USER:-}" ] && [ "${NEXTCLOUD_ADMIN_USER}" != "" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ] && [ "${NEXTCLOUD_ADMIN_PASSWORD}" != "" ]; then
+    echo "✅ Admin credentials provided - will create autoconfig.php"
+    # Create hook for autoconfig setup
+    mkdir -p /docker-entrypoint-hooks.d/before-starting
+    
+    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
+#!/bin/bash
+echo "🔧 Creating autoconfig.php for automatic setup..."
+mkdir -p /var/www/html/config
+cat > /var/www/html/config/autoconfig.php << AUTOEOF
+<?php
+\$AUTOCONFIG = array(
+    "dbtype" => "pgsql",
+    "dbname" => "${POSTGRES_DB}",
+    "dbuser" => "${POSTGRES_USER}",
+    "dbpass" => "${POSTGRES_PASSWORD}",
+    "dbhost" => "${POSTGRES_HOST}:${POSTGRES_PORT:-5432}",
+    "dbtableprefix" => "${NEXTCLOUD_TABLE_PREFIX}",
+    "directory" => "${NEXTCLOUD_DATA_DIR}",
+    "adminlogin" => "${NEXTCLOUD_ADMIN_USER}",
+    "adminpass" => "${NEXTCLOUD_ADMIN_PASSWORD}",
+    "trusted_domains" => array(
+        0 => "localhost",
+        1 => "${RAILWAY_PUBLIC_DOMAIN}",
+    ),
+);
+AUTOEOF
+chown www-data:www-data /var/www/html/config/autoconfig.php
+chmod 640 /var/www/html/config/autoconfig.php
+echo "✅ Autoconfig.php created for automatic installation"
+EOF
+    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
 else
-    echo "📁 config.php exists – normal startup"
+    echo "✅ No admin credentials - NextCloud setup wizard will be used"
+    echo "✅ Skipping autoconfig.php creation"
 fi
-
-# Ensure data directory marker file exists (only create if missing)
-if [ ! -f /var/www/html/data/.ncdata ]; then
-    echo "# Nextcloud data directory" > /var/www/html/data/.ncdata
-    chown www-data:www-data /var/www/html/data/.ncdata
-fi
-
-# # Configure NextCloud for Railway environment
-# echo "🔧 Configuring NextCloud for Railway deployment..."
-# if [ -f /var/www/html/occ ]; then
-#     echo "⚙️ Setting trusted proxies..."
-#     php /var/www/html/occ config:system:set trusted_proxies 0 --value="0.0.0.0/0" --type=string 2>/dev/null || echo "Trusted proxies already configured"
-
-#     echo "🔒 Setting HTTPS protocol..."
-#     php /var/www/html/occ config:system:set overwriteprotocol --value="https" --type=string 2>/dev/null || echo "Protocol already configured"
-
-#     echo "🌐 Setting host override..."
-#     php /var/www/html/occ config:system:set overwritehost --value="$RAILWAY_PUBLIC_DOMAIN" --type=string 2>/dev/null || echo "Host already configured"
-
-#     echo "💻 Setting CLI URL..."
-#     php /var/www/html/occ config:system:set overwrite.cli.url --value="https://$RAILWAY_PUBLIC_DOMAIN" --type=string 2>/dev/null || echo "CLI URL already configured"
-
-#     echo "✅ NextCloud configuration enforced"
-# else
-#     echo "⚠️ NextCloud occ command not available yet, configuration will be applied after startup"
-# fi
 
 # Forward to original NextCloud entrypoint
 echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
 echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
 echo "🐛 DEBUG: Current working directory: $(pwd)"
-echo "� DEBUG: Contents of /usr/local/bin/:"
+echo "🐛 DEBUG: Contents of /usr/local/bin/:"
 ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
-
-# Clean up any existing Apache processes to prevent port binding conflicts
-echo "🧹 Cleaning up any existing Apache processes..."
-pkill -f apache2 || true
-sleep 1
 
 exec /entrypoint.sh apache2-foreground
