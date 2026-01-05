@@ -40,4 +40,139 @@ export POSTGRES_HOST=${POSTGRES_HOST:-$PGHOST}
 export POSTGRES_PORT=${POSTGRES_PORT:-$PGPORT}
 export POSTGRES_USER=${POSTGRES_USER:-$PGUSER}
 export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-$PGPASSWORD}
-export POSTGRES_DB=${POSTGRES_DB
+export POSTGRES_DB=${POSTGRES_DB:-$PGDATABASE}
+
+# Set final defaults if still missing
+export POSTGRES_HOST=${POSTGRES_HOST:-localhost}
+export POSTGRES_PORT=${POSTGRES_PORT:-5432}
+export POSTGRES_USER=${POSTGRES_USER:-postgres}
+export POSTGRES_DB=${POSTGRES_DB:-nextcloud}
+
+# Redis configuration - Railway uses REDISHOST, REDISPORT, REDISPASSWORD
+export REDIS_HOST=${REDIS_HOST:-${REDISHOST:-localhost}}
+export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
+export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
+
+# NextCloud configuration variables
+export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-}
+export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-}
+export NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR:-/var/www/html/data}
+export NEXTCLOUD_TABLE_PREFIX=${NEXTCLOUD_TABLE_PREFIX:-oc_}
+export NEXTCLOUD_UPDATE_CHECKER=${NEXTCLOUD_UPDATE_CHECKER:-false}
+
+# PHP performance settings
+export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
+export PHP_UPLOAD_LIMIT=${PHP_UPLOAD_LIMIT:-2G}
+
+# Configure Apache for Railway's PORT
+export PORT=${PORT:-80}
+echo "Listen $PORT" > /etc/apache2/ports.conf
+echo "✅ Apache configured for port: $PORT"
+
+# Display configuration info  
+echo "📊 Final Configuration:"
+echo "📊 Database Config:"
+echo "  POSTGRES_HOST: ${POSTGRES_HOST}"
+echo "  POSTGRES_PORT: ${POSTGRES_PORT}"  
+echo "  POSTGRES_USER: ${POSTGRES_USER}"
+echo "  POSTGRES_DB: ${POSTGRES_DB}"
+echo "  Full connection: ${POSTGRES_USER}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+echo "🔴 Redis Config:"
+echo "  REDISHOST: ${REDISHOST}"
+echo "  REDISPORT: ${REDISPORT}"
+echo "  REDISPASSWORD: ${REDISPASSWORD}"
+echo "🌐 NextCloud Config:"
+echo "  Trusted domains: ${NEXTCLOUD_TRUSTED_DOMAINS}"
+echo "  Admin user: ${NEXTCLOUD_ADMIN_USER:-'(setup wizard)'}"
+echo "  Data directory: ${NEXTCLOUD_DATA_DIR}"
+echo "  Table prefix: ${NEXTCLOUD_TABLE_PREFIX}"
+echo "⚡ Performance Config:"
+echo "  PHP Memory Limit: ${PHP_MEMORY_LIMIT}"
+echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
+
+    # Create full config.php if admin credentials are provided
+    if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then
+        echo "✅ Admin credentials provided - creating full config.php"
+        mkdir -p /var/www/html/config
+        # Generate secrets
+        INSTANCEID=$(head -c32 /dev/urandom | base64)
+        PASSWORDSALT=$(head -c32 /dev/urandom | base64)
+        SECRET=$(head -c48 /dev/urandom | base64)
+
+        cat > /var/www/html/config/config.php << 'EOF'
+<?php
+$CONFIG = array (
+  'instanceid' => 'INSTANCEID_PLACEHOLDER',
+  'passwordsalt' => 'PASSWORDSALT_PLACEHOLDER',
+  'secret' => 'SECRET_PLACEHOLDER',
+  'trusted_domains' => 
+  array (
+    0 => 'localhost',
+    1 => 'RAILWAY_PUBLIC_DOMAIN_PLACEHOLDER',
+    2 => 'engineering.kikaiworks.com',
+  ),
+  'datadirectory' => 'NEXTCLOUD_DATA_DIR_PLACEHOLDER',
+  'dbtype' => 'pgsql',
+  'version' => '32.0.3.2',
+  'dbname' => 'POSTGRES_DB_PLACEHOLDER',
+  'dbhost' => 'POSTGRES_HOST_PLACEHOLDER:POSTGRES_PORT_PLACEHOLDER',
+  'dbuser' => 'POSTGRES_USER_PLACEHOLDER',
+  'dbpassword' => 'POSTGRES_PASSWORD_PLACEHOLDER',
+  'installed' => true,
+  'theme' => '',
+  'loglevel' => 2,
+  'maintenance' => false,
+  'overwrite.cli.url' => 'https://RAILWAY_PUBLIC_DOMAIN_PLACEHOLDER',
+  'overwriteprotocol' => 'https',
+  'overwritehost' => 'RAILWAY_PUBLIC_DOMAIN_PLACEHOLDER',
+  'trusted_proxies' => 
+  array (
+    0 => '100.0.0.0/8',
+  ),
+  'memcache.local' => '\\OC\\Memcache\\Redis',
+  'redis' => 
+  array (
+    'host' => 'REDIS_HOST_PLACEHOLDER',
+    'port' => REDIS_PORT_PLACEHOLDER,
+    'password' => 'REDIS_PASSWORD_PLACEHOLDER',
+    'user' => 'default',
+  ),
+);
+
+$CONFIG['logfile'] = '/var/www/html/data/nextcloud.log';
+EOF
+
+        # Substitute placeholders
+        sed -i "s|INSTANCEID_PLACEHOLDER|${INSTANCEID}|g" /var/www/html/config/config.php
+        sed -i "s|PASSWORDSALT_PLACEHOLDER|${PASSWORDSALT}|g" /var/www/html/config/config.php
+        sed -i "s|SECRET_PLACEHOLDER|${SECRET}|g" /var/www/html/config/config.php
+        sed -i "s|RAILWAY_PUBLIC_DOMAIN_PLACEHOLDER|${RAILWAY_PUBLIC_DOMAIN}|g" /var/www/html/config/config.php
+        sed -i "s|NEXTCLOUD_DATA_DIR_PLACEHOLDER|${NEXTCLOUD_DATA_DIR}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_DB_PLACEHOLDER|${POSTGRES_DB}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_HOST_PLACEHOLDER|${POSTGRES_HOST}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_PORT_PLACEHOLDER|${POSTGRES_PORT}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_USER_PLACEHOLDER|${POSTGRES_USER}|g" /var/www/html/config/config.php
+        sed -i "
+    chown www-data:www-data /var/www/html/config/config.php
+    chmod 640 /var/www/html/config/config.php
+    echo "✅ Config.php created with all settings"
+else
+    echo "✅ No admin credentials - NextCloud setup wizard will be used"
+fi
+
+# Forward to original NextCloud entrypoint
+echo "🔧 Fixing Apache MPM runtime..."
+# Comment out conflicting MPM LoadModule lines in all conf
+find /etc/apache2 -name "*.conf" -o -name "*.load" | xargs sed -i '/LoadModule.*mpm_\(event\|worker\)_module/ s/^/#/'
+# Remove conflicting MPM files (real or symlink)
+rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf
+# Link prefork
+ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load
+ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
+apache2ctl configtest || echo "Apache configtest warning - continuing"
+
+echo "🐛 DEBUG: About to start supervisord"
+echo "🐛 DEBUG: Command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
+echo "🐛 DEBUG: Current working directory: $(pwd)"
+
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
