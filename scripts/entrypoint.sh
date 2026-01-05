@@ -133,7 +133,7 @@ $CONFIG = array (
   'redis' => 
   array (
     'host' => 'REDIS_HOST_PLACEHOLDER',
-    'port' => REDIS_PORT_PLACEHOLDER,
+    'port' => 'REDIS_PORT_PLACEHOLDER',
     'password' => 'REDIS_PASSWORD_PLACEHOLDER',
     'user' => 'default',
   ),
@@ -153,6 +153,9 @@ EOF
         sed -i "s|POSTGRES_PORT_PLACEHOLDER|${POSTGRES_PORT}|g" /var/www/html/config/config.php
         sed -i "s|POSTGRES_USER_PLACEHOLDER|${POSTGRES_USER}|g" /var/www/html/config/config.php
         sed -i "s|POSTGRES_PASSWORD_PLACEHOLDER|${POSTGRES_PASSWORD}|g" /var/www/html/config/config.php
+        sed -i "s|REDIS_HOST_PLACEHOLDER|${REDIS_HOST}|g" /var/www/html/config/config.php
+        sed -i "s|REDIS_PORT_PLACEHOLDER|${REDIS_PORT}|g" /var/www/html/config/config.php
+        sed -i "s|REDIS_PASSWORD_PLACEHOLDER|${REDIS_PASSWORD}|g" /var/www/html/config/config.php
         chown www-data:www-data /var/www/html/config/config.php
         chmod 640 /var/www/html/config/config.php
         echo "✅ Config.php created with all settings"
