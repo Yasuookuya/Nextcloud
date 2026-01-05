@@ -131,6 +131,11 @@ else
     echo "✅ Skipping autoconfig.php creation"
 fi
 
+# Ensure only mpm_prefork is enabled for Apache
+echo "🔧 Ensuring only mpm_prefork is enabled for Apache compatibility..."
+a2dismod mpm_event mpm_worker 2>/dev/null || true
+a2enmod mpm_prefork 2>/dev/null || true
+
 # Forward to original NextCloud entrypoint
 echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
 echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
