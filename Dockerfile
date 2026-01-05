@@ -28,7 +28,10 @@ COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.con
 RUN a2enconf security apache-security && \
     a2enmod rewrite headers env dir mime && \
     # Enable PHP module (version may vary)
-    (a2enmod php8.3 || a2enmod php || echo "PHP module detection will be handled in entrypoint")
+    (a2enmod php8.3 || a2enmod php || echo "PHP module detection will be handled in entrypoint") && \
+    # Fix MPM conflict - force prefork for mod_php
+    a2dismod mpm_event mpm_worker || true && \
+    a2enmod mpm_prefork
 
 # Copy supervisor configuration
 COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
