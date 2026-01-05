@@ -1,4 +1,4 @@
-# Railway Deployment Guide (Fixed: Postgres + Volumes Required)
+# Railway Deployment Guide
 
 ## 🎯 Complete Step-by-Step Deployment
 
@@ -15,7 +15,7 @@
 2. **Push to your GitHub account**
 3. **Ensure all files are present**:
    - `Dockerfile`
-   - `railway.json`
+   - `railway.json` 
    - `config/` directory with all files
    - `scripts/entrypoint.sh`
 
@@ -28,10 +28,10 @@
 
 ### Step 3: Add Database Services
 
-#### Add Postgres:
+#### Add MySQL:
 1. **Click "Add Service"**
 2. **Select "Database"**
-3. **Choose "PostgreSQL"**
+3. **Choose "MySQL"**
 4. **Wait for deployment** (2-3 minutes)
 
 #### Add Redis:
@@ -40,13 +40,6 @@
 3. **Choose "Redis"**
 4. **Wait for deployment** (1-2 minutes)
 
-#### Add Volume:
-1. **Click "Add Service"** again
-2. **Select "Storage"**
-3. **Choose "Volume"**
-4. **Set size to 20GB+**
-5. **Link to NextCloud service at mount path `/var/www/html`**
-
 ### Step 4: Deploy NextCloud
 
 1. **Click "Add Service"**
@@ -54,13 +47,11 @@
 3. **Connect GitHub** (if not already connected)
 4. **Choose your forked repository**
 5. **Railway will auto-detect** the Dockerfile
-6. **Add Environment Variables:**
+6. **Add Database Reference Variables:**
    - Go to Variables tab
-   - Set: `NEXTCLOUD_TRUSTED_DOMAINS` = `yourapp.railway.app *.railway.app localhost 127.0.0.1 [::1]`
-   - Set: `NEXTCLOUD_ADMIN_USER` = `admin`
-   - Set: `NEXTCLOUD_ADMIN_PASSWORD` = `SuperSecurePass123!` (change this!)
-   - Set: `OVERWRITEPROTOCOL` = `https`
-   - (Railway auto-links PGHOST/REDIS_HOST etc. from railway.json)
+   - Add: `DATABASE_URL` = `${{MySQL.MYSQL_URL}}`
+   - Add: `REDIS_URL` = `${{Redis.REDIS_URL}}`
+   - (Replace service names with your actual service names)
 7. **Click "Deploy"**
 
 **Wait for deployment** (5-10 minutes for first build)
@@ -77,7 +68,7 @@
 
 1. **After setup, go to NextCloud admin**
 2. **Navigate to Settings → Administration → Overview**
-3. **Should see all green checkmarks ✅**
+3. **Should see mostly green checkmarks ✅**
 
 ## 🎉 Basic Deployment Complete!
 

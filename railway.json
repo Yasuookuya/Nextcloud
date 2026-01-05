@@ -7,25 +7,21 @@
     "numReplicas": 1,
     "sleepApplication": false,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10,
-    "healthcheckPath": "/status.php",
-    "healthcheckTimeout": 600000
+    "restartPolicyMaxRetries": 3
   },
   "environments": {
     "production": {
       "variables": {
-        "PORT": "8080",
-        "PGHOST": "${{Postgres.RAILWAY_PRIVATE_DOMAIN}}",
-        "PGPORT": "${{Postgres.PGPORT}}",
-        "PGUSER": "${{Postgres.PGUSER}}",
-        "PGPASSWORD": "${{Postgres.PGPASSWORD}}",
-        "PGDATABASE": "${{Postgres.PGDATABASE}}",
+        "POSTGRES_HOST": "${{Postgres.RAILWAY_PRIVATE_DOMAIN}}",
+        "POSTGRES_USER": "${{Postgres.PGUSER}}",
+        "POSTGRES_PASSWORD": "${{Postgres.POSTGRES_PASSWORD}}",
+        "POSTGRES_DB": "${{Postgres.POSTGRES_DB}}",
         "REDIS_HOST": "${{Redis.RAILWAY_PRIVATE_DOMAIN}}",
-        "REDIS_PORT": "${{Redis.REDISPORT}}",
-        "REDIS_PASSWORD": "${{Redis.REDIS_PASSWORD}}",
-        "NEXTCLOUD_TRUSTED_DOMAINS": "${{RAILWAY_PUBLIC_DOMAIN}} *.railway.app localhost",
-        "NEXTCLOUD_DATA_DIR": "/var/www/html/data",
-        "NEXTCLOUD_TABLE_PREFIX": "oc_"
+        "REDIS_HOST_PORT": "${{Redis.REDISPORT}}",
+        "REDIS_HOST_PASSWORD": "${{Redis.REDIS_PASSWORD}}",
+        "NEXTCLOUD_TRUSTED_DOMAINS": "${{RAILWAY_PUBLIC_DOMAIN}} localhost",
+        "NEXTCLOUD_ADMIN_USER": null,
+        "NEXTCLOUD_ADMIN_PASSWORD": null
       }
     }
   }
