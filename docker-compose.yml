@@ -7,12 +7,23 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: pass
     ports: ['5432:5432']
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   redis:
     image: redis:7-alpine
+    command: redis-server --requirepass dummy
     ports: ['6379:6379']
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --raw incr ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   nextcloud:
     build: .
-    ports: ['8080:80']
+    ports: ['8080:8080']
     environment:
       PGHOST: postgres
       PGPORT: 5432
@@ -20,9 +31,22 @@ services:
       PGPASSWORD: pass
       PGDATABASE: railway
       REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: dummy
       RAILWAY_PUBLIC_DOMAIN: localhost:8080
+      NEXTCLOUD_TRUSTED_DOMAINS: localhost:8080 127.0.0.1
+      PORT: 8080
+      NEXTCLOUD_ADMIN_USER: admin
+      NEXTCLOUD_ADMIN_PASSWORD: pass
     volumes:
-      - ./data:/var/www/html/data
+      - nextcloud_data:/var/www/html/data
+      - nextcloud_config:/var/www/html/config
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  nextcloud_data:
+  nextcloud_config:

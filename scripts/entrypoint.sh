@@ -48,7 +48,7 @@ if ! grep -q "'installed'" /var/www/html/config/config.php 2>/dev/null; then
   'instanceid' => '$(openssl rand -hex 10)',
   'passwordsalt' => '$(openssl rand -base64 30)',
   'secret' => '$(openssl rand -base64 48)',
-  'trusted_domains' => array ('$RAILWAY_PUBLIC_DOMAIN', 'localhost'),
+  'trusted_domains' => array ($TRUSTED_ARRAY),
   'datadirectory' => '$NEXTCLOUD_DATA_DIR',
   'dbtype' => 'pgsql',
   'version' => '32.0.3.0',
@@ -69,15 +69,25 @@ if ! grep -q "'installed'" /var/www/html/config/config.php 2>/dev/null; then
     'password' => '$REDIS_PASSWORD',
     'dbindex' => 0,
   ),
+  'loglevel' => 2,
   'maintenance' => false,
   'installed' => false,
 );
+\$CONFIG_INCLUDES[] = include('/var/www/html/config/nextcloud-optimizations.php');
 EOF
     chown www-data /var/www/html/config/config.php
     echo "ID2-CONFIG-GEN OK"
 fi
 
 # Apache port configuration
+# Dynamic trusted_domains
+TRUSTED_ARRAY="'$RAILWAY_PUBLIC_DOMAIN', 'localhost'"
+if [ -n "$NEXTCLOUD_TRUSTED_DOMAINS" ]; then
+  IFS=' ' read -ra DOMAINS <<< "$NEXTCLOUD_TRUSTED_DOMAINS"
+  for d in "${DOMAINS[@]}"; do TRUSTED_ARRAY+=" '$d',"; done
+  TRUSTED_ARRAY=${TRUSTED_ARRAY%,}
+fi
+
 echo "Listen ${PORT:-80}" > /etc/apache2/ports.conf
 echo "ID3-APACHE-PORT OK"
 
