@@ -17,9 +17,10 @@ RUN echo "=== PHP EXT ===" && \
 
 COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini && echo "PHP INI OK"
 
+COPY config/security.conf /etc/apache2/conf-available/security.conf
+COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.conf
+
 RUN echo "=== APACHE CONF ===" && \
-    COPY config/security.conf /etc/apache2/conf-available/security.conf && \
-    COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.conf && \
     a2enconf security apache-security && \
     a2enmod rewrite headers env dir mime php8.3 || a2enmod php && \
     echo "APACHE CONF OK"
