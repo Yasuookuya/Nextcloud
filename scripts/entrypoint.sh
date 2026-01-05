@@ -78,7 +78,7 @@ echo "6.1 Installing APCu extension..."
 docker-php-ext-install apcu 2>/dev/null || true
 echo "6.2 Configuring NextCloud memcache..."
 if [ -f /var/www/html/config/config.php ] && grep -q "installed" /var/www/html/config/config.php 2>/dev/null; then
-  runuser -u www-data -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\OCP\\Memcache\\APCu" || true
+  runuser www-data -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\OCP\\Memcache\\APCu" || true
   echo "6.2 APCu set (installed)"
 else
   echo "6.2 Skipping occ (first run)"
@@ -95,12 +95,12 @@ echo "🚀 === 8. SUPERVISOR DEBUG START ==="
 echo "Processes: apache2 cron nextcloud-cron php-fpm8.3"
 echo "8.1 Checking Nextcloud status..."
 if [ -f /var/www/html/config/config.php ] && grep -q "installed" /var/www/html/config/config.php 2>/dev/null; then
-  runuser -u www-data -c "cd /var/www/html && php occ status --output=json" 2>/dev/null || echo "occ ready but deferred"
+  runuser www-data -c "cd /var/www/html && php occ status --output=json" 2>/dev/null || echo "occ ready but deferred"
 else
   echo "Nextcloud status check deferred (first run)"
 fi
 echo "8.2 Pre-supervisor: FPM socket prep..."
-mkdir -p /run/php && chown www-data:www-data /run/php
+mkdir -p /run/php && chown -R www-data:www-data /run/php /var/log/php-fpm*
 echo "8.2 FPM socket ready"
 
 echo "🚀 === 9. POST-INSTALL FIXES ==="
@@ -111,11 +111,11 @@ if grep -q "'installed'=>true" /var/www/html/config/config.php; then
     sed -i '/\$CONFIG = array(/a $CONFIG_INCLUDES[] = include("/var/www/html/config/nextcloud-optimizations.php");' /var/www/html/config/config.php
   fi
   # Redis config
-  runuser -u www-data -c "cd /var/www/html && php occ redis:config --host=$REDIS_HOST --port=$REDIS_PORT --password=$REDIS_PASSWORD --dbindex=0" || true
+  runuser www-data -c "cd /var/www/html && php occ redis:config --host=$REDIS_HOST --port=$REDIS_PORT --password=$REDIS_PASSWORD --dbindex=0" || true
   # Run fix script
   /usr/local/bin/fix-warnings.sh
   # Files scan
-  runuser -u www-data -c "cd /var/www/html && php occ files:scan --all --quiet" || true
+  runuser www-data -c "cd /var/www/html && php occ files:scan --all --quiet" || true
   echo "9 ✅ Green!"
 fi
 
