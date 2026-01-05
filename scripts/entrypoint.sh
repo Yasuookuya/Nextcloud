@@ -132,6 +132,11 @@ else
 fi
 
 # Forward to original NextCloud entrypoint
+echo "🔧 Fixing Apache MPM runtime..."
+a2dismod mpm_event mpm_worker || true
+a2enmod mpm_prefork
+apache2ctl configtest || echo "Apache configtest warning - continuing"
+
 echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
 echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
 echo "🐛 DEBUG: Current working directory: $(pwd)"
