@@ -94,7 +94,7 @@ echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
 if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then
     echo "✅ Admin credentials provided - creating full config.php"
     mkdir -p /var/www/html/config
-    cat > /var/www/html/config/config.php << 'EOF'
+    cat > /var/www/html/config/config.php << EOF
 <?php
 $CONFIG = array (
   'instanceid' => '$(head -c32 /dev/urandom | base64)',
@@ -103,23 +103,23 @@ $CONFIG = array (
   'trusted_domains' => 
   array (
     0 => 'localhost',
-    1 => '$RAILWAY_PUBLIC_DOMAIN',
+    1 => '${RAILWAY_PUBLIC_DOMAIN}',
     2 => 'engineering.kikaiworks.com',
   ),
-  'datadirectory' => '$NEXTCLOUD_DATA_DIR',
+  'datadirectory' => '${NEXTCLOUD_DATA_DIR}',
   'dbtype' => 'pgsql',
   'version' => '32.0.3.2',
-  'dbname' => '$POSTGRES_DB',
-  'dbhost' => '$POSTGRES_HOST:$POSTGRES_PORT',
-  'dbuser' => '$POSTGRES_USER',
-  'dbpassword' => '$POSTGRES_PASSWORD',
+  'dbname' => '${POSTGRES_DB}',
+  'dbhost' => '${POSTGRES_HOST}:${POSTGRES_PORT}',
+  'dbuser' => '${POSTGRES_USER}',
+  'dbpassword' => '${POSTGRES_PASSWORD}',
   'installed' => true,
   'theme' => '',
   'loglevel' => 2,
   'maintenance' => false,
-  'overwrite.cli.url' => 'https://$RAILWAY_PUBLIC_DOMAIN',
+  'overwrite.cli.url' => 'https://${RAILWAY_PUBLIC_DOMAIN}',
   'overwriteprotocol' => 'https',
-  'overwritehost' => '$RAILWAY_PUBLIC_DOMAIN',
+  'overwritehost' => '${RAILWAY_PUBLIC_DOMAIN}',
   'trusted_proxies' => 
   array (
     0 => '100.0.0.0/8',
@@ -127,9 +127,9 @@ $CONFIG = array (
   'memcache.local' => '\\OC\\Memcache\\Redis',
   'redis' => 
   array (
-    'host' => '$REDIS_HOST',
-    'port' => '$REDIS_PORT',
-    'password' => '$REDIS_PASSWORD',
+    'host' => '${REDIS_HOST}',
+    'port' => ${REDIS_PORT},
+    'password' => '${REDIS_PASSWORD}',
     'user' => 'default',
   ),
 );
@@ -154,10 +154,8 @@ ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mp
 ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
 apache2ctl configtest || echo "Apache configtest warning - continuing"
 
-echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
-echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
+echo "🐛 DEBUG: About to start supervisord"
+echo "🐛 DEBUG: Command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
 echo "🐛 DEBUG: Current working directory: $(pwd)"
-echo "🐛 DEBUG: Contents of /usr/local/bin/:"
-ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
 
-exec /entrypoint.sh apache2-foreground
+exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf

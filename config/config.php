@@ -5,7 +5,6 @@ $CONFIG = array (
     // Force APCu for local caching, disable Redis completely
     'memcache.local' => '\OC\Memcache\APCu',
     'memcache.distributed' => '\OC\Memcache\APCu',
-    'redis' => false,
     'custom_csp_policy' => "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;",
 );
 
