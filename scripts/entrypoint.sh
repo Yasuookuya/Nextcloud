@@ -1,157 +1,70 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting NextCloud Railway deployment..."
-echo "🐛 DEBUG: Current script: $0"
-echo "🐛 DEBUG: Process ID: $$"
-echo "🐛 DEBUG: All running scripts:"
-ps aux | grep -E "(entrypoint|fix-warnings)" || echo "No matching processes found"
-
-# Debug: Print all environment variables starting with POSTGRES or REDIS
-echo "🔍 Debug: Environment variables:"
-env | grep -E "^(POSTGRES|REDIS.*|RAILWAY|PG|NEXTCLOUD|PHP)" | sort
-
-# Also check for any database-related variables
-echo "🔍 Database-related variables:"
-env | grep -iE "(database|db|host)" | sort
-
-# Check for environment variables - we need at least some PostgreSQL config
-# Check for Railway's PG* variables OR POSTGRES_* variables OR DATABASE_URL
-if [ -z "$POSTGRES_HOST" ] && [ -z "$DATABASE_URL" ] && [ -z "$POSTGRES_USER" ] && [ -z "$PGHOST" ] && [ -z "$PGUSER" ]; then
-    echo "❌ No PostgreSQL configuration found!"
-    echo "Set either individual POSTGRES_* variables, PG* variables, or DATABASE_URL"
-    echo "Available environment variables:"
-    env | grep -E "^(PG|POSTGRES|DATABASE)" | sort
-    exit 1
-fi
-
-# If DATABASE_URL is provided, parse it
-if [ -n "$DATABASE_URL" ] && [ -z "$POSTGRES_HOST" ]; then
-    echo "📊 Parsing DATABASE_URL..."
-    export POSTGRES_HOST=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:[^@]*@\([^:]*\):.*|\1|p')
-    export POSTGRES_PORT=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:[^@]*@[^:]*:\([0-9]*\)/.*|\1|p')
-    export POSTGRES_USER=$(echo $DATABASE_URL | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
-    export POSTGRES_PASSWORD=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
-    export POSTGRES_DB=$(echo $DATABASE_URL | sed -n 's|.*/\([^?]*\).*|\1|p')
-fi
-
-# Use Railway's standard PG* variables if POSTGRES_* aren't set
-export POSTGRES_HOST=${POSTGRES_HOST:-$PGHOST}
-export POSTGRES_PORT=${POSTGRES_PORT:-$PGPORT}
-export POSTGRES_USER=${POSTGRES_USER:-$PGUSER}
+# Envs
+export POSTGRES_HOST=${POSTGRES_HOST:-$PGHOST:-postgres.railway.internal}
+export POSTGRES_PORT=${POSTGRES_PORT:-$PGPORT:-5432}
+export POSTGRES_USER=${POSTGRES_USER:-$PGUSER:-postgres}
 export POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-$PGPASSWORD}
-export POSTGRES_DB=${POSTGRES_DB:-$PGDATABASE}
+export POSTGRES_DB=${POSTGRES_DB:-$PGDATABASE:-railway}
 
-# Set final defaults if still missing
-export POSTGRES_HOST=${POSTGRES_HOST:-localhost}
-export POSTGRES_PORT=${POSTGRES_PORT:-5432}
-export POSTGRES_USER=${POSTGRES_USER:-postgres}
-export POSTGRES_DB=${POSTGRES_DB:-nextcloud}
-
-# Redis configuration - Railway uses REDISHOST, REDISPORT, REDISPASSWORD
-export REDIS_HOST=${REDIS_HOST:-${REDISHOST:-localhost}}
-export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
-export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
-
-# NextCloud configuration variables
-export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-}
-export NEXTCLOUD_ADMIN_PASSWORD=${NEXTCLOUD_ADMIN_PASSWORD:-}
-export NEXTCLOUD_DATA_DIR=${NEXTCLOUD_DATA_DIR:-/var/www/html/data}
-export NEXTCLOUD_TABLE_PREFIX=${NEXTCLOUD_TABLE_PREFIX:-oc_}
-export NEXTCLOUD_UPDATE_CHECKER=${NEXTCLOUD_UPDATE_CHECKER:-false}
-
-# PHP performance settings
-export PHP_MEMORY_LIMIT=${PHP_MEMORY_LIMIT:-512M}
-export PHP_UPLOAD_LIMIT=${PHP_UPLOAD_LIMIT:-2G}
-
-# Configure Apache for Railway's PORT
-export PORT=${PORT:-80}
+export PORT=${PORT:-8080}
 echo "Listen $PORT" > /etc/apache2/ports.conf
-echo "✅ Apache configured for port: $PORT"
 
-# 🔧 CRITICAL: Fix Apache server configuration for Railway
-echo "🔧 Configuring Apache server settings for Railway..."
-sed -i.bak '/<VirtualHost/,/<\/VirtualHost>/ {
-  s|#ServerName www.example.com|ServerName '"${RAILWAY_PUBLIC_DOMAIN}"'|
-  /DocumentRoot/a ServerAlias *\
+# Vhost minimal
+cat > /etc/apache2/sites-enabled/000-default.conf << EOF
+<VirtualHost *:$PORT>
+ServerName $RAILWAY_PUBLIC_DOMAIN
+ServerAlias *
+DocumentRoot /var/www/html
+<Directory /var/www/html>
+Options +FollowSymlinks
+AllowOverride All
+Require all granted
+</Directory>
 CustomLog /var/log/apache2/access.log combined
-}' /etc/apache2/sites-enabled/000-default.conf \
-  /etc/apache2/sites-available/000-default.conf 2>/dev/null || true
-rm *.bak 2>/dev/null || true
-apache2ctl configtest || echo "⚠️ Config warnings (check logs)"
+</VirtualHost>
+EOF
 
-# Display configuration info
-echo "📊 Final Configuration:"
-echo "📊 Database Config:"
-echo "  POSTGRES_HOST: ${POSTGRES_HOST}"
-echo "  POSTGRES_PORT: ${POSTGRES_PORT}"  
-echo "  POSTGRES_USER: ${POSTGRES_USER}"
-echo "  POSTGRES_DB: ${POSTGRES_DB}"
-echo "  Full connection: ${POSTGRES_USER}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
-echo "🔴 Redis Config:"
-echo "  REDISHOST: ${REDISHOST}"
-echo "  REDISPORT: ${REDISPORT}"
-echo "  REDISPASSWORD: ${REDISPASSWORD}"
-echo "🌐 NextCloud Config:"
-echo "  Trusted domains: ${NEXTCLOUD_TRUSTED_DOMAINS}"
-echo "  Admin user: ${NEXTCLOUD_ADMIN_USER:-'(setup wizard)'}"
-echo "  Data directory: ${NEXTCLOUD_DATA_DIR}"
-echo "  Table prefix: ${NEXTCLOUD_TABLE_PREFIX}"
-echo "⚡ Performance Config:"
-echo "  PHP Memory Limit: ${PHP_MEMORY_LIMIT}"
-echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
+a2dismod mpm_event mpm_worker
+a2enmod mpm_prefork
+apache2ctl configtest
 
-# Wait for NextCloud entrypoint to initialize first
-echo "🌟 Starting NextCloud with original entrypoint..."
-
-# Set up autoconfig.php if admin credentials are provided
-if [ -n "${NEXTCLOUD_ADMIN_USER:-}" ] && [ "${NEXTCLOUD_ADMIN_USER}" != "" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD:-}" ] && [ "${NEXTCLOUD_ADMIN_PASSWORD}" != "" ]; then
-    echo "✅ Admin credentials provided - will create autoconfig.php"
-    # Create hook for autoconfig setup
-    mkdir -p /docker-entrypoint-hooks.d/before-starting
-    
-    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
+# Autoconfig EXPANDED
+if [ -n "$NEXTCLOUD_ADMIN_USER" ] && [ -n "$NEXTCLOUD_ADMIN_PASSWORD" ]; then
+  mkdir -p /docker-entrypoint-hooks.d/before-starting
+  cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << EOF
 #!/bin/bash
-echo "🔧 Creating autoconfig.php for automatic setup..."
-mkdir -p /var/www/html/config
-cat > /var/www/html/config/autoconfig.php << AUTOEOF
+cat > /var/www/html/config/autoconfig.php << CONFIG
 <?php
 \$AUTOCONFIG = array(
     "dbtype" => "pgsql",
-    "dbname" => "${POSTGRES_DB}",
-    "dbuser" => "${POSTGRES_USER}",
-    "dbpass" => "${POSTGRES_PASSWORD}",
-    "dbhost" => "${POSTGRES_HOST}:${POSTGRES_PORT:-5432}",
-    "dbtableprefix" => "${NEXTCLOUD_TABLE_PREFIX}",
-    "directory" => "${NEXTCLOUD_DATA_DIR}",
-    "adminlogin" => "${NEXTCLOUD_ADMIN_USER}",
-    "adminpass" => "${NEXTCLOUD_ADMIN_PASSWORD}",
-    "trusted_domains" => array(
-        0 => "localhost",
-        1 => "${RAILWAY_PUBLIC_DOMAIN}",
+    "dbname" => "$POSTGRES_DB",
+    "dbuser" => "$POSTGRES_USER",
+    "dbpass" => "$POSTGRES_PASSWORD",
+    "dbhost" => "$POSTGRES_HOST:$POSTGRES_PORT",
+    "dbtableprefix" => "oc_",
+    "directory" => "/var/www/html/data",
+    "adminlogin" => "$NEXTCLOUD_ADMIN_USER",
+    "adminpass" => "$NEXTCLOUD_ADMIN_PASSWORD",
+    "trusted_domains" => array (
+        0 => "$RAILWAY_PUBLIC_DOMAIN",
+        1 => "localhost",
     ),
 );
-AUTOEOF
-chown www-data:www-data /var/www/html/config/autoconfig.php
-chmod 640 /var/www/html/config/autoconfig.php
-echo "✅ Autoconfig.php created for automatic installation"
+CONFIG
+chown www-data /var/www/html/config/autoconfig.php
 EOF
-    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
-else
-    echo "✅ No admin credentials - NextCloud setup wizard will be used"
-    echo "✅ Skipping autoconfig.php creation"
+  chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
 fi
 
-# Ensure only mpm_prefork is enabled for Apache
-echo "🔧 Ensuring only mpm_prefork is enabled for Apache compatibility..."
-a2dismod mpm_event mpm_worker 2>/dev/null || true
-a2enmod mpm_prefork 2>/dev/null || true
+# APCu memcache
+su www-data -c "php occ config:system:set memcache.local --value=\\\\OCP\\\\Memcache\\\\APCu"
 
-# Forward to original NextCloud entrypoint
-echo "🐛 DEBUG: About to exec original NextCloud entrypoint"
-echo "🐛 DEBUG: Command: /entrypoint.sh apache2-foreground"
-echo "🐛 DEBUG: Current working directory: $(pwd)"
-echo "🐛 DEBUG: Contents of /usr/local/bin/:"
-ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
+# Hook permissions
+chown -R www-data:www-data /docker-entrypoint-hooks.d 2>/dev/null || true
+
+# Enable additional apache configs
+a2enconf apache-security 2>/dev/null || true
 
 exec /entrypoint.sh apache2-foreground

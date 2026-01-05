@@ -1,59 +1,28 @@
 FROM nextcloud:32-apache
 
-# Install additional packages and PHP extensions
 RUN apt-get update && apt-get install -y \
-    smbclient \
-    libsmbclient-dev \
+    smbclient libsmbclient-dev \
     cron \
-    supervisor \
-    redis-tools \
-    postgresql-client \
-    libpq-dev \
+    procps lsof net-tools \
+    postgresql-client libpq-dev \
     curl \
-    procps \
-    lsof \
-    net-tools \
     && rm -rf /var/lib/apt/lists/*
 
-# Install smbclient PHP extension and ensure PostgreSQL support
-RUN pecl install smbclient \
-    && docker-php-ext-enable smbclient \
-    && docker-php-ext-install pgsql pdo_pgsql
+RUN pecl install smbclient && \
+    docker-php-ext-enable smbclient && \
+    docker-php-ext-install pgsql pdo_pgsql apcu && \
+    echo "apc.enable_cli=1" >> /usr/local/etc/php/conf.d/apcu.ini
 
-# Copy PHP configuration
 COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
-
-# Copy Apache configurations
 COPY config/security.conf /etc/apache2/conf-available/security.conf
 COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.conf
+RUN a2enconf security apache-security && a2enmod rewrite headers env dir mime php8.3 || a2enmod php
 
-# Enable Apache configurations and modules
-RUN a2enconf security apache-security && \
-    a2enmod rewrite headers env dir mime && \
-    # Enable PHP module (version may vary)
-    (a2enmod php8.3 || a2enmod php || echo "PHP module detection will be handled in entrypoint")
-
-# Copy supervisor configuration
-COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-
-# Copy custom entrypoint and maintenance scripts
 COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
-COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
-RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh
+RUN chmod +x /usr/local/bin/custom-entrypoint.sh
 
-# Create necessary directories and set permissions
-RUN mkdir -p /var/log/supervisor && \
-    # Ensure NextCloud files are present and accessible
-    ls -la /var/www/html/ && \
-    # Set proper ownership and permissions
-    chown -R www-data:www-data /var/www/html && \
-    find /var/www/html -type f -exec chmod 644 {} \; && \
-    find /var/www/html -type d -exec chmod 755 {} \; && \
-    chmod +x /usr/local/bin/custom-entrypoint.sh
+RUN chown -R www-data:www-data /var/www/html && find /var/www/html -type f -exec chmod 644 {} \; && find /var/www/html -type d -exec chmod 755 {} \;
 
-# Expose HTTP port (Railway expects PORT=80)
 EXPOSE 80
-
-# Use custom entrypoint (handles everything including starting supervisord)
 ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]
 CMD ["apache2-foreground"]
