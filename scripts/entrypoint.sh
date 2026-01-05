@@ -52,9 +52,6 @@ echo "4.5.1 Enabling security configurations..."
 a2enconf security apache-security
 echo "4.5.2 Enabling Apache modules..."
 a2enmod rewrite headers env dir mime proxy_fcgi
-echo "4.5.3 Starting PHP-FPM..."
-mkdir -p /run/php
-php-fpm8.3 -D
 echo "4.5 OK"
 
 echo "🚀 === 5. AUTOCONFIG HOOK === "
@@ -91,10 +88,7 @@ echo "6.1 Installing APCu extension..."
 docker-php-ext-install apcu 2>/dev/null || true
 echo "6.2 Configuring NextCloud memcache..."
 su www-data -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\\\OCP\\\\Memcache\\\\APCu || true"
-echo "6.3 Applying Nextcloud performance optimizations..."
-if [ -f /var/www/html/config/nextcloud-optimizations.php ]; then
-    echo "6.4 Nextcloud optimizations applied"
-fi
+echo "6.3 Nextcloud optimizations file ready for auto-merge"
 echo "6 OK"
 
 echo "🚀 === 7. APACHE TEST ==="
@@ -102,5 +96,5 @@ echo "7.1 Running Apache configuration test..."
 apache2ctl configtest && echo "Apache OK" || echo "Apache WARN"
 echo "7 OK"
 
-echo "🚀 EXEC ORIGINAL"
-exec /entrypoint.sh apache2-foreground
+echo "🚀 === 8. SUPERVISOR START ==="
+exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf

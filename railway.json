@@ -21,7 +21,9 @@
         "REDIS_HOST_PASSWORD": "${{Redis.REDIS_PASSWORD}}",
         "NEXTCLOUD_TRUSTED_DOMAINS": "${{RAILWAY_PUBLIC_DOMAIN}} localhost",
         "NEXTCLOUD_ADMIN_USER": null,
-        "NEXTCLOUD_ADMIN_PASSWORD": null
+        "NEXTCLOUD_ADMIN_PASSWORD": null,
+        "NEXTCLOUD_DATA_DIR": "/var/www/html/data",
+        "NEXTCLOUD_TABLE_PREFIX": "oc_"
       }
     }
   }

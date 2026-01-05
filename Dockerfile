@@ -36,9 +36,9 @@ COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/custom-entrypoint.sh /usr/local/bin/fix-warnings.sh && echo "SCRIPTS OK"
 
 RUN echo "=== BUILD: CREATE LOG DIR ===" && \
-    mkdir -p /var/log/supervisor && \
+    mkdir -p /var/log/supervisor /var/log/php-fpm /run/php && \
     echo "=== BUILD: SET OWNERSHIP ===" && \
-    chown -R www-data:www-data /var/www/html && \
+    chown -R www-data:www-data /var/www/html /var/log/supervisor /var/log/php-fpm /run/php && \
     echo "=== BUILD: SET FILE PERMS ===" && \
     find /var/www/html -type f -exec chmod 644 {} \; && \
     echo "=== BUILD: SET DIR PERMS ===" && \
