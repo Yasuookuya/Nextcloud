@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: railway
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass
+    ports: ['5432:5432']
+  redis:
+    image: redis:7-alpine
+    ports: ['6379:6379']
+  nextcloud:
+    build: .
+    ports: ['8080:80']
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: pass
+      PGDATABASE: railway
+      REDIS_HOST: redis
+      RAILWAY_PUBLIC_DOMAIN: localhost:8080
+    volumes:
+      - ./data:/var/www/html/data
+    depends_on:
+      - postgres
+      - redis

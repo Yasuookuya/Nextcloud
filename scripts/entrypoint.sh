@@ -1,72 +1,48 @@
 #!/bin/bash
 set -e
 
-echo "🚀 === 1. ENV VARS ==="
-# FIXED: No backslash escapes, use PG* std + fallback
-export PGHOST="${PGHOST:-}"
-export PGPORT="${PGPORT:-5432}"
-export PGUSER="${PGUSER:-postgres}"
-export PGPASSWORD="${PGPASSWORD:-}"
-export PGDATABASE="${PGDATABASE:-nextcloud}"
-export POSTGRES_HOST="$PGHOST"
-export POSTGRES_PORT="$PGPORT"
-export POSTGRES_USER="$PGUSER"
-export POSTGRES_PASSWORD="$PGPASSWORD"
-export POSTGRES_DB="$PGDATABASE"
-
+# FIXED ENV (PG* + POSTGRES*)
+export POSTGRES_HOST="${PGHOST:-}"
+export POSTGRES_PORT="${PGPORT:-5432}"
+export POSTGRES_USER="${PGUSER:-postgres}"
+export POSTGRES_PASSWORD="${PGPASSWORD:-}"
+export POSTGRES_DB="${PGDATABASE:-railway}"
 export REDIS_HOST="${REDIS_HOST:-}"
 export REDIS_PORT="${REDIS_PORT:-6379}"
 export REDIS_PASSWORD="${REDIS_PASSWORD:-}"
-export REDIS_USER="${REDIS_USER:-default}"
 
 echo "DB: $POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB ($POSTGRES_USER)"
-echo "Redis: $REDIS_HOST:$REDIS_PORT ($REDIS_USER)"
+echo "Redis: $REDIS_HOST:$REDIS_PORT"
 echo "1 OK"
 
-echo "🚀 === 2. APACHE PORTS === "
-echo "Listen \$PORT" > /etc/apache2/ports.conf
-echo "2 OK"
+# Apache $PORT
+echo "Listen $PORT" > /etc/apache2/ports.conf
 
-echo "🚀 === 3. VHOST === "
+# FIXED VHOST + FPM PROXY
 cat > /etc/apache2/sites-enabled/000-default.conf << EOF
-<VirtualHost *:\$PORT>
-ServerName \$RAILWAY_PUBLIC_DOMAIN
-ServerAlias *
+<VirtualHost *:$PORT>
+ServerName $RAILWAY_PUBLIC_DOMAIN
 DocumentRoot /var/www/html
+
 <Directory /var/www/html>
 Options +FollowSymlinks
 AllowOverride All
 Require all granted
 </Directory>
+
+# FPM Proxy
+ProxyPassMatch ^/(.*\.php(/.*)?)$ unix:/run/php/php8.3-fpm.sock|fcgi://localhost/var/www/html/\$1
+ProxyPassReverse / unix:/run/php/php8.3-fpm.sock|fcgi://localhost/var/www/html/
+
 CustomLog /var/log/apache2/access.log combined
 ErrorLog /var/log/apache2/error.log
 </VirtualHost>
 EOF
-echo "3 OK"
 
-echo "🚀 === 4. MPM EVENT ==="
-echo "4.1 Disabling other MPMs..."
-a2dismod mpm_prefork mpm_worker 2>/dev/null || true
-echo "4.2 Enabling MPM Event..."
-a2enmod mpm_event
-echo "4.3 Loading optimized MPM config..."
-a2enconf apache-mpm
-echo "4 OK"
-
-echo "🚀 === 4.5. APACHE SECURITY ==="
-echo "4.5.1 Enabling security configurations..."
-a2enconf security apache-security
-echo "4.5.2 Enabling Apache modules..."
-a2enmod rewrite headers env dir mime proxy_fcgi
-echo "4.5.3 Disabling mod_php for FPM + Event..."
-a2dismod php8.3 2>/dev/null || true
-echo "4.5 OK"
-
-echo "🚀 === 4.6 APACHE FULL RELOAD (fix thread-safety) ==="
-a2dismod php8.3 2>/dev/null || true  # Ensure mod_php off
-a2enmod proxy_fcgi setenvif  # FPM support
-apache2ctl configtest && apache2ctl graceful || echo "Apache reload WARN"
-echo "4.6 OK"
+# Reload configs
+a2enconf apache-mpm security apache-security
+apache2ctl configtest && apache2ctl graceful
+echo "Apache FPM OK"
 
 echo "🚀 === 5. AUTOCONFIG HOOK === "
 if [ -n "\$NEXTCLOUD_ADMIN_USER" ] && [ -n "\$NEXTCLOUD_ADMIN_PASSWORD" ]; then
