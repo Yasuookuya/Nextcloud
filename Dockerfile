@@ -1,9 +1,11 @@
 FROM nextcloud:32-apache
 
 RUN apt-get update && apt-get install -y \
+  smbclient libsmbclient-dev \
   cron supervisor redis-tools \
-  postgresql-client procps \
-  curl wget smbclient libsmbclient-dev \
+  postgresql-client libpq-dev \
+  procps lsof net-tools strace \
+  curl wget \
   && rm -rf /var/lib/apt/lists/*
 
 # PECL/ext
