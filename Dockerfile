@@ -30,6 +30,15 @@ RUN a2enconf security apache-security && \
     # Enable PHP module (version may vary)
     (a2enmod php8.3 || a2enmod php || echo "PHP module detection will be handled in entrypoint")
 
+# Install PHP-FPM and required modules
+RUN apt-get update && apt-get install -y php8.3-fpm && rm -rf /var/lib/apt/lists/*
+
+# Configure Apache to use PHP-FPM
+RUN a2dismod php8.3 && \
+    a2enmod proxy_fcgi && \
+    echo '<FilesMatch \.php$>\n    SetHandler "proxy:fcgi://127.0.0.1:9000"\n</FilesMatch>' > /etc/apache2/conf-available/php-fpm.conf && \
+    a2enconf php-fpm
+
 # Copy supervisor configuration
 COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 

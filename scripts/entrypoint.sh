@@ -143,4 +143,8 @@ echo "🐛 DEBUG: Current working directory: $(pwd)"
 echo "🐛 DEBUG: Contents of /usr/local/bin/:"
 ls -la /usr/local/bin/ | grep -E "(entrypoint|fix-warnings)"
 
+# Start PHP-FPM
+echo "⚡ Starting PHP-FPM..."
+service php8.3-fpm start
+
 exec /entrypoint.sh apache2-foreground
