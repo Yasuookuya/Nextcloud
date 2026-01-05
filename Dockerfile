@@ -20,7 +20,7 @@ RUN usermod -s /bin/bash www-data && \
     echo "=== FPM + Apache Proxy Ready ==="
 
 COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
-COPY config/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+# COMMENT: COPY config/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
 COPY config/security.conf /etc/apache2/conf-available/
 COPY config/apache-security.conf /etc/apache2/conf-available/
 COPY config/apache-mpm.conf /etc/apache2/conf-available/
