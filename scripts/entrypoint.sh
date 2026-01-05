@@ -87,7 +87,12 @@ echo "🚀 === 6. NEXTCLOUD OPTIMIZATIONS ==="
 echo "6.1 Installing APCu extension..."
 docker-php-ext-install apcu 2>/dev/null || true
 echo "6.2 Configuring NextCloud memcache..."
-su www-data -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\\\OCP\\\\Memcache\\\\APCu || true"
+if [ -f /var/www/html/config/config.php ] && grep -q "installed" /var/www/html/config/config.php 2>/dev/null; then
+  su www-data -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\\\OCP\\\\Memcache\\\\APCu" || true
+  echo "6.2 APCu set (installed)"
+else
+  echo "6.2 Skipping occ (first run)"
+fi
 echo "6.3 Nextcloud optimizations file ready for auto-merge"
 echo "6 OK"
 
@@ -99,6 +104,13 @@ echo "7 OK"
 echo "🚀 === 8. SUPERVISOR DEBUG START ==="
 echo "Processes: apache2 cron nextcloud-cron php-fpm8.3"
 echo "8.1 Checking Nextcloud status..."
-su www-data -c "cd /var/www/html && php occ status --output=json 2>/dev/null || echo 'Nextcloud status check deferred (first run)'"
-echo "8.2 Starting supervisor..."
+if [ -f /var/www/html/config/config.php ] && grep -q "installed" /var/www/html/config/config.php 2>/dev/null; then
+  su www-data -c "cd /var/www/html && php occ status --output=json" 2>/dev/null || echo "occ ready but deferred"
+else
+  echo "Nextcloud status check deferred (first run)"
+fi
+echo "8.2 Pre-supervisor: FPM socket prep..."
+mkdir -p /run/php && chown www-data:www-data /run/php
+echo "8.2 FPM socket ready"
+echo "8.3 Starting supervisor..."
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf
