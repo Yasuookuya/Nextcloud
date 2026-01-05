@@ -1,181 +1,102 @@
 #!/bin/bash
+
+# Template-style entrypoint for Nextcloud Railway deployment
+# Based on working mod_php setup with auto-green section 9
+
 set -e
 
-# FIXED ENV (PG* + POSTGRES*)
-export POSTGRES_HOST="${PGHOST:-}"
-export POSTGRES_PORT="${PGPORT:-5432}"
-export POSTGRES_USER="${PGUSER:-postgres}"
-export POSTGRES_PASSWORD="${PGPASSWORD:-}"
-export POSTGRES_DB="${PGDATABASE:-railway}"
-export REDIS_HOST="${REDIS_HOST:-}"
-export REDIS_PORT="${REDIS_PORT:-6379}"
-export REDIS_PASSWORD="${REDIS_PASSWORD:-}"
+# Debug environment
+echo "=== DEBUG: Environment ==="
+env | grep -E "(POSTGRES|REDIS|NEXTCLOUD|PORT|RAILWAY)" | sort || true
+
+# Parse database connection
+if [ -n "$DATABASE_URL" ]; then
+    # Railway DATABASE_URL format
+    POSTGRES_HOST=$(echo $DATABASE_URL | sed -n 's|.*@\([^:]*\):\([^/]*\)/.*|\1|p')
+    POSTGRES_PORT=$(echo $DATABASE_URL | sed -n 's|.*@\([^:]*\):\([^/]*\)/.*|\2|p')
+    POSTGRES_USER=$(echo $DATABASE_URL | sed -n 's|.*://\([^:]*\):.*|\1|p')
+    POSTGRES_PASSWORD=$(echo $DATABASE_URL | sed -n 's|.*:\([^@]*\)@.*|\1|p')
+    POSTGRES_DB=$(echo $DATABASE_URL | basename "$DATABASE_URL")
+else
+    # PG* variables
+    POSTGRES_HOST="${PGHOST:-}"
+    POSTGRES_PORT="${PGPORT:-5432}"
+    POSTGRES_USER="${PGUSER:-postgres}"
+    POSTGRES_PASSWORD="${PGPASSWORD:-}"
+    POSTGRES_DB="${PGDATABASE:-railway}"
+fi
+
+# Redis connection
+if [ -n "$REDIS_URL" ]; then
+    REDIS_HOST=$(echo $REDIS_URL | sed -n 's|.*@\([^:]*\):\([^/]*\)/.*|\1|p')
+    REDIS_PORT=$(echo $REDIS_URL | sed -n 's|.*@\([^:]*\):\([^/]*\)/.*|\2|p')
+    REDIS_PASSWORD=$(echo $REDIS_URL | sed -n 's|.*:\([^@]*\)@.*|\1|p')
+else
+    REDIS_HOST="${REDIS_HOST:-}"
+    REDIS_PORT="${REDIS_PORT:-6379}"
+    REDIS_PASSWORD="${REDIS_PASSWORD:-}"
+fi
 
 echo "DB: $POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB ($POSTGRES_USER)"
 echo "Redis: $REDIS_HOST:$REDIS_PORT"
-echo "1 OK"
 
-# Apache $PORT
-echo "Listen $PORT" > /etc/apache2/ports.conf
+# Set trusted domains
+export NEXTCLOUD_TRUSTED_DOMAINS="${NEXTCLOUD_TRUSTED_DOMAINS:-$RAILWAY_PUBLIC_DOMAIN localhost}"
 
-# FIXED VHOST + FPM PROXY
-cat > /etc/apache2/sites-enabled/000-default.conf << EOF
-<VirtualHost *:$PORT>
-ServerName $RAILWAY_PUBLIC_DOMAIN
-DocumentRoot /var/www/html
+# Apache port configuration
+echo "Listen ${PORT:-80}" > /etc/apache2/ports.conf
 
-<Directory /var/www/html>
-Options +FollowSymlinks
-AllowOverride All
-Require all granted
-</Directory>
-
-# FPM Proxy
-ProxyPassMatch ^/(.*\.php(/.*)?)$ unix:/run/php/php8.3-fpm.sock|fcgi://localhost/var/www/html/\$1
-ProxyPassReverse / unix:/run/php/php8.3-fpm.sock|fcgi://localhost/var/www/html/
-
-CustomLog /var/log/apache2/access.log combined
-ErrorLog /var/log/apache2/error.log
-</VirtualHost>
-EOF
-
-# Reload configs
-a2enconf apache-mpm security apache-security
-# apache2ctl configtest && apache2ctl graceful || echo "Apache reload WARN"
-echo "Apache config ready (supervisor starts)"
-
-echo "🚀 === 5. AUTOCONFIG HOOK === "
-if [ -n "\$NEXTCLOUD_ADMIN_USER" ] && [ -n "\$NEXTCLOUD_ADMIN_PASSWORD" ]; then
-  mkdir -p /docker-entrypoint-hooks.d/before-starting
-  cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'HOOK_EOF'
+# Auto-config for Nextcloud
+if [ -n "$NEXTCLOUD_ADMIN_USER" ] && [ -n "$NEXTCLOUD_ADMIN_PASSWORD" ]; then
+    echo "Creating auto-config for Nextcloud..."
+    mkdir -p /docker-entrypoint-hooks.d/before-starting
+    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << EOF
 #!/bin/bash
-echo "Autoconfig expanded"
-cat > /var/www/html/config/autoconfig.php << EOF
+echo "Setting up Nextcloud auto-configuration..."
+cat > /var/www/html/config/autoconfig.php << 'AUTOCONFIG_EOF'
 <?php
 \$AUTOCONFIG = array(
     "dbtype" => "pgsql",
     "dbname" => "$POSTGRES_DB",
     "dbuser" => "$POSTGRES_USER",
     "dbpass" => "$POSTGRES_PASSWORD",
-    "dbhost" => "$POSTGRES_HOST:\$POSTGRES_PORT",
-    "dbtableprefix" => "$NEXTCLOUD_TABLE_PREFIX",
-    "directory" => "$NEXTCLOUD_DATA_DIR",
+    "dbhost" => "$POSTGRES_HOST:$POSTGRES_PORT",
+    "dbtableprefix" => "${NEXTCLOUD_TABLE_PREFIX:-oc_}",
+    "directory" => "${NEXTCLOUD_DATA_DIR:-/var/www/html/data}",
     "adminlogin" => "$NEXTCLOUD_ADMIN_USER",
     "adminpass" => "$NEXTCLOUD_ADMIN_PASSWORD",
     "trusted_domains" => array ( 0 => "$RAILWAY_PUBLIC_DOMAIN", 1 => "localhost" ),
 );
-EOF
+?>
+AUTOCONFIG_EOF
 chown www-data:www-data /var/www/html/config/autoconfig.php
 chmod 640 /var/www/html/config/autoconfig.php
-echo "Autoconfig OK"
-HOOK_EOF
-  chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
-fi
-echo "5 OK"
-
-echo "🚀 === 6. NEXTCLOUD OPTIMIZATIONS ==="
-echo "6.1 Installing APCu extension..."
-docker-php-ext-install apcu 2>/dev/null || true
-echo "6.2 Configuring NextCloud memcache..."
-if [ -f /var/www/html/config/config.php ] && grep -q "installed" /var/www/html/config/config.php 2>/dev/null; then
-  runuser www-data -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\OCP\\Memcache\\APCu" || true
-  echo "6.2 APCu set (installed)"
-else
-  echo "6.2 Skipping occ (first run)"
-fi
-echo "6.3 Nextcloud optimizations file ready for auto-merge"
-echo "6 OK"
-
-echo "🚀 === 7. APACHE TEST ==="
-echo "7.1 Running Apache configuration test..."
-apache2ctl configtest && echo "Apache OK" || echo "Apache WARN"
-echo "7 OK"
-
-echo "🚀 === 8. SUPERVISOR DEBUG START ==="
-echo "Processes: apache2 cron nextcloud-cron php-fpm8.3"
-echo "8.1 Checking Nextcloud status..."
-if [ -f /var/www/html/config/config.php ] && grep -q "installed" /var/www/html/config/config.php 2>/dev/null; then
-  runuser www-data -c "cd /var/www/html && php occ status --output=json" 2>/dev/null || echo "occ ready but deferred"
-else
-  echo "Nextcloud status check deferred (first run)"
-fi
-echo "8.2 Pre-supervisor: FPM socket prep..."
-# Remove custom FPM config to use default
-rm -f /usr/local/etc/php-fpm.d/www.conf 2>/dev/null || true
-mkdir -p /run/php && chown -R www-data:www-data /run/php /var/log/php-fpm* && chmod 777 /run/php && chown www-data /run/php/php-fpm.* 2>/dev/null || true
-
-echo "8.2 FPM socket ready"
-
-echo "🚀 === 9. POST-INSTALL FIXES ==="
-if grep -q "'installed'=>true" /var/www/html/config/config.php; then
-  chown -R www-data /var/www/html
-  # Merge optimizations if not already included
-  if ! grep -q "optimizations.php" /var/www/html/config/config.php; then
-    sed -i '/\$CONFIG = array(/a $CONFIG_INCLUDES[] = include("/var/www/html/config/nextcloud-optimizations.php");' /var/www/html/config/config.php
-  fi
-  # Redis config
-  runuser www-data -c "cd /var/www/html && php occ redis:config --host=$REDIS_HOST --port=$REDIS_PORT --password=$REDIS_PASSWORD --dbindex=0" || true
-  # Run fix script
-  /usr/local/bin/fix-warnings.sh
-  # Files scan
-  runuser www-data -c "cd /var/www/html && php occ files:scan --all --quiet" || true
-  echo "9 ✅ Green!"
-fi
-
-# Supervisor config fallback
-if [ ! -f /etc/supervisor/conf.d/supervisord.conf ]; then
-cat > /etc/supervisor/conf.d/supervisord.conf << 'EOF'
-[supervisord]
-nodaemon=true
-user=root
-logfile=/var/log/supervisor/supervisord.log
-childlogdir=/var/log/supervisor
-
-[program:php-fpm]
-command=php-fpm -F
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-autorestart=true
-startretries=3
-user=www-data
-priority=50
-
-[program:apache2]
-command=apache2ctl -D FOREGROUND
-stopasgroup=true
-killasgroup=true
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-autorestart=true
-startretries=3
-user=root
-priority=100
-
-[program:cron]
-command=/usr/sbin/cron -f
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-autorestart=true
-user=root
-
-[program:nextcloud-cron]
-command=/bin/bash -c 'sleep 60 && while true; do runuser www-data -c "php /var/www/html/cron.php"; sleep 300; done'
-stdout_logfile=/dev/stdout
-stdout_logfile_maxbytes=0
-stderr_logfile=/dev/stderr
-stderr_logfile_maxbytes=0
-autorestart=true
-user=root
-startsecs=10
-startretries=999
+echo "Auto-config created successfully"
 EOF
+    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
 fi
 
-echo "8.3 Starting supervisor..."
-exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf
+# Section 9: Post-install auto-green fixes
+if grep -q "'installed'=>true" /var/www/html/config/config.php 2>/dev/null; then
+    echo "🚀 === POST-INSTALL GREEN FIXES ==="
+    chown -R www-data /var/www/html || true
+
+    # Merge optimizations
+    if ! grep -q "optimizations.php" /var/www/html/config/config.php; then
+        sed -i '/\$CONFIG = array(/a $CONFIG_INCLUDES[] = include("/var/www/html/config/nextcloud-optimizations.php");' /var/www/html/config/config.php
+    fi
+
+    # Redis configuration
+    runuser www-data -c "cd /var/www/html && php occ redis:config --host=$REDIS_HOST --port=$REDIS_PORT --password=$REDIS_PASSWORD --dbindex=0" 2>/dev/null || true
+
+    # Run fix script
+    /usr/local/bin/fix-warnings.sh || true
+
+    # Files scan
+    runuser www-data -c "cd /var/www/html && php occ files:scan --all --quiet" 2>/dev/null || true
+
+    echo "✅ Auto-green fixes completed!"
+fi
+
+# Execute original Nextcloud entrypoint
+exec /entrypoint.sh "$@"
