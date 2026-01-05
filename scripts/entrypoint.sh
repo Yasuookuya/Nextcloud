@@ -133,6 +133,8 @@ fi
 
 # Forward to original NextCloud entrypoint
 echo "🔧 Fixing Apache MPM runtime..."
+# Comment out conflicting MPM LoadModule lines in all conf
+find /etc/apache2 -name "*.conf" -o -name "*.load" | xargs sed -i '/LoadModule.*mpm_\(event\|worker\)_module/ s/^/#/'
 a2dismod mpm_event mpm_worker || true
 a2enmod mpm_prefork
 apache2ctl configtest || echo "Apache configtest warning - continuing"
