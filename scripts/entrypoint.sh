@@ -48,10 +48,10 @@ export POSTGRES_PORT=${POSTGRES_PORT:-5432}
 export POSTGRES_USER=${POSTGRES_USER:-postgres}
 export POSTGRES_DB=${POSTGRES_DB:-nextcloud}
 
-# Redis configuration - Railway uses REDISHOST, REDISPORT, REDISPASSWORD or REDIS_HOST_PASSWORD
+# Redis configuration - Railway uses REDISHOST, REDISPORT, REDISPASSWORD
 export REDIS_HOST=${REDIS_HOST:-${REDISHOST:-localhost}}
 export REDIS_PORT=${REDIS_PORT:-${REDISPORT:-6379}}
-export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDIS_HOST_PASSWORD:-${REDISPASSWORD:-}}}
+export REDIS_PASSWORD=${REDIS_PASSWORD:-${REDISPASSWORD:-}}
 
 # NextCloud configuration variables
 export NEXTCLOUD_ADMIN_USER=${NEXTCLOUD_ADMIN_USER:-}
@@ -133,7 +133,7 @@ $CONFIG = array (
   'redis' => 
   array (
     'host' => 'REDIS_HOST_PLACEHOLDER',
-    'port' => 'REDIS_PORT_PLACEHOLDER',
+    'port' => REDIS_PORT_PLACEHOLDER,
     'password' => 'REDIS_PASSWORD_PLACEHOLDER',
     'user' => 'default',
   ),
@@ -153,22 +153,9 @@ EOF
         sed -i "s|POSTGRES_PORT_PLACEHOLDER|${POSTGRES_PORT}|g" /var/www/html/config/config.php
         sed -i "s|POSTGRES_USER_PLACEHOLDER|${POSTGRES_USER}|g" /var/www/html/config/config.php
         sed -i "s|POSTGRES_PASSWORD_PLACEHOLDER|${POSTGRES_PASSWORD}|g" /var/www/html/config/config.php
-        sed -i "s|REDIS_HOST_PLACEHOLDER|${REDIS_HOST}|g" /var/www/html/config/config.php
-        sed -i "s|REDIS_PORT_PLACEHOLDER|${REDIS_PORT}|g" /var/www/html/config/config.php
-        sed -i "s|REDIS_PASSWORD_PLACEHOLDER|${REDIS_PASSWORD}|g" /var/www/html/config/config.php
         chown www-data:www-data /var/www/html/config/config.php
         chmod 640 /var/www/html/config/config.php
         echo "✅ Config.php created with all settings"
-
-        # Install Nextcloud if not already installed
-        if [ ! -f /var/www/html/config/config.php.installed ]; then
-            echo "🔧 Running Nextcloud installation..."
-            su www-data -s /bin/bash -c "cd /var/www/html && php occ install --database pgsql --database-host '${POSTGRES_HOST}:${POSTGRES_PORT}' --database-name '${POSTGRES_DB}' --database-user '${POSTGRES_USER}' --database-pass '${POSTGRES_PASSWORD}' --admin-user '${NEXTCLOUD_ADMIN_USER}' --admin-pass '${NEXTCLOUD_ADMIN_PASSWORD}'"
-            touch /var/www/html/config/config.php.installed
-            echo "✅ Nextcloud installed successfully"
-        else
-            echo "✅ Nextcloud already installed"
-        fi
 else
     echo "✅ No admin credentials - NextCloud setup wizard will be used"
 fi
