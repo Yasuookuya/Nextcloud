@@ -32,8 +32,9 @@ COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/*.sh
 
-RUN mkdir -p /var/log/supervisor /var/log/php-fpm /run/php && \
-    chown -R www-data:www-data /var/www/html /var/log/supervisor /var/log/php-fpm /run/php && \
+RUN mkdir -p /run/php && chown www-data /run/php && \
+    mkdir -p /var/log/supervisor /var/log/php-fpm && \
+    chown -R www-data:www-data /var/www/html /var/log/supervisor /var/log/php-fpm && \
     find /var/www/html -type f -exec chmod 644 {} \; -o -type d -exec chmod 755 {} \;
 
 EXPOSE 80

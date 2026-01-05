@@ -100,7 +100,7 @@ else
   echo "Nextcloud status check deferred (first run)"
 fi
 echo "8.2 Pre-supervisor: FPM socket prep..."
-mkdir -p /run/php && chown -R www-data:www-data /run/php /var/log/php-fpm* && chmod 777 /run/php
+mkdir -p /run/php && chown -R www-data:www-data /run/php /var/log/php-fpm* && chmod 777 /run/php && chown www-data /run/php/php-fpm.* 2>/dev/null || true
 echo "8.2 FPM socket ready"
 
 echo "🚀 === 9. POST-INSTALL FIXES ==="
