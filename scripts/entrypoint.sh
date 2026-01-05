@@ -129,14 +129,6 @@ $CONFIG = array (
   array (
     0 => '100.0.0.0/8',
   ),
-  'memcache.local' => '\\OC\\Memcache\\Redis',
-  'redis' => 
-  array (
-    'host' => 'REDIS_HOST_PLACEHOLDER',
-    'port' => 'REDIS_PORT_PLACEHOLDER',
-    'password' => 'REDIS_PASSWORD_PLACEHOLDER',
-    'user' => 'default',
-  ),
 );
 
 $CONFIG['logfile'] = '/var/www/html/data/nextcloud.log';
@@ -166,6 +158,14 @@ EOF
             su www-data -s /bin/bash -c "cd /var/www/html && php occ install --database pgsql --database-host '${POSTGRES_HOST}:${POSTGRES_PORT}' --database-name '${POSTGRES_DB}' --database-user '${POSTGRES_USER}' --database-pass '${POSTGRES_PASSWORD}' --admin-user '${NEXTCLOUD_ADMIN_USER}' --admin-pass '${NEXTCLOUD_ADMIN_PASSWORD}'"
             touch /var/www/html/config/config.php.installed
             echo "✅ Nextcloud installed successfully"
+
+            # Enable Redis memcache after install
+            echo "🔧 Enabling Redis memcache..."
+            su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set memcache.local --value '\\\\OC\\\\Memcache\\\\Redis'"
+            su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis host --value '${REDIS_HOST}'"
+            su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis port --value '${REDIS_PORT}'"
+            su www-data -s /bin/bash -c "cd /var/www/html && php occ config:system:set redis password --value '${REDIS_PASSWORD}'"
+            echo "✅ Redis memcache enabled"
         else
             echo "✅ Nextcloud already installed"
         fi
