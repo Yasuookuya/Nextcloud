@@ -99,41 +99,41 @@ if [ -n "${NEXTCLOUD_ADMIN_USER:-}" ] && [ "${NEXTCLOUD_ADMIN_USER}" != "" ] && 
     # Create hook for autoconfig setup
     mkdir -p /docker-entrypoint-hooks.d/before-starting
     
-    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << 'EOF'
+    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << EOF
 #!/bin/bash
 echo "🔧 Creating autoconfig.php for automatic setup..."
 mkdir -p /var/www/html/config
-cat > /var/www/html/config/autoconfig.php << AUTOEOF
+cat > /var/www/html/config/autoconfig.php << 'PHP_EOF'
 <?php
 \$AUTOCONFIG = array(
     "dbtype" => "pgsql",
-    "dbname" => "${POSTGRES_DB}",
-    "dbuser" => "${POSTGRES_USER}",
-    "dbpass" => "${POSTGRES_PASSWORD}",
-    "dbhost" => "${POSTGRES_HOST}:${POSTGRES_PORT:-5432}",
-    "dbtableprefix" => "${NEXTCLOUD_TABLE_PREFIX}",
-    "directory" => "${NEXTCLOUD_DATA_DIR}",
-    "adminlogin" => "${NEXTCLOUD_ADMIN_USER}",
-    "adminpass" => "${NEXTCLOUD_ADMIN_PASSWORD}",
+    "dbname" => "$POSTGRES_DB",
+    "dbuser" => "$POSTGRES_USER",
+    "dbpass" => "$POSTGRES_PASSWORD",
+    "dbhost" => "$POSTGRES_HOST:$POSTGRES_PORT",
+    "dbtableprefix" => "$NEXTCLOUD_TABLE_PREFIX",
+    "directory" => "$NEXTCLOUD_DATA_DIR",
+    "adminlogin" => "$NEXTCLOUD_ADMIN_USER",
+    "adminpass" => "$NEXTCLOUD_ADMIN_PASSWORD",
     "trusted_domains" => array(
         0 => "localhost",
-        1 => "${RAILWAY_PUBLIC_DOMAIN}",
+        1 => "$RAILWAY_PUBLIC_DOMAIN",
     ),
 );
-AUTOEOF
+PHP_EOF
 chown www-data:www-data /var/www/html/config/autoconfig.php
 chmod 640 /var/www/html/config/autoconfig.php
 echo "✅ Autoconfig.php created for automatic installation"
 
 echo "🔧 Running occ maintenance:install..."
-gosu www-data "cd /var/www/html && php occ maintenance:install --database pgsql --database-name \"${POSTGRES_DB}\" --database-host \"${POSTGRES_HOST}:${POSTGRES_PORT:-5432}\" --database-user \"${POSTGRES_USER}\" --database-pass \"${POSTGRES_PASSWORD}\" --admin-user \"${NEXTCLOUD_ADMIN_USER}\" --admin-pass \"${NEXTCLOUD_ADMIN_PASSWORD}\" --data-dir \"${NEXTCLOUD_DATA_DIR}\""
+gosu www-data "cd /var/www/html && php occ maintenance:install --database pgsql --database-name \"$POSTGRES_DB\" --database-host \"$POSTGRES_HOST:$POSTGRES_PORT\" --database-user \"$POSTGRES_USER\" --database-pass \"$POSTGRES_PASSWORD\" --admin-user \"$NEXTCLOUD_ADMIN_USER\" --admin-pass \"$NEXTCLOUD_ADMIN_PASSWORD\" --data-dir \"$NEXTCLOUD_DATA_DIR\""
 
 echo "🔧 Configuring Redis in config.php..."
 gosu www-data "cd /var/www/html && php occ config:system:set memcache.local --value \"\\\\OC\\\\Memcache\\\\Redis\""
-gosu www-data "cd /var/www/html && php occ config:system:set redis host --value \"${REDIS_HOST}\""
-gosu www-data "cd /var/www/html && php occ config:system:set redis port --value \"${REDIS_PORT:-6379}\""
-if [ -n "${REDIS_PASSWORD}" ]; then
-  gosu www-data "cd /var/www/html && php occ config:system:set redis password --value \"${REDIS_PASSWORD}\""
+gosu www-data "cd /var/www/html && php occ config:system:set redis host --value \"$REDIS_HOST\""
+gosu www-data "cd /var/www/html && php occ config:system:set redis port --value \"$REDIS_PORT\""
+if [ -n "$REDIS_PASSWORD" ]; then
+  gosu www-data "cd /var/www/html && php occ config:system:set redis password --value \"$REDIS_PASSWORD\""
   gosu www-data "cd /var/www/html && php occ config:system:set redis user --value 'default'"
 fi
 
