@@ -6,7 +6,7 @@ RUN echo "=== BUILD: APT UPDATE ===" && apt-get update && \
     cron supervisor redis-tools \
     postgresql-client libpq-dev \
     procps lsof net-tools strace \
-    curl \
+    curl wget \
     && echo "=== BUILD: APT CLEANUP ===" && rm -rf /var/lib/apt/lists/* && echo "=== BUILD: APT PACKAGES INSTALLED ==="
 
 RUN echo "=== BUILD: PECL INSTALL ===" && \
@@ -23,6 +23,9 @@ COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
 
 COPY config/security.conf /etc/apache2/conf-available/security.conf
 COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.conf
+COPY config/apache-mpm.conf /etc/apache2/conf-available/apache-mpm.conf
+COPY config/php-fpm.conf /usr/local/etc/php-fpm.d/www.conf
+COPY config/nextcloud-optimizations.php /var/www/html/config/nextcloud-optimizations.php
 
 RUN echo "=== APACHE CONF COPIED ==="
 
@@ -43,5 +46,10 @@ RUN echo "=== BUILD: CREATE LOG DIR ===" && \
     echo "=== BUILD: PERMISSIONS SET ==="
 
 EXPOSE 80
+
+# Railway health check based on official documentation
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-80}/status.php || exit 1
+
 ENTRYPOINT ["/usr/local/bin/custom-entrypoint.sh"]
 CMD ["apache2-foreground"]
