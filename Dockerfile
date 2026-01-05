@@ -12,8 +12,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install smbclient PHP extension and ensure PostgreSQL support
-RUN pecl install smbclient \
+RUN apt-get install -y procps lsof net-tools
+
     && docker-php-ext-enable smbclient \
     && docker-php-ext-install pgsql pdo_pgsql
 
