@@ -24,17 +24,11 @@ COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
 COPY config/security.conf /etc/apache2/conf-available/security.conf
 COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.conf
 
-# Enable Apache configurations and modules
-RUN a2enconf security apache-security && \
-    a2enmod rewrite headers env dir mime && \
-    # Enable PHP module (version may vary)
-    (a2enmod php8.3 || a2enmod php || echo "PHP module detection will be handled in entrypoint") && \
-    # Fix MPM conflict - force prefork for mod_php
-    rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_worker.load && \
-    a2dismod mpm_event mpm_worker || true && \
-    a2enmod mpm_prefork && \
-    # Comment out conflicting MPM LoadModule lines in all conf
-    find /etc/apache2 -name "*.conf" -o -name "*.load" | xargs sed -i '/LoadModule.*mpm_(event|worker)_module/ s/^/#/'
+    # Enable Apache configurations and modules
+    RUN a2enconf security apache-security && \
+        a2enmod rewrite headers env dir mime && \
+        # Enable PHP module (version may vary)
+        (a2enmod php8.3 || a2enmod php || echo "PHP module detection will be handled in entrypoint")
 
 # Copy supervisor configuration
 COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
