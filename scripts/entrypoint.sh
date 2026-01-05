@@ -145,5 +145,60 @@ if grep -q "'installed'=>true" /var/www/html/config/config.php; then
   echo "9 ✅ Green!"
 fi
 
+# Supervisor config fallback
+if [ ! -f /etc/supervisor/conf.d/supervisord.conf ]; then
+cat > /etc/supervisor/conf.d/supervisord.conf << 'EOF'
+[supervisord]
+nodaemon=true
+user=root
+logfile=/var/log/supervisor/supervisord.log
+childlogdir=/var/log/supervisor
+
+[program:php-fpm]
+command=php-fpm -F
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+startretries=3
+user=www-data
+priority=50
+
+[program:apache2]
+command=apache2ctl -D FOREGROUND
+stopasgroup=true
+killasgroup=true
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+startretries=3
+user=root
+priority=100
+
+[program:cron]
+command=/usr/sbin/cron -f
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+user=root
+
+[program:nextcloud-cron]
+command=/bin/bash -c 'sleep 60 && while true; do runuser www-data -c "php /var/www/html/cron.php"; sleep 300; done'
+stdout_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
+autorestart=true
+user=root
+startsecs=10
+startretries=999
+EOF
+fi
+
 echo "8.3 Starting supervisor..."
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf

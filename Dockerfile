@@ -26,10 +26,11 @@ COPY config/apache-security.conf /etc/apache2/conf-available/
 COPY config/apache-mpm.conf /etc/apache2/conf-available/
 
 COPY config/nextcloud-optimizations.php /var/www/html/config/
+COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 COPY scripts/entrypoint.sh /usr/local/bin/custom-entrypoint.sh
 COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
-RUN chmod +x /usr/local/bin/*.sh
+RUN chmod +x /usr/local/bin/*.sh && chmod 644 /etc/supervisor/conf.d/supervisord.conf
 
 RUN mkdir -p /run/php && chown www-data /run/php && \
     mkdir -p /var/log/supervisor /var/log/php-fpm && \
