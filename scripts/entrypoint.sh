@@ -71,14 +71,13 @@ echo "✅ Apache configured for port: $PORT"
 
 # 🔧 CRITICAL: Fix Apache server configuration for Railway
 echo "🔧 Configuring Apache server settings for Railway..."
-sed -i.bak \
-  -e "s|#ServerName www.example.com|ServerName ${RAILWAY_PUBLIC_DOMAIN}|g" \
-  -e "s|ServerAdmin webmaster@localhost|ServerAdmin admin@${RAILWAY_PUBLIC_DOMAIN}|g" \
-  -e '/DocumentRoot/a CustomLog /var/log/apache2/nextcloud_access.log combined' \
-  /etc/apache2/sites-enabled/000-default.conf \
-  /etc/apache2/sites-available/000-default.conf || true
-echo "ServerAlias *" >> /etc/apache2/sites-enabled/000-default.conf
-echo "UseCanonicalName Off" >> /etc/apache2/apache2.conf
+sed -i.bak '/<VirtualHost/,/<\/VirtualHost>/ {
+  s|#ServerName www.example.com|ServerName '"${RAILWAY_PUBLIC_DOMAIN}"'|
+  /DocumentRoot/a ServerAlias *\
+CustomLog /var/log/apache2/access.log combined
+}' /etc/apache2/sites-enabled/000-default.conf \
+  /etc/apache2/sites-available/000-default.conf 2>/dev/null || true
+rm *.bak 2>/dev/null || true
 apache2ctl configtest || echo "⚠️ Config warnings (check logs)"
 
 # Display configuration info
