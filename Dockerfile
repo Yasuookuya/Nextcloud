@@ -28,6 +28,9 @@ COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.con
 RUN a2enconf security apache-security && \
     a2enmod rewrite headers env dir mime
 
+# Disable all other MPMs explicitly
+RUN a2dismod mpm_prefork mpm_worker mpm_event || true
+
 # Copy supervisor config
 COPY config/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
