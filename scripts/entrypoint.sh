@@ -1,12 +1,14 @@
 #!/bin/bash
 set -e
 
-echo "🚀 === 1. ENV VARS === "
+echo "🚀 === 1. ENV VARS ==="
+echo "1.1 Setting PostgreSQL environment variables..."
 export POSTGRES_HOST=\${POSTGRES_HOST:-\$PGHOST}
 export POSTGRES_PORT=\${POSTGRES_PORT:-\$PGPORT:-5432}
 export POSTGRES_USER=\${POSTGRES_USER:-\$PGUSER:-postgres}
 export POSTGRES_PASSWORD=\${POSTGRES_PASSWORD:-\$PGPASSWORD}
 export POSTGRES_DB=\${POSTGRES_DB:-\$PGDATABASE:-railway}
+echo "1.2 Setting Redis environment variables..."
 export REDIS_HOST=\${REDIS_HOST:-\$REDISHOST}
 export REDIS_PORT=\${REDIS_PORT:-\$REDISPORT:-6379}
 export REDIS_PASSWORD=\${REDIS_PASSWORD:-\$REDISPASSWORD}
@@ -41,8 +43,10 @@ a2dismod mpm_event mpm_worker 2>/dev/null || true
 a2enmod mpm_prefork
 echo "4 OK"
 
-echo "🚀 === 4.5. APACHE SECURITY === "
+echo "🚀 === 4.5. APACHE SECURITY ==="
+echo "4.5.1 Enabling security configurations..."
 a2enconf security apache-security
+echo "4.5.2 Enabling Apache modules..."
 a2enmod rewrite headers env dir mime php8.3 || a2enmod php
 echo "4.5 OK"
 
@@ -75,12 +79,15 @@ HOOK_EOF
 fi
 echo "5 OK"
 
-echo "🚀 === 6. APCU MEMCACHE === "
+echo "🚀 === 6. APCU MEMCACHE ==="
+echo "6.1 Installing APCu extension..."
 docker-php-ext-install apcu 2>/dev/null || true
+echo "6.2 Configuring NextCloud memcache..."
 su www-data -c "cd /var/www/html && php occ config:system:set memcache.local --value=\\\\OCP\\\\Memcache\\\\APCu || true"
 echo "6 OK"
 
-echo "🚀 === 7. APACHE TEST === "
+echo "🚀 === 7. APACHE TEST ==="
+echo "7.1 Running Apache configuration test..."
 apache2ctl configtest && echo "Apache OK" || echo "Apache WARN"
 echo "7 OK"
 
