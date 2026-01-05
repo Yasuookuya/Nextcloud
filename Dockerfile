@@ -24,8 +24,8 @@ COPY scripts/fix-warnings.sh /usr/local/bin/fix-warnings.sh
 RUN chmod +x /usr/local/bin/*.sh
 
 # Perms
-RUN mkdir -p /var/log/supervisor /run/php && \
-  chown -R www-data /var/www/html /var/log/supervisor /run/php /var/log/php-fpm && \
+RUN mkdir -p /var/log/supervisor /var/log/php-fpm /run/php && \
+  chown -R www-data /var/www/html /var/log/* /run/php && \
   find /var/www/html -type f -exec chmod 644 {} \; && \
   find /var/www/html -type d -exec chmod 755 {} \;
 

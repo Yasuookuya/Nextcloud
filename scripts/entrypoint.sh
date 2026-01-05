@@ -37,48 +37,60 @@ else
     REDIS_PASSWORD="${REDIS_PASSWORD:-}"
 fi
 
-echo "DB: $POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB ($POSTGRES_USER)"
-echo "Redis: $REDIS_HOST:$REDIS_PORT"
+echo "ID1-DB: $POSTGRES_HOST:$POSTGRES_PORT/$POSTGRES_DB ($POSTGRES_USER)"
 
-# Set trusted domains
-export NEXTCLOUD_TRUSTED_DOMAINS="${NEXTCLOUD_TRUSTED_DOMAINS:-$RAILWAY_PUBLIC_DOMAIN localhost}"
+# Generate complete config.php if not exists
+if ! grep -q "'installed'" /var/www/html/config/config.php 2>/dev/null; then
+    echo "ID2-CONFIG-GEN: Generating config.php..."
+    cat > /var/www/html/config/config.php << EOF
+<?php
+\$CONFIG = array (
+  'instanceid' => '$(openssl rand -hex 10)',
+  'passwordsalt' => '$(openssl rand -base64 30)',
+  'secret' => '$(openssl rand -base64 48)',
+  'trusted_domains' => array ('$RAILWAY_PUBLIC_DOMAIN', 'localhost'),
+  'datadirectory' => '$NEXTCLOUD_DATA_DIR',
+  'dbtype' => 'pgsql',
+  'version' => '32.0.3.0',
+  'overwrite.cli.url' => 'https://$RAILWAY_PUBLIC_DOMAIN',
+  'overwriteprotocol' => 'https',
+  'dbname' => '$POSTGRES_DB',
+  'dbhost' => '$POSTGRES_HOST',
+  'dbport' => '$POSTGRES_PORT',
+  'dbuser' => '$POSTGRES_USER',
+  'dbpassword' => '$POSTGRES_PASSWORD',
+  'dbtableprefix' => '$NEXTCLOUD_TABLE_PREFIX',
+  'memcache.local' => '\\\\OCP\\\\Memcache\\\\APCu',
+  'memcache.distributed' => '\\\\OC\\\\Memcache\\\\Redis',
+  'memcache.locking' => '\\\\OC\\\\Memcache\\\\Redis',
+  'redis' => array (
+    'host' => '$REDIS_HOST',
+    'port' => '$REDIS_PORT',
+    'password' => '$REDIS_PASSWORD',
+    'dbindex' => 0,
+  ),
+  'maintenance' => false,
+  'installed' => false,
+);
+EOF
+    chown www-data /var/www/html/config/config.php
+    echo "ID2-CONFIG-GEN OK"
+fi
 
 # Apache port configuration
 echo "Listen ${PORT:-80}" > /etc/apache2/ports.conf
+echo "ID3-APACHE-PORT OK"
 
-# Auto-config for Nextcloud
-if [ -n "$NEXTCLOUD_ADMIN_USER" ] && [ -n "$NEXTCLOUD_ADMIN_PASSWORD" ]; then
-    echo "Creating auto-config for Nextcloud..."
-    mkdir -p /docker-entrypoint-hooks.d/before-starting
-    cat > /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh << EOF
-#!/bin/bash
-echo "Setting up Nextcloud auto-configuration..."
-cat > /var/www/html/config/autoconfig.php << 'AUTOCONFIG_EOF'
-<?php
-\$AUTOCONFIG = array(
-    "dbtype" => "pgsql",
-    "dbname" => "$POSTGRES_DB",
-    "dbuser" => "$POSTGRES_USER",
-    "dbpass" => "$POSTGRES_PASSWORD",
-    "dbhost" => "$POSTGRES_HOST:$POSTGRES_PORT",
-    "dbtableprefix" => "${NEXTCLOUD_TABLE_PREFIX:-oc_}",
-    "directory" => "${NEXTCLOUD_DATA_DIR:-/var/www/html/data}",
-    "adminlogin" => "$NEXTCLOUD_ADMIN_USER",
-    "adminpass" => "$NEXTCLOUD_ADMIN_PASSWORD",
-    "trusted_domains" => array ( 0 => "$RAILWAY_PUBLIC_DOMAIN", 1 => "localhost" ),
-);
-?>
-AUTOCONFIG_EOF
-chown www-data:www-data /var/www/html/config/autoconfig.php
-chmod 640 /var/www/html/config/autoconfig.php
-echo "Auto-config created successfully"
-EOF
-    chmod +x /docker-entrypoint-hooks.d/before-starting/01-autoconfig.sh
+# OCC install if admin vars provided
+if [ -n "$NEXTCLOUD_ADMIN_USER" ]; then
+    echo "ID4-OCC-INSTALL: Running Nextcloud installation..."
+    runuser www-data -c "cd /var/www/html && php occ maintenance:install --database \"pgsql\" --database-name \"$POSTGRES_DB\" --database-host \"$POSTGRES_HOST:$POSTGRES_PORT\" --database-user \"$POSTGRES_USER\" --database-pass \"$POSTGRES_PASSWORD\" --admin-user \"$NEXTCLOUD_ADMIN_USER\" --admin-pass \"$NEXTCLOUD_ADMIN_PASSWORD\" --data-dir \"$NEXTCLOUD_DATA_DIR\""
+    echo "ID4-OCC-INSTALL OK"
 fi
 
 # Section 9: Post-install auto-green fixes
 if grep -q "'installed'=>true" /var/www/html/config/config.php 2>/dev/null; then
-    echo "🚀 === POST-INSTALL GREEN FIXES ==="
+    echo "ID5-POST-INSTALL-GREEN"
     chown -R www-data /var/www/html || true
 
     # Merge optimizations
@@ -95,8 +107,8 @@ if grep -q "'installed'=>true" /var/www/html/config/config.php 2>/dev/null; then
     # Files scan
     runuser www-data -c "cd /var/www/html && php occ files:scan --all --quiet" 2>/dev/null || true
 
-    echo "✅ Auto-green fixes completed!"
+    echo "ID5-GREEN-OK"
 fi
 
-# Execute original Nextcloud entrypoint
-exec /entrypoint.sh "$@"
+echo "ID6-START-SUPERVISOR"
+exec supervisord -n -c /etc/supervisor/conf.d/supervisord.conf
