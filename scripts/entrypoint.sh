@@ -427,21 +427,23 @@ redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" ping || e
 redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" info server | head -10 || echo "Redis info failed: $?"
 
 # Nextcloud OCC Diagnostics
-echo "⚙️ NEXTCLOUD OCC DIAGNOSTICS:"
-cd /var/www/html || echo "cd /var/www/html failed"
-if [ -f /var/www/html/occ ]; then
-    echo "✅ OCC file found - running diagnostics:"
-    php /var/www/html/occ status || echo "occ status failed: $?"
-    php /var/www/html/occ db:check || echo "occ db:check failed: $?"
-    echo "📋 SYSTEM CONFIG (first 20 lines):"
-    php /var/www/html/occ config:list system | head -20 || echo "occ config:list failed: $?"
-    echo "🔍 INSTALLED APPS (first 10):"
-    php /var/www/html/occ app:list | head -10 || echo "occ app:list failed: $?"
-    echo "🔍 BACKGROUND JOBS MODE:"
-    php /var/www/html/occ background-job:mode || echo "occ background-job:mode failed: $?"
-else
-    echo "❌ OCC file not found - Nextcloud files need to be downloaded"
-fi
+    echo "⚙️ NEXTCLOUD OCC DIAGNOSTICS:"
+    cd /var/www/html || echo "cd /var/www/html failed"
+    if [ -f /var/www/html/occ ]; then
+        echo "✅ OCC file found - running diagnostics:"
+        php /var/www/html/occ status || echo "occ status failed: $?"
+        php /var/www/html/occ db:add-missing-columns || echo "occ db:add-missing-columns failed: $?"
+        php /var/www/html/occ db:add-missing-indices || echo "occ db:add-missing-indices failed: $?"
+        php /var/www/html/occ integrity:check-core || echo "occ integrity:check-core failed: $?"
+        echo "📋 SYSTEM CONFIG (first 20 lines):"
+        php /var/www/html/occ config:list system | head -20 || echo "occ config:list failed: $?"
+        echo "🔍 INSTALLED APPS (first 10):"
+        php /var/www/html/occ app:list | head -10 || echo "occ app:list failed: $?"
+        echo "🔍 BACKGROUND JOBS MODE:"
+        php /var/www/html/occ background:cron || echo "occ background:cron failed: $?"
+    else
+        echo "❌ OCC file not found - Nextcloud files need to be downloaded"
+    fi
 
 # Processes, Disk, and Logs
 echo "🐛 CURRENT PROCESSES (relevant):"
