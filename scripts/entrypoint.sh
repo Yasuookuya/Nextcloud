@@ -155,6 +155,10 @@ $CONFIG = array (
   array (
     0 => '0.0.0.0/0',
   ),
+  'forwarded_for_headers' =>
+  array (
+    0 => 'HTTP_X_FORWARDED_FOR',
+  ),
   'memcache.local' => '\\OC\\Memcache\\Redis',
   'redis' => 
   array (
