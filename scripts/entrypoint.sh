@@ -160,6 +160,71 @@ else
     echo "✅ No admin credentials - NextCloud setup wizard will be used"
 fi
 
+echo "=== DIAGNOSTIC LOGGING START ==="
+
+# Environment and Config Dump (masked)
+echo "🔍 FINAL ENV VARS (masked):"
+echo "  POSTGRES: host=${POSTGRES_HOST}, port=${POSTGRES_PORT}, user=${POSTGRES_USER}, db=${POSTGRES_DB}"
+echo "  REDIS: host=${REDIS_HOST}, port=${REDIS_PORT}"
+echo "  TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAINS:-not set}"
+echo "  OVERWRITE: host=${OVERWRITEHOST:-not set}, protocol=${OVERWRITEPROTOCOL:-not set}"
+echo "📄 CONFIG.PHP CONTENT (secrets masked):"
+cat /var/www/html/config/config.php | sed "s/'dbpassword' => '[^']*'/'dbpassword' => '***'/g" | sed "s/'password' => '[^']*'/'password' => '***'/g" || echo "Config.php cat failed"
+
+# File and Directory Listings
+echo "📁 FINAL FILES IN /var/www/html:"
+ls -la /var/www/html/ || echo "ls /var/www/html failed"
+echo "📁 CONFIG DIR:"
+ls -la /var/www/html/config/ || echo "ls config dir failed"
+echo "📁 DATA DIR:"
+ls -la /var/www/html/data/ 2>/dev/null || echo "Data dir not present or empty"
+
+# Postgres Connection Tests
+echo "🗄️ TESTING POSTGRES CONNECTION:"
+export PGPASSWORD="${POSTGRES_PASSWORD}"
+psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "\conninfo" || echo "Postgres conninfo failed: $?"
+psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "SELECT version();" || echo "Postgres version query failed: $?"
+psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "\dt" || echo "Postgres list tables failed: $?"
+unset PGPASSWORD
+
+# Redis Connection Tests
+echo "🔴 TESTING REDIS CONNECTION:"
+redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" ping || echo "Redis ping failed: $?"
+redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" info server | head -10 || echo "Redis info failed: $?"
+
+# Nextcloud OCC Diagnostics
+echo "⚙️ NEXTCLOUD OCC DIAGNOSTICS:"
+cd /var/www/html || echo "cd /var/www/html failed"
+if [ -f occ ]; then
+    php occ status || echo "occ status failed: $?"
+    php occ maintenance:mode || echo "occ maintenance:mode failed: $?"
+    php occ db:check || echo "occ db:check failed: $?"
+    echo "📋 SYSTEM CONFIG (first 20 lines):"
+    php occ config:list system | head -20 || echo "occ config:list failed: $?"
+    echo "🔍 INSTALLED APPS (first 10):"
+    php occ app:list | head -10 || echo "occ app:list failed: $?"
+    echo "🔍 BACKGROUND JOBS MODE:"
+    php occ background-job:mode || echo "occ background-job:mode failed: $?"
+else
+    echo "❌ occ file not found in /var/www/html"
+fi
+
+# Processes, Disk, and Logs
+echo "🐛 CURRENT PROCESSES (relevant):"
+ps aux | grep -E "(apache|php|supervisord|cron|postgres|redis)" || echo "ps grep failed"
+echo "📊 DISK USAGE (root):"
+df -h / || echo "df failed"
+echo "📊 APACHE LOGS (last 10 lines if exist):"
+tail -n 10 /var/log/apache2/error.log 2>/dev/null || echo "No Apache error log or empty"
+echo "📊 APACHE ACCESS LOGS (last 10 if exist):"
+tail -n 10 /var/log/apache2/access.log 2>/dev/null || echo "No Apache access log or empty"
+echo "🔍 NEXTCLOUD LOG (last 10 lines if exists):"
+tail -n 10 /var/www/html/data/nextcloud.log 2>/dev/null || echo "No nextcloud.log or empty"
+echo "🔍 SUPERVISOR LOG (if exists):"
+tail -n 10 /var/log/supervisor/supervisord.log 2>/dev/null || echo "No supervisor log or empty"
+
+echo "=== DIAGNOSTIC LOGGING END ==="
+
 # Forward to original NextCloud entrypoint
 echo "🔧 Fixing Apache MPM runtime..."
 # Comment out conflicting MPM LoadModule lines in all conf
