@@ -366,8 +366,7 @@ if [ -f occ ]; then
     echo "⚙️ Checking installation status..."
     if ! php occ status 2>/dev/null | grep -q "installed: true"; then
         echo "🚀 Installing Nextcloud..."
-        php occ maintenance:mode --on || echo "Maintenance on failed"
-        php occ install --no-interaction \
+        php occ maintenance:install --no-interaction \
             --database pgsql \
             --database-host "${POSTGRES_HOST}:${POSTGRES_PORT}" \
             --database-name "${POSTGRES_DB}" \
@@ -390,7 +389,6 @@ END
 " || true
         unset PGPASSWORD
 
-        php occ maintenance:mode --off || echo "Maintenance off failed"
         echo "✅ Nextcloud installation completed"
     else
         echo "✅ Nextcloud already installed"
