@@ -1,0 +1,1001 @@
+2026-01-06T06:16:25.265683592Z [inf]   public | oc_circles_remote           | table | oc_admin
+2026-01-06T06:16:25.265690572Z [inf]   public | oc_circles_share_lock       | table | oc_admin
+2026-01-06T06:16:25.265697889Z [inf]   public | oc_circles_token            | table | oc_admin
+2026-01-06T06:16:25.265706352Z [inf]   public | oc_collres_accesscache      | table | oc_admin
+2026-01-06T06:16:25.268224118Z [inf]   public | oc_ex_deploy_options        | table | oc_admin
+2026-01-06T06:16:25.268234877Z [inf]   public | oc_ex_occ_commands          | table | oc_admin
+2026-01-06T06:16:25.268244280Z [inf]   public | oc_ex_settings_forms        | table | oc_admin
+2026-01-06T06:16:25.268247849Z [inf]   public | oc_dav_absence              | table | oc_admin
+2026-01-06T06:16:25.268252222Z [inf]   public | oc_ex_task_processing       | table | oc_admin
+2026-01-06T06:16:25.268256379Z [inf]   public | oc_dav_cal_proxy            | table | oc_admin
+2026-01-06T06:16:25.268260165Z [inf]   public | oc_ex_ui_files_actions      | table | oc_admin
+2026-01-06T06:16:25.268265528Z [inf]   public | oc_dav_shares               | table | oc_admin
+2026-01-06T06:16:25.268270121Z [inf]   public | oc_ex_ui_scripts            | table | oc_admin
+2026-01-06T06:16:25.268277235Z [inf]   public | oc_ex_ui_states             | table | oc_admin
+2026-01-06T06:16:25.268278170Z [inf]   public | oc_direct_edit              | table | oc_admin
+2026-01-06T06:16:25.268284978Z [inf]   public | oc_ex_ui_styles             | table | oc_admin
+2026-01-06T06:16:25.268287218Z [inf]   public | oc_directlink               | table | oc_admin
+2026-01-06T06:16:25.268295644Z [inf]   public | oc_ex_ui_top_menu           | table | oc_admin
+2026-01-06T06:16:25.268296044Z [inf]   public | oc_ex_apps                  | table | oc_admin
+2026-01-06T06:16:25.268303711Z [inf]   public | oc_ex_apps_daemons          | table | oc_admin
+2026-01-06T06:16:25.268312330Z [inf]   public | oc_federated_invites        | table | oc_admin
+2026-01-06T06:16:25.268314226Z [inf]   public | oc_ex_apps_routes           | table | oc_admin
+2026-01-06T06:16:25.268322251Z [inf]   public | oc_federated_reshares       | table | oc_admin
+2026-01-06T06:16:25.268327879Z [inf]   public | oc_file_locks               | table | oc_admin
+2026-01-06T06:16:25.268334946Z [inf]   public | oc_filecache                | table | oc_admin
+2026-01-06T06:16:25.270661648Z [inf]   public | oc_filecache_extended       | table | oc_admin
+2026-01-06T06:16:25.270668511Z [inf]   public | oc_mimetypes                | table | oc_admin
+2026-01-06T06:16:25.270672280Z [inf]   public | oc_files_metadata           | table | oc_admin
+2026-01-06T06:16:25.270682378Z [inf]   public | oc_files_metadata_index     | table | oc_admin
+2026-01-06T06:16:25.270683425Z [inf]   public | oc_mounts                   | table | oc_admin
+2026-01-06T06:16:25.270690377Z [inf]   public | oc_files_reminders          | table | oc_admin
+2026-01-06T06:16:25.270694040Z [inf]   public | oc_notifications            | table | oc_admin
+2026-01-06T06:16:25.270698374Z [inf]   public | oc_files_trash              | table | oc_admin
+2026-01-06T06:16:25.270702536Z [inf]   public | oc_notifications_pushhash   | table | oc_admin
+2026-01-06T06:16:25.270706149Z [inf]   public | oc_files_versions           | table | oc_admin
+2026-01-06T06:16:25.270710954Z [inf]   public | oc_notifications_settings   | table | oc_admin
+2026-01-06T06:16:25.270713963Z [inf]   public | oc_flow_checks              | table | oc_admin
+2026-01-06T06:16:25.270720620Z [inf]   public | oc_flow_operations          | table | oc_admin
+2026-01-06T06:16:25.270726628Z [inf]   public | oc_flow_operations_scope    | table | oc_admin
+2026-01-06T06:16:25.270737230Z [inf]   public | oc_group_admin              | table | oc_admin
+2026-01-06T06:16:25.270743198Z [inf]   public | oc_group_user               | table | oc_admin
+2026-01-06T06:16:25.270748586Z [inf]   public | oc_groups                   | table | oc_admin
+2026-01-06T06:16:25.270753906Z [inf]   public | oc_jobs                     | table | oc_admin
+2026-01-06T06:16:25.270759519Z [inf]   public | oc_known_users              | table | oc_admin
+2026-01-06T06:16:25.270765483Z [inf]   public | oc_login_flow_v2            | table | oc_admin
+2026-01-06T06:16:25.270771311Z [inf]   public | oc_migrations               | table | oc_admin
+2026-01-06T06:16:25.273339000Z [inf]   public | oc_oauth2_access_tokens     | table | oc_admin
+2026-01-06T06:16:25.273348607Z [inf]   public | oc_privacy_admins           | table | oc_admin
+2026-01-06T06:16:25.273349015Z [inf]   public | oc_oauth2_clients           | table | oc_admin
+2026-01-06T06:16:25.273355529Z [inf]   public | oc_open_local_editor        | table | oc_admin
+2026-01-06T06:16:25.273362200Z [inf]   public | oc_profile_config           | table | oc_admin
+2026-01-06T06:16:25.273364091Z [inf]   public | oc_photos_albums            | table | oc_admin
+2026-01-06T06:16:25.273372196Z [inf]   public | oc_photos_albums_collabs    | table | oc_admin
+2026-01-06T06:16:25.273372750Z [inf]   public | oc_properties               | table | oc_admin
+2026-01-06T06:16:25.273380490Z [inf]   public | oc_photos_albums_files      | table | oc_admin
+2026-01-06T06:16:25.273380826Z [inf]   public | oc_ratelimit_entries        | table | oc_admin
+2026-01-06T06:16:25.273388830Z [inf]   public | oc_preferences              | table | oc_admin
+2026-01-06T06:16:25.273389204Z [inf]   public | oc_reactions                | table | oc_admin
+2026-01-06T06:16:25.273397563Z [inf]   public | oc_preferences_ex           | table | oc_admin
+2026-01-06T06:16:25.273397968Z [inf]   public | oc_recent_contact           | table | oc_admin
+2026-01-06T06:16:25.273404603Z [inf]   public | oc_schedulingobjects        | table | oc_admin
+2026-01-06T06:16:25.273411071Z [inf]   public | oc_sec_signatory            | table | oc_admin
+2026-01-06T06:16:25.273419482Z [inf]   public | oc_share                    | table | oc_admin
+2026-01-06T06:16:25.273426809Z [inf]   public | oc_share_external           | table | oc_admin
+2026-01-06T06:16:25.273448568Z [inf]   public | oc_shares_limits            | table | oc_admin
+2026-01-06T06:16:25.273456953Z [inf]   public | oc_storages                 | table | oc_admin
+2026-01-06T06:16:25.273464145Z [inf]   public | oc_storages_credentials     | table | oc_admin
+2026-01-06T06:16:25.275391631Z [inf]   public | oc_user_status              | table | oc_admin
+2026-01-06T06:16:25.275406523Z [inf]   public | oc_user_transfer_owner      | table | oc_admin
+2026-01-06T06:16:25.275411529Z [inf]   public | oc_systemtag                | table | oc_admin
+2026-01-06T06:16:25.275418104Z [inf]   public | oc_users                    | table | oc_admin
+2026-01-06T06:16:25.275422794Z [inf]   public | oc_systemtag_group          | table | oc_admin
+2026-01-06T06:16:25.275433031Z [inf]   public | oc_vcategory                | table | oc_admin
+2026-01-06T06:16:25.275436484Z [inf]   public | oc_systemtag_object_mapping | table | oc_admin
+2026-01-06T06:16:25.275449821Z [inf]   public | oc_vcategory_to_object      | table | oc_admin
+2026-01-06T06:16:25.275449993Z [inf]   public | oc_taskprocessing_tasks     | table | oc_admin
+2026-01-06T06:16:25.275458626Z [inf]   public | oc_text2image_tasks         | table | oc_admin
+2026-01-06T06:16:25.275465434Z [inf]   public | oc_webauthn                 | table | oc_admin
+2026-01-06T06:16:25.275469951Z [inf]   public | oc_text_documents           | table | oc_admin
+2026-01-06T06:16:25.275479980Z [inf]   public | oc_webhook_listeners        | table | oc_admin
+2026-01-06T06:16:25.275482047Z [inf]   public | oc_text_sessions            | table | oc_admin
+2026-01-06T06:16:25.275492776Z [inf]   public | oc_text_steps               | table | oc_admin
+2026-01-06T06:16:25.275493809Z [inf]   public | oc_whats_new                | table | oc_admin
+2026-01-06T06:16:25.275504276Z [inf]   public | oc_textprocessing_tasks     | table | oc_admin
+2026-01-06T06:16:25.275507864Z [inf]  (122 rows)
+2026-01-06T06:16:25.275513970Z [inf]   public | oc_trusted_servers          | table | oc_admin
+2026-01-06T06:16:25.275520257Z [inf]   public | oc_twofactor_backupcodes    | table | oc_admin
+2026-01-06T06:16:25.275526871Z [inf]   public | oc_twofactor_providers      | table | oc_admin
+2026-01-06T06:16:25.277482959Z [inf]  
+2026-01-06T06:16:25.900612082Z [err]  Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+2026-01-06T06:16:25.900623153Z [inf]    - maintenance: false
+2026-01-06T06:16:25.900623290Z [inf]  # Server
+2026-01-06T06:16:25.900631460Z [inf]  redis_version:8.2.1
+2026-01-06T06:16:25.900633929Z [inf]    - needsDbUpgrade: false
+2026-01-06T06:16:25.900640002Z [inf]  redis_git_sha1:00000000
+2026-01-06T06:16:25.900644506Z [inf]    - productname: Nextcloud
+2026-01-06T06:16:25.900660616Z [inf]    - installed: false
+2026-01-06T06:16:25.900667732Z [inf]   count 
+2026-01-06T06:16:25.900677270Z [inf]  redis_git_dirty:1
+2026-01-06T06:16:25.900679786Z [inf]    - version: 32.0.3.2
+2026-01-06T06:16:25.900680001Z [inf]  -------
+2026-01-06T06:16:25.900680514Z [inf]  multiplexing_api:epoll
+2026-01-06T06:16:25.900689290Z [inf]  redis_build_id:fcae35583392417f
+2026-01-06T06:16:25.900690705Z [inf]     122
+2026-01-06T06:16:25.900699605Z [inf]    - versionstring: 32.0.3
+2026-01-06T06:16:25.900701141Z [inf]  ⚙️ NEXTCLOUD OCC DIAGNOSTICS:
+2026-01-06T06:16:25.900703745Z [inf]  redis_mode:standalone
+2026-01-06T06:16:25.900705269Z [inf]  (1 row)
+2026-01-06T06:16:25.900714452Z [inf]  os:Linux 6.12.12+bpo-cloud-amd64 x86_64
+2026-01-06T06:16:25.900715671Z [inf]    - edition: 
+2026-01-06T06:16:25.900716541Z [inf]  
+2026-01-06T06:16:25.900721677Z [inf]  ✅ OCC file found - running diagnostics:
+2026-01-06T06:16:25.900724355Z [inf]  arch_bits:64
+2026-01-06T06:16:25.900727455Z [inf]  🔴 TESTING REDIS CONNECTION:
+2026-01-06T06:16:25.900733007Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:25.900734071Z [inf]  monotonic_clock:POSIX clock_gettime
+2026-01-06T06:16:25.900738296Z [err]  Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe.
+2026-01-06T06:16:25.900744803Z [inf]  PONG
+2026-01-06T06:16:25.907511127Z [inf]    - extendedSupport: false
+2026-01-06T06:16:25.996611544Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:26.013534796Z [err]  
+2026-01-06T06:16:26.249118349Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:26.258221052Z [err]  
+2026-01-06T06:16:26.266516306Z [err]                                                              
+2026-01-06T06:16:26.266525587Z [err]    There are no commands defined in the "config" namespace.  
+2026-01-06T06:16:26.266532171Z [err]                                                              
+2026-01-06T06:16:26.266538252Z [err]  
+2026-01-06T06:16:26.281387968Z [inf]  🔍 INSTALLED APPS (first 10):
+2026-01-06T06:16:26.842889610Z [inf]  Filesystem      Size  Used Avail Use% Mounted on
+2026-01-06T06:16:26.842894392Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:26.842901178Z [inf]  overlay         3.1T  1.3T  1.9T  40% /
+2026-01-06T06:16:26.842904172Z [err]  
+2026-01-06T06:16:26.842910657Z [err]                                                                      
+2026-01-06T06:16:26.842914894Z [inf]  📊 APACHE LOGS (last 10 lines if exist):
+2026-01-06T06:16:26.842917416Z [err]    There are no commands defined in the "background-job" namespace.  
+2026-01-06T06:16:26.842924010Z [inf]  No Apache error log or empty
+2026-01-06T06:16:26.842925293Z [err]                                                                      
+2026-01-06T06:16:26.842933362Z [inf]  📊 APACHE ACCESS LOGS (last 10 if exist):
+2026-01-06T06:16:26.842933663Z [err]  
+2026-01-06T06:16:26.842939387Z [inf]  occ background-job:mode failed: 1
+2026-01-06T06:16:26.842957717Z [inf]  🐛 CURRENT PROCESSES (relevant):
+2026-01-06T06:16:26.842958531Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:26.842974373Z [inf]  root         1  1.6  0.0   4200  2928 ?        Ss   06:16   0:00 /bin/bash /usr/local/bin/custom-entrypoint.sh apache2-foreground
+2026-01-06T06:16:26.842981873Z [inf]  root       153  0.0  0.0   3508  1644 ?        S    06:16   0:00 grep -E (apache|php|supervisord|cron|postgres|redis)
+2026-01-06T06:16:26.842990861Z [inf]  📊 DISK USAGE (root):
+2026-01-06T06:16:26.843054275Z [err]  
+2026-01-06T06:16:26.843068954Z [err]                                                           
+2026-01-06T06:16:26.843077050Z [err]    There are no commands defined in the "app" namespace.  
+2026-01-06T06:16:26.843085379Z [err]                                                           
+2026-01-06T06:16:26.843093556Z [err]  
+2026-01-06T06:16:26.843103761Z [inf]  🔍 BACKGROUND JOBS MODE:
+2026-01-06T06:16:26.847604698Z [inf]  No Apache access log or empty
+2026-01-06T06:16:26.847615077Z [inf]  🔍 NEXTCLOUD LOG (last 10 lines if exists):
+2026-01-06T06:16:26.847622790Z [inf]  🔍 SUPERVISOR LOG (if exists):
+2026-01-06T06:16:26.847631145Z [inf]  No supervisor log or empty
+2026-01-06T06:16:26.847639015Z [inf]  === DIAGNOSTIC LOGGING END ===
+2026-01-06T06:16:26.847646798Z [err]  /usr/local/bin/custom-entrypoint.sh: line 396: syntax error near unexpected token `else'
+2026-01-06T06:16:27.000000000Z [inf]  Mounting volume on: /var/lib/containers/railwayapp/bind-mounts/7583debf-1935-48f3-a10f-446e4f6150a2/vol_vnq5jqq6r85szsdc
+2026-01-06T06:16:28.959990451Z [inf]  PHP_INI_DIR=/usr/local/etc/php
+2026-01-06T06:16:28.960017030Z [inf]  🚀 Starting NextCloud Railway deployment...
+2026-01-06T06:16:28.960031157Z [inf]  🐛 DEBUG: Current script: /usr/local/bin/custom-entrypoint.sh
+2026-01-06T06:16:28.960050650Z [inf]  PGPASSWORD=OVORGBNwQEOzoOPjVefdTHOarlaMnROk
+2026-01-06T06:16:28.960054091Z [inf]  🔍 Debug: Environment variables:
+2026-01-06T06:16:28.960064725Z [inf]  PGPORT=5432
+2026-01-06T06:16:28.960070320Z [inf]  NEXTCLOUD_ADMIN_PASSWORD=76691992Ya!
+2026-01-06T06:16:28.960081380Z [inf]  PGUSER=postgres
+2026-01-06T06:16:28.960093919Z [inf]  NEXTCLOUD_ADMIN_USER=kikaiworksadmin
+2026-01-06T06:16:28.960095802Z [inf]  PHPIZE_DEPS=autoconf 		dpkg-dev 		file 		g++ 		gcc 		libc-dev 		make 		pkg-config 		re2c
+2026-01-06T06:16:28.960097645Z [inf]  🐛 DEBUG: Process ID: 1
+2026-01-06T06:16:28.960104721Z [inf]  NEXTCLOUD_TRUSTED_DOMAINS=engineering.kikaiworks.com localhost engineering.kikaiworks.com
+2026-01-06T06:16:28.960112667Z [inf]  PHP_ASC_URL=https://www.php.net/distributions/php-8.3.29.tar.xz.asc
+2026-01-06T06:16:28.960114888Z [inf]  🐛 DEBUG: All running scripts:
+2026-01-06T06:16:28.960117344Z [inf]  NEXTCLOUD_VERSION=32.0.3
+2026-01-06T06:16:28.960131145Z [inf]  PGDATABASE=railway
+2026-01-06T06:16:28.960134560Z [inf]  PHP_CFLAGS=-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+2026-01-06T06:16:28.960140301Z [inf]  root         1  8.8  0.0   4068  2796 ?        Ss   06:16   0:00 /bin/bash /usr/local/bin/custom-entrypoint.sh apache2-foreground
+2026-01-06T06:16:28.960142993Z [inf]  PGHOST=postgres.railway.internal
+2026-01-06T06:16:28.960150804Z [inf]  PHP_CPPFLAGS=-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+2026-01-06T06:16:28.960151324Z [inf]  root         3  0.0  0.0   3508  1628 ?        S    06:16   0:00 grep -E (entrypoint|fix-warnings)
+2026-01-06T06:16:28.965302768Z [inf]  PHP_LDFLAGS=-Wl,-O1 -pie
+2026-01-06T06:16:28.965310974Z [inf]  PHP_MEMORY_LIMIT=512M
+2026-01-06T06:16:28.965317910Z [inf]  PHP_OPCACHE_MEMORY_CONSUMPTION=128
+2026-01-06T06:16:28.965325701Z [inf]  PHP_SHA256=f7950ca034b15a78f5de9f1b22f4d9bad1dd497114d175cb1672a4ca78077af5
+2026-01-06T06:16:28.965331855Z [inf]  PHP_UPLOAD_LIMIT=512M
+2026-01-06T06:16:28.965337283Z [inf]  PHP_URL=https://www.php.net/distributions/php-8.3.29.tar.xz
+2026-01-06T06:16:28.965343715Z [inf]  PHP_VERSION=8.3.29
+2026-01-06T06:16:28.965350638Z [inf]  RAILWAY_BETA_ENABLE_RUNTIME_V2=1
+2026-01-06T06:16:28.965356320Z [inf]  RAILWAY_DEPLOYMENT_ID=ccf3a76e-80e7-4325-b18a-10adcc0d80d4
+2026-01-06T06:16:28.965362987Z [inf]  RAILWAY_ENVIRONMENT=Website
+2026-01-06T06:16:28.965368863Z [inf]  RAILWAY_ENVIRONMENT_ID=a90e1400-86d2-4638-a8d3-2969fd09bb16
+2026-01-06T06:16:28.965374518Z [inf]  RAILWAY_ENVIRONMENT_NAME=Website
+2026-01-06T06:16:28.965383008Z [inf]  RAILWAY_PRIVATE_DOMAIN=nextcloud.railway.internal
+2026-01-06T06:16:28.965389843Z [inf]  RAILWAY_PROJECT_ID=95417e11-3add-43b7-8519-969e8647fb2f
+2026-01-06T06:16:28.965397507Z [inf]  RAILWAY_PROJECT_NAME=KiKAI-Works
+2026-01-06T06:16:28.965405014Z [inf]  RAILWAY_PUBLIC_DOMAIN=engineering.kikaiworks.com
+2026-01-06T06:16:28.965412831Z [inf]  RAILWAY_REPLICA_ID=7583debf-1935-48f3-a10f-446e4f6150a2
+2026-01-06T06:16:28.965420810Z [inf]  RAILWAY_REPLICA_REGION=asia-southeast1-eqsg3a
+2026-01-06T06:16:28.965427361Z [inf]  RAILWAY_SERVICE_ID=d75f15ac-0e59-4d0f-b6e3-ef21b7cad4fe
+2026-01-06T06:16:28.965433384Z [inf]  RAILWAY_SERVICE_NAME=Nextcloud
+2026-01-06T06:16:28.965441242Z [inf]  RAILWAY_SNAPSHOT_ID=b14a088d-58c6-46cd-8a51-f9cfffa53c79
+2026-01-06T06:16:28.965448432Z [inf]  RAILWAY_STATIC_URL=engineering.kikaiworks.com
+2026-01-06T06:16:28.965456160Z [inf]  RAILWAY_VOLUME_ID=c63e4f5a-3057-45a9-ac74-d3f21772de53
+2026-01-06T06:16:28.965463672Z [inf]  RAILWAY_VOLUME_MOUNT_PATH=/var/www/html
+2026-01-06T06:16:28.965580246Z [inf]  RAILWAY_VOLUME_NAME=nextcloud-volume-RgEc
+2026-01-06T06:16:28.965587422Z [inf]  REDISHOST=redis.railway.internal
+2026-01-06T06:16:28.965594454Z [inf]  REDISPASSWORD=mwrIFgKvJOVzATvtZxMHdeepHckkvwTM
+2026-01-06T06:16:28.965607420Z [inf]  REDISPORT=6379
+2026-01-06T06:16:28.965614580Z [inf]  REDIS_HOST=redis.railway.internal
+2026-01-06T06:16:28.965621493Z [inf]  REDIS_PASSWORD=mwrIFgKvJOVzATvtZxMHdeepHckkvwTM
+2026-01-06T06:16:28.965628791Z [inf]  REDIS_PORT=6379
+2026-01-06T06:16:28.965635783Z [inf]  🔍 Database-related variables:
+2026-01-06T06:16:28.965643777Z [inf]  HOSTNAME=fa2090d4e0ae
+2026-01-06T06:16:28.965650730Z [inf]  NEXTCLOUD_TRUSTED_DOMAINS=engineering.kikaiworks.com localhost engineering.kikaiworks.com
+2026-01-06T06:16:28.965658515Z [inf]  OVERWRITEHOST=engineering.kikaiworks.com
+2026-01-06T06:16:28.965664948Z [inf]  PGDATABASE=railway
+2026-01-06T06:16:28.965683324Z [inf]  PGHOST=postgres.railway.internal
+2026-01-06T06:16:28.965690580Z [inf]  REDISHOST=redis.railway.internal
+2026-01-06T06:16:28.965696815Z [inf]  REDIS_HOST=redis.railway.internal
+2026-01-06T06:16:28.965703515Z [inf]  ✅ Apache configured for port: 80
+2026-01-06T06:16:28.965710723Z [inf]  📊 Final Configuration:
+2026-01-06T06:16:28.965717419Z [inf]  📊 Database Config:
+2026-01-06T06:16:28.965724612Z [inf]    POSTGRES_HOST: postgres.railway.internal
+2026-01-06T06:16:28.965735777Z [inf]    POSTGRES_PORT: 5432
+2026-01-06T06:16:28.965743793Z [inf]    POSTGRES_USER: postgres
+2026-01-06T06:16:28.965749935Z [inf]    POSTGRES_DB: railway
+2026-01-06T06:16:28.965756319Z [inf]    Full connection: postgres@postgres.railway.internal:5432/railway
+2026-01-06T06:16:28.965763577Z [inf]  🔴 Redis Config:
+2026-01-06T06:16:28.965770453Z [inf]    REDISHOST: redis.railway.internal
+2026-01-06T06:16:28.965783959Z [inf]    REDISPORT: 6379
+2026-01-06T06:16:28.965791702Z [inf]    REDISPASSWORD: mwrIFgKvJOVzATvtZxMHdeepHckkvwTM
+2026-01-06T06:16:28.966751254Z [inf]  ⚡ Performance Config:
+2026-01-06T06:16:28.966759991Z [inf]    PHP Memory Limit: 512M
+2026-01-06T06:16:28.966767129Z [inf]    PHP Upload Limit: 512M
+2026-01-06T06:16:28.966774243Z [inf]  ✅ Admin credentials provided - creating full config.php
+2026-01-06T06:16:28.966787572Z [inf]  /var/www/html/lib/l10n/ru.js
+2026-01-06T06:16:28.966798681Z [inf]  /var/www/html/package-lock.json
+2026-01-06T06:16:28.966799513Z [inf]  === PRE-RESTORE FILE CHECK ===
+2026-01-06T06:16:28.966802666Z [inf]  /var/www/html/lib/l10n/si.js
+2026-01-06T06:16:28.966806983Z [inf]  /var/www/html/lib/l10n/fo.js
+2026-01-06T06:16:28.966814945Z [inf]  /var/www/html/lib/base.php
+2026-01-06T06:16:28.966823022Z [inf]  /var/www/html/lib/l10n/ar.js
+2026-01-06T06:16:28.966823721Z [inf]  🌐 NextCloud Config:
+2026-01-06T06:16:28.966829770Z [inf]  /var/www/html/lib/l10n/el.js
+2026-01-06T06:16:28.966838827Z [inf]  /var/www/html/lib/l10n/af.json
+2026-01-06T06:16:28.966839322Z [inf]    Trusted domains: engineering.kikaiworks.com localhost engineering.kikaiworks.com
+2026-01-06T06:16:28.966841654Z [inf]  ✅ Config.php created with all settings
+2026-01-06T06:16:28.966849189Z [inf]  /var/www/html/lib/l10n/he.js
+2026-01-06T06:16:28.966854093Z [inf]  /var/www/html/lib/l10n/fa.js
+2026-01-06T06:16:28.966856042Z [inf]    Admin user: kikaiworksadmin
+2026-01-06T06:16:28.966859189Z [inf]  === DIAGNOSTIC LOGGING DEFERRED ===
+2026-01-06T06:16:28.966863522Z [inf]  /var/www/html/lib/l10n/hsb.js
+2026-01-06T06:16:28.966870057Z [inf]  /var/www/html/lib/l10n/cy_GB.json
+2026-01-06T06:16:28.966872045Z [inf]    Data directory: /var/www/html/data
+2026-01-06T06:16:28.966881719Z [inf]  /var/www/html/lib/l10n/bs.js
+2026-01-06T06:16:28.966882334Z [inf]    Table prefix: oc_
+2026-01-06T06:16:28.966951733Z [inf]  🔍 PRE-RESTORE: Recursive file search (top 50 files):
+2026-01-06T06:16:28.966963865Z [inf]  /var/www/html/REUSE.toml
+2026-01-06T06:16:28.969569630Z [inf]  /var/www/html/lib/l10n/nn_NO.json
+2026-01-06T06:16:28.969576011Z [inf]  /var/www/html/lib/l10n/br.json
+2026-01-06T06:16:28.969582263Z [inf]  /var/www/html/lib/l10n/nl.json
+2026-01-06T06:16:28.969587822Z [inf]  /var/www/html/lib/l10n/hr.js
+2026-01-06T06:16:28.969594807Z [inf]  /var/www/html/lib/l10n/pt_PT.js
+2026-01-06T06:16:28.969602022Z [inf]  /var/www/html/lib/l10n/oc.json
+2026-01-06T06:16:28.969608390Z [inf]  /var/www/html/lib/l10n/sr.js
+2026-01-06T06:16:28.969614164Z [inf]  /var/www/html/lib/l10n/ne.js
+2026-01-06T06:16:28.969620307Z [inf]  /var/www/html/lib/l10n/kab.json
+2026-01-06T06:16:28.969626139Z [inf]  /var/www/html/lib/l10n/hr.json
+2026-01-06T06:16:28.969631967Z [inf]  /var/www/html/lib/l10n/an.json
+2026-01-06T06:16:28.969637447Z [inf]  /var/www/html/lib/l10n/lt_LT.json
+2026-01-06T06:16:28.969642661Z [inf]  /var/www/html/lib/l10n/es_419.json
+2026-01-06T06:16:28.969647678Z [inf]  /var/www/html/lib/l10n/kn.js
+2026-01-06T06:16:28.969654393Z [inf]  /var/www/html/lib/l10n/es_PY.js
+2026-01-06T06:16:28.969660836Z [inf]  /var/www/html/lib/l10n/sk.js
+2026-01-06T06:16:28.969665365Z [inf]  /var/www/html/lib/l10n/es_NI.js
+2026-01-06T06:16:28.969669456Z [inf]  /var/www/html/lib/l10n/ug.js
+2026-01-06T06:16:28.969673464Z [inf]  /var/www/html/lib/l10n/tk.js
+2026-01-06T06:16:28.969677399Z [inf]  /var/www/html/lib/l10n/sl.json
+2026-01-06T06:16:28.969682531Z [inf]  /var/www/html/lib/l10n/es_PR.js
+2026-01-06T06:16:28.969687900Z [inf]  /var/www/html/lib/l10n/es_MX.js
+2026-01-06T06:16:28.969694474Z [inf]  /var/www/html/lib/l10n/tr.json
+2026-01-06T06:16:28.969700261Z [inf]  /var/www/html/lib/l10n/es_NI.json
+2026-01-06T06:16:28.969705645Z [inf]  /var/www/html/lib/l10n/mn.json
+2026-01-06T06:16:28.969711958Z [inf]  /var/www/html/lib/l10n/bn_BD.json
+2026-01-06T06:16:28.969718313Z [inf]  /var/www/html/lib/l10n/sq.json
+2026-01-06T06:16:28.969723309Z [inf]  /var/www/html/lib/l10n/ne.json
+2026-01-06T06:16:28.972545532Z [inf]  /var/www/html/lib/l10n/uk.js
+2026-01-06T06:16:28.972550279Z [inf]  /var/www/html/lib/l10n/af.js
+2026-01-06T06:16:28.972554924Z [inf]  /var/www/html/lib/l10n/lb.js
+2026-01-06T06:16:28.972559474Z [inf]  /var/www/html/lib/l10n/mk.js
+2026-01-06T06:16:28.972564619Z [inf]  /var/www/html/lib/l10n/hy.json
+2026-01-06T06:16:28.972570169Z [inf]  /var/www/html/lib/l10n/eu.json
+2026-01-06T06:16:28.972575204Z [inf]  /var/www/html/lib/l10n/th.js
+2026-01-06T06:16:28.972579656Z [inf]  /var/www/html/lib/l10n/tr.js
+2026-01-06T06:16:28.972584240Z [inf]  🔍 PRE-RESTORE: Key Nextcloud files/dirs in /var/www/html:
+2026-01-06T06:16:28.972589899Z [inf]  drwxr-xr-x 55 www-data www-data   4096 Dec 11 09:01 apps
+2026-01-06T06:16:28.972594265Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Jan  6 06:16 config
+2026-01-06T06:16:28.972597928Z [inf]  drwxr-xr-x 25 www-data www-data   4096 Dec 11 09:03 core
+2026-01-06T06:16:28.972602691Z [inf]  -rw-r--r--  1 www-data www-data   3695 Dec 11 08:58 index.php
+2026-01-06T06:16:28.972608409Z [inf]  drwxr-xr-x  7 www-data www-data   4096 Dec 11 08:58 lib
+2026-01-06T06:16:28.972612277Z [inf]  -rw-r--r--  1 www-data www-data    596 Dec 11 08:58 occ
+2026-01-06T06:16:28.972616760Z [inf]  🔍 PRE-RESTORE: Search for occ anywhere:
+2026-01-06T06:16:30.950960640Z [inf]  declare(strict_types=1);
+2026-01-06T06:16:30.950969256Z [inf]  
+2026-01-06T06:16:30.950980010Z [inf]   * SPDX-License-Identifier: AGPL-3.0-only
+2026-01-06T06:16:30.950992047Z [inf]  /**
+2026-01-06T06:16:30.950995153Z [inf]   */
+2026-01-06T06:16:30.950995673Z [inf]  
+2026-01-06T06:16:30.951000525Z [inf]  use OCP\IRequest;
+2026-01-06T06:16:30.951006109Z [inf]   * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
+2026-01-06T06:16:30.951010524Z [inf]  
+2026-01-06T06:16:30.951015886Z [inf]  use OC\ServiceUnavailableException;
+2026-01-06T06:16:30.951020021Z [inf]  use OCP\Security\Bruteforce\MaxDelayReached;
+2026-01-06T06:16:30.951025140Z [inf]   * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
+2026-01-06T06:16:30.951026397Z [inf]  require_once __DIR__ . '/lib/versioncheck.php';
+2026-01-06T06:16:30.951030392Z [inf]  use OCP\Template\ITemplateManager;
+2026-01-06T06:16:30.951031456Z [inf]  use OC\User\LoginException;
+2026-01-06T06:16:30.951034459Z [inf]  use OCP\Server;
+2026-01-06T06:16:30.951044914Z [inf]  use OCP\HintException;
+2026-01-06T06:16:30.951047924Z [inf]  use Psr\Log\LoggerInterface;
+2026-01-06T06:16:30.951109973Z [inf]  /var/www/html/occ
+2026-01-06T06:16:30.951117717Z [inf]  🔍 PRE-RESTORE: index.php content preview (if exists):
+2026-01-06T06:16:30.951127722Z [inf]  <?php
+2026-01-06T06:16:30.951133722Z [inf]  
+2026-01-06T06:16:30.951371792Z [inf]  === PRE-RESTORE END ===
+2026-01-06T06:16:30.951378268Z [inf]  ✅ Nextcloud files already present (occ found)
+2026-01-06T06:16:30.951384784Z [inf]  === POST-RESTORE FILE CHECK ===
+2026-01-06T06:16:30.951391034Z [inf]  🔍 POST-RESTORE: Full top-level ls /var/www/html:
+2026-01-06T06:16:30.961581038Z [inf]  total 1260
+2026-01-06T06:16:30.961603208Z [inf]  drwxr-xr-x 16 www-data www-data   4096 Jan  6 06:15 .
+2026-01-06T06:16:30.961702997Z [inf]  drwxrwxr-x  1 www-data root       4096 Dec 30 01:41 ..
+2026-01-06T06:16:30.962027666Z [inf]  -rw-r--r--  1 www-data www-data   4558 Jan  6 06:15 .htaccess
+2026-01-06T06:16:30.962036776Z [inf]  -rw-r--r--  1 www-data www-data    306 Dec 11 08:58 .user.ini
+2026-01-06T06:16:30.962042942Z [inf]  drwxr-xr-x 42 www-data www-data   4096 Dec 11 09:03 3rdparty
+2026-01-06T06:16:30.962049633Z [inf]  -rw-r--r--  1 www-data www-data  26395 Dec 11 08:58 AUTHORS
+2026-01-06T06:16:30.962057990Z [inf]  -rw-r--r--  1 www-data www-data  34520 Dec 11 08:58 COPYING
+2026-01-06T06:16:30.962095628Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:58 LICENSES
+2026-01-06T06:16:30.962104316Z [inf]  -rw-r--r--  1 www-data www-data  36503 Dec 11 08:58 REUSE.toml
+2026-01-06T06:16:30.962112001Z [inf]  drwxr-xr-x 55 www-data www-data   4096 Dec 11 09:01 apps
+2026-01-06T06:16:30.962118642Z [inf]  -rw-r--r--  1 www-data www-data   2470 Dec 11 08:58 composer.json
+2026-01-06T06:16:30.962126578Z [inf]  -rw-r--r--  1 www-data www-data   3409 Dec 11 08:58 composer.lock
+2026-01-06T06:16:30.962135951Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Jan  6 06:16 config
+2026-01-06T06:16:30.962155461Z [inf]  -rw-r--r--  1 www-data www-data   3814 Dec 11 08:58 console.php
+2026-01-06T06:16:30.962162480Z [inf]  drwxr-xr-x 25 www-data www-data   4096 Dec 11 09:03 core
+2026-01-06T06:16:30.962169145Z [inf]  -rw-r--r--  1 www-data www-data   8233 Dec 11 08:58 cron.php
+2026-01-06T06:16:30.962176666Z [inf]  drwxrwx---  4 www-data root       4096 Jan  6 06:15 data
+2026-01-06T06:16:30.962184159Z [inf]  drwxr-xr-x  2 www-data www-data  36864 Dec 11 08:58 dist
+2026-01-06T06:16:30.962191641Z [inf]  -rw-r--r--  1 www-data www-data    331 Dec 11 08:58 index.html
+2026-01-06T06:16:30.962198863Z [inf]  -rw-r--r--  1 www-data www-data   3695 Dec 11 08:58 index.php
+2026-01-06T06:16:30.962351426Z [inf]  drwxr-xr-x  7 www-data www-data   4096 Dec 11 08:58 lib
+2026-01-06T06:16:30.962359299Z [inf]  drwxr-xr-x  2 www-data www-data  16384 Jan  6 06:13 lost+found
+2026-01-06T06:16:30.962387243Z [inf]  -rw-r--r--  1 www-data www-data    596 Dec 11 08:58 occ
+2026-01-06T06:16:30.962393233Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:58 ocs
+2026-01-06T06:16:30.962401021Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:58 ocs-provider
+2026-01-06T06:16:30.962407285Z [inf]  -rw-r--r--  1 www-data www-data 991558 Dec 11 08:58 package-lock.json
+2026-01-06T06:16:30.962414024Z [inf]  -rw-r--r--  1 www-data www-data   7239 Dec 11 08:58 package.json
+2026-01-06T06:16:30.962420025Z [inf]  -rw-r--r--  1 www-data www-data   3059 Dec 11 08:58 public.php
+2026-01-06T06:16:30.962432740Z [inf]  -rw-r--r--  1 www-data www-data   4760 Dec 11 08:58 remote.php
+2026-01-06T06:16:30.962439492Z [inf]  drwxr-xr-x  4 www-data www-data   4096 Dec 11 08:58 resources
+2026-01-06T06:16:30.962447030Z [inf]  -rw-r--r--  1 www-data www-data     26 Dec 11 08:58 robots.txt
+2026-01-06T06:16:30.962454827Z [inf]  -rw-r--r--  1 www-data www-data   1490 Dec 11 08:58 status.php
+2026-01-06T06:16:30.962461544Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 themes
+2026-01-06T06:16:30.962467724Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:59 updater
+2026-01-06T06:16:30.962494321Z [inf]  -rw-r--r--  1 www-data www-data    446 Dec 11 09:03 version.php
+2026-01-06T06:16:30.962503588Z [inf]  🔍 POST-RESTORE: Search for occ post-restore:
+2026-01-06T06:16:30.962509910Z [inf]  /var/www/html/occ
+2026-01-06T06:16:30.962516964Z [inf]  🔍 POST-RESTORE: occ content preview (if exists):
+2026-01-06T06:16:30.962524236Z [inf]  #!/usr/bin/env php
+2026-01-06T06:16:30.962530284Z [inf]  <?php
+2026-01-06T06:16:30.962864021Z [inf]  
+2026-01-06T06:16:30.962873297Z [inf]  declare(strict_types=1);
+2026-01-06T06:16:30.962878990Z [inf]  
+2026-01-06T06:16:30.962884832Z [inf]  /**
+2026-01-06T06:16:30.962892418Z [inf]   * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
+2026-01-06T06:16:30.962936597Z [inf]   * SPDX-License-Identifier: AGPL-3.0-or-later
+2026-01-06T06:16:30.962945320Z [inf]   */
+2026-01-06T06:16:30.962951146Z [inf]  
+2026-01-06T06:16:30.962959110Z [inf]  🔍 POST-RESTORE: index.php content preview:
+2026-01-06T06:16:30.962965587Z [inf]  <?php
+2026-01-06T06:16:30.962976228Z [inf]  
+2026-01-06T06:16:30.962983467Z [inf]  declare(strict_types=1);
+2026-01-06T06:16:30.962990258Z [inf]  
+2026-01-06T06:16:30.962997283Z [inf]  /**
+2026-01-06T06:16:30.963003300Z [inf]   * SPDX-FileCopyrightText: 2016-2024 Nextcloud GmbH and Nextcloud contributors
+2026-01-06T06:16:30.963009582Z [inf]   * SPDX-FileCopyrightText: 2016 ownCloud, Inc.
+2026-01-06T06:16:30.963014564Z [inf]   * SPDX-License-Identifier: AGPL-3.0-only
+2026-01-06T06:16:30.963021504Z [inf]   */
+2026-01-06T06:16:30.963025933Z [inf]  
+2026-01-06T06:16:30.963031130Z [inf]  🔍 POST-RESTORE: Dir structure (top dirs):
+2026-01-06T06:16:30.963036428Z [inf]  /var/www/html
+2026-01-06T06:16:30.963041276Z [inf]  /var/www/html/lib
+2026-01-06T06:16:30.963047917Z [inf]  /var/www/html/lib/l10n
+2026-01-06T06:16:30.963053402Z [inf]  /var/www/html/lib/public
+2026-01-06T06:16:30.963058494Z [inf]  /var/www/html/lib/public/Mail
+2026-01-06T06:16:30.963063819Z [inf]  /var/www/html/lib/public/Mail/Headers
+2026-01-06T06:16:30.963068761Z [inf]  /var/www/html/lib/public/Mail/Events
+2026-01-06T06:16:30.963073509Z [inf]  /var/www/html/lib/public/Mail/Provider
+2026-01-06T06:16:30.963078034Z [inf]  /var/www/html/lib/public/Mail/Provider/Exception
+2026-01-06T06:16:30.963088611Z [inf]  /var/www/html/lib/public/Talk
+2026-01-06T06:16:30.963093122Z [inf]  /var/www/html/lib/public/Talk/Exceptions
+2026-01-06T06:16:30.963097519Z [inf]  /var/www/html/lib/public/Template
+2026-01-06T06:16:30.963102689Z [inf]  /var/www/html/lib/public/Profiler
+2026-01-06T06:16:30.963107608Z [inf]  /var/www/html/lib/public/Group
+2026-01-06T06:16:30.963766351Z [inf]  /var/www/html/lib/public/Group/Backend
+2026-01-06T06:16:30.963774835Z [inf]  🔍 POST-RESTORE: Sizes of key dirs/files:
+2026-01-06T06:16:30.963778973Z [inf]  47M	/var/www/html/3rdparty
+2026-01-06T06:16:30.963783262Z [inf]  28K	/var/www/html/AUTHORS
+2026-01-06T06:16:30.963789899Z [inf]  36K	/var/www/html/COPYING
+2026-01-06T06:16:30.963797662Z [inf]  364K	/var/www/html/LICENSES
+2026-01-06T06:16:30.963804008Z [inf]  36K	/var/www/html/REUSE.toml
+2026-01-06T06:16:30.963891531Z [inf]  488M	/var/www/html/apps
+2026-01-06T06:16:30.963901846Z [inf]  4.0K	/var/www/html/composer.json
+2026-01-06T06:16:30.963909008Z [inf]  4.0K	/var/www/html/composer.lock
+2026-01-06T06:16:30.963915882Z [inf]  100K	/var/www/html/config
+2026-01-06T06:16:30.963922146Z [inf]  4.0K	/var/www/html/console.php
+2026-01-06T06:16:30.963928839Z [inf]  === POST-RESTORE END ===
+2026-01-06T06:16:30.963935330Z [inf]  === EXPECTED FILES CHECK ===
+2026-01-06T06:16:30.963942844Z [inf]  PRESENT: index.php
+2026-01-06T06:16:30.963948937Z [inf]  -rw-r--r-- 1 www-data www-data 3695 Dec 11 08:58 /var/www/html/index.php
+2026-01-06T06:16:30.963955712Z [inf]  <?php
+2026-01-06T06:16:30.963961697Z [inf]  
+2026-01-06T06:16:30.963968801Z [inf]  declare(strict_types=1);
+2026-01-06T06:16:30.963975329Z [inf]  
+2026-01-06T06:16:30.963981771Z [inf]  /**
+2026-01-06T06:16:30.963989233Z [inf]  PRESENT: occ
+2026-01-06T06:16:30.963996773Z [inf]  -rw-r--r-- 1 www-data www-data 596 Dec 11 08:58 /var/www/html/occ
+2026-01-06T06:16:30.964004339Z [inf]  #!/usr/bin/env php
+2026-01-06T06:16:30.964012473Z [inf]  <?php
+2026-01-06T06:16:30.964021271Z [inf]  
+2026-01-06T06:16:30.964029015Z [inf]  declare(strict_types=1);
+2026-01-06T06:16:30.964037649Z [inf]  
+2026-01-06T06:16:30.964044124Z [inf]  PRESENT: .htaccess
+2026-01-06T06:16:30.964050957Z [inf]  -rw-r--r-- 1 www-data www-data 4558 Jan  6 06:15 /var/www/html/.htaccess
+2026-01-06T06:16:30.965184490Z [inf]      <IfModule mod_fcgid.c>
+2026-01-06T06:16:30.965193246Z [inf]         SetEnvIfNoCase ^Authorization$ "(.+)" XAUTHORIZATION=$1
+2026-01-06T06:16:30.965195013Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Exception
+2026-01-06T06:16:30.965200613Z [inf]         RequestHeader set XAuthorization %{XAUTHORIZATION}e env=XAUTHORIZATION
+2026-01-06T06:16:30.965207547Z [inf]  PRESENT: version.php
+2026-01-06T06:16:30.965215933Z [inf]  -rw-r--r-- 1 www-data www-data 446 Dec 11 09:03 /var/www/html/version.php
+2026-01-06T06:16:30.965217966Z [inf]  drwxr-xr-x 25 www-data www-data    4096 Dec 11 09:03 .
+2026-01-06T06:16:30.965225033Z [inf]  <?php 
+2026-01-06T06:16:30.965238316Z [inf]  drwxr-xr-x 16 www-data www-data    4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.965238337Z [inf]  $OC_Version = array(32,0,3,2);
+2026-01-06T06:16:30.965252584Z [inf]  $OC_VersionString = '32.0.3';
+2026-01-06T06:16:30.965254819Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 AppInfo
+2026-01-06T06:16:30.965267319Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 BackgroundJobs
+2026-01-06T06:16:30.965270586Z [inf]  $OC_Edition = '';
+2026-01-06T06:16:30.965277269Z [inf]  <IfModule mod_headers.c>
+2026-01-06T06:16:30.965282758Z [inf]  drwxr-xr-x 23 www-data www-data    4096 Dec 11 08:58 Command
+2026-01-06T06:16:30.965283079Z [inf]  $OC_Channel = 'stable';
+2026-01-06T06:16:30.965290471Z [inf]    <IfModule mod_setenvif.c>
+2026-01-06T06:16:30.965298125Z [inf]  PRESENT: core/
+2026-01-06T06:16:30.965300866Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Controller
+2026-01-06T06:16:30.965314799Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Data
+2026-01-06T06:16:30.965323782Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Db
+2026-01-06T06:16:30.965329488Z [inf]  total 2976
+2026-01-06T06:16:30.965337103Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Events
+2026-01-06T06:16:30.967303241Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Listener
+2026-01-06T06:16:30.967317824Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Middleware
+2026-01-06T06:16:30.967328326Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Migrations
+2026-01-06T06:16:30.967336941Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Notification
+2026-01-06T06:16:30.967345097Z [inf]  -rw-r--r--  1 www-data www-data    6432 Dec 11 08:58 ResponseDefinitions.php
+2026-01-06T06:16:30.967353878Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 Service
+2026-01-06T06:16:30.967362545Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 ajax
+2026-01-06T06:16:30.967374394Z [inf]  drwxr-xr-x  3 www-data www-data    4096 Dec 11 08:58 css
+2026-01-06T06:16:30.967383246Z [inf]  drwxr-xr-x  4 www-data www-data    4096 Dec 11 08:58 doc
+2026-01-06T06:16:30.967391821Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 fonts
+2026-01-06T06:16:30.967400798Z [inf]  drwxr-xr-x 11 www-data www-data    4096 Dec 11 08:58 img
+2026-01-06T06:16:30.967407558Z [inf]  drwxr-xr-x  4 www-data www-data    4096 Dec 11 08:58 js
+2026-01-06T06:16:30.967415079Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 l10n
+2026-01-06T06:16:30.967423368Z [inf]  -rw-r--r--  1 www-data www-data   28382 Dec 11 08:58 openapi-administration.json
+2026-01-06T06:16:30.967431499Z [inf]  -rw-r--r--  1 www-data www-data     114 Dec 11 08:58 openapi-administration.json.license
+2026-01-06T06:16:30.967440596Z [inf]  -rw-r--r--  1 www-data www-data   62511 Dec 11 08:58 openapi-ex_app.json
+2026-01-06T06:16:30.967450657Z [inf]  -rw-r--r--  1 www-data www-data     114 Dec 11 08:58 openapi-ex_app.json.license
+2026-01-06T06:16:30.967463770Z [inf]  -rw-r--r--  1 www-data www-data  535476 Dec 11 08:58 openapi-full.json
+2026-01-06T06:16:30.967472100Z [inf]  -rw-r--r--  1 www-data www-data     114 Dec 11 08:58 openapi-full.json.license
+2026-01-06T06:16:30.969612466Z [inf]  -rw-r--r--  1 www-data www-data  458129 Dec 11 08:58 openapi.json
+2026-01-06T06:16:30.969629475Z [inf]  -rw-r--r--  1 www-data www-data     113 Dec 11 08:58 openapi.json.license
+2026-01-06T06:16:30.969638524Z [inf]  -rw-r--r--  1 www-data www-data   11663 Dec 11 08:58 register_command.php
+2026-01-06T06:16:30.969646621Z [inf]  -rw-r--r--  1 www-data www-data     432 Dec 11 08:58 routes.php
+2026-01-06T06:16:30.969654648Z [inf]  -rw-r--r--  1 www-data www-data    2260 Dec 11 08:58 shipped.json
+2026-01-06T06:16:30.969663540Z [inf]  -rw-r--r--  1 www-data www-data     158 Dec 11 08:58 shipped.json.license
+2026-01-06T06:16:30.969671798Z [inf]  -rw-r--r--  1 www-data www-data 1799846 Dec 11 09:03 signature.json
+2026-01-06T06:16:30.969682083Z [inf]  drwxr-xr-x  5 www-data www-data    4096 Dec 11 09:03 skeleton
+2026-01-06T06:16:30.969689058Z [inf]  -rw-r--r--  1 www-data www-data     433 Dec 11 08:58 strings.php
+2026-01-06T06:16:30.969696431Z [inf]  drwxr-xr-x  5 www-data www-data    4096 Dec 11 08:58 templates
+2026-01-06T06:16:30.969702579Z [inf]  drwxr-xr-x  3 www-data www-data    4096 Dec 11 08:58 vendor
+2026-01-06T06:16:30.969710177Z [inf]    Contents (top 5):
+2026-01-06T06:16:30.969716705Z [inf]  total 2976
+2026-01-06T06:16:30.969722241Z [inf]  drwxr-xr-x 25 www-data www-data    4096 Dec 11 09:03 .
+2026-01-06T06:16:30.969728423Z [inf]  drwxr-xr-x 16 www-data www-data    4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.969733264Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 AppInfo
+2026-01-06T06:16:30.969738702Z [inf]  drwxr-xr-x  2 www-data www-data    4096 Dec 11 08:58 BackgroundJobs
+2026-01-06T06:16:30.969744694Z [inf]  drwxr-xr-x 23 www-data www-data    4096 Dec 11 08:58 Command
+2026-01-06T06:16:30.969749535Z [inf]  PRESENT: apps/
+2026-01-06T06:16:30.969756090Z [inf]  total 220
+2026-01-06T06:16:30.969761670Z [inf]  drwxr-xr-x 55 www-data www-data 4096 Dec 11 09:01 .
+2026-01-06T06:16:30.972305067Z [inf]  drwxr-xr-x 16 www-data www-data 4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.972306420Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 files_downloadlimit
+2026-01-06T06:16:30.972317940Z [inf]  drwxr-xr-x 12 www-data www-data 4096 Dec 11 09:03 activity
+2026-01-06T06:16:30.972321956Z [inf]  drwxr-xr-x 11 www-data www-data 4096 Dec 11 09:03 files_external
+2026-01-06T06:16:30.972328250Z [inf]  drwxr-xr-x  6 www-data www-data 4096 Dec 11 09:03 admin_audit
+2026-01-06T06:16:30.972332163Z [inf]  drwxr-xr-x 11 www-data www-data 4096 Dec 11 09:03 files_pdfviewer
+2026-01-06T06:16:30.972338820Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 app_api
+2026-01-06T06:16:30.972341066Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 files_reminders
+2026-01-06T06:16:30.972348945Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 bruteforcesettings
+2026-01-06T06:16:30.972349044Z [inf]  drwxr-xr-x  9 www-data www-data 4096 Dec 11 09:03 files_sharing
+2026-01-06T06:16:30.972362496Z [inf]  drwxr-xr-x 13 www-data www-data 4096 Dec 11 09:03 circles
+2026-01-06T06:16:30.972370695Z [inf]  drwxr-xr-x  6 www-data www-data 4096 Dec 11 09:03 cloud_federation_api
+2026-01-06T06:16:30.972379935Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 comments
+2026-01-06T06:16:30.972388274Z [inf]  drwxr-xr-x  6 www-data www-data 4096 Dec 11 09:03 contactsinteraction
+2026-01-06T06:16:30.972399476Z [inf]  drwxr-xr-x  9 www-data www-data 4096 Dec 11 09:03 dashboard
+2026-01-06T06:16:30.972406814Z [inf]  drwxr-xr-x  9 www-data www-data 4096 Dec 11 09:03 dav
+2026-01-06T06:16:30.972414077Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 encryption
+2026-01-06T06:16:30.972422036Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 federatedfilesharing
+2026-01-06T06:16:30.972429379Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 federation
+2026-01-06T06:16:30.972436329Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 files
+2026-01-06T06:16:30.975008240Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 files_trashbin
+2026-01-06T06:16:30.975015391Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 files_versions
+2026-01-06T06:16:30.975022644Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 firstrunwizard
+2026-01-06T06:16:30.975030171Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 logreader
+2026-01-06T06:16:30.975037420Z [inf]  drwxr-xr-x  6 www-data www-data 4096 Dec 11 09:03 lookup_server_connector
+2026-01-06T06:16:30.975045305Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 nextcloud_announcements
+2026-01-06T06:16:30.975052560Z [inf]  drwxr-xr-x 12 www-data www-data 4096 Dec 11 09:03 notifications
+2026-01-06T06:16:30.975064651Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 oauth2
+2026-01-06T06:16:30.975071512Z [inf]  drwxr-xr-x 12 www-data www-data 4096 Dec 11 09:03 password_policy
+2026-01-06T06:16:30.975078697Z [inf]  drwxr-xr-x 13 www-data www-data 4096 Dec 11 09:03 photos
+2026-01-06T06:16:30.975087637Z [inf]  drwxr-xr-x  9 www-data www-data 4096 Dec 11 09:03 privacy
+2026-01-06T06:16:30.975095406Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 profile
+2026-01-06T06:16:30.975108709Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 provisioning_api
+2026-01-06T06:16:30.975116138Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 recommendations
+2026-01-06T06:16:30.975123236Z [inf]  drwxr-xr-x  9 www-data www-data 4096 Dec 11 09:03 related_resources
+2026-01-06T06:16:30.975130437Z [inf]  drwxr-xr-x 11 www-data www-data 4096 Dec 11 09:03 serverinfo
+2026-01-06T06:16:30.975137877Z [inf]  drwxr-xr-x 11 www-data www-data 4096 Dec 11 09:03 settings
+2026-01-06T06:16:30.975145778Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 sharebymail
+2026-01-06T06:16:30.975153088Z [inf]  drwxr-xr-x 12 www-data www-data 4096 Dec 11 09:03 support
+2026-01-06T06:16:30.975160588Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 survey_client
+2026-01-06T06:16:30.980728395Z [inf]  drwxr-xr-x  6 www-data www-data 4096 Dec 11 09:03 admin_audit
+2026-01-06T06:16:30.980744764Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 app_api
+2026-01-06T06:16:30.980757951Z [inf]  drwxr-xr-x  9 www-data www-data 4096 Dec 11 09:03 suspicious_login
+2026-01-06T06:16:30.980763697Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 systemtags
+2026-01-06T06:16:30.980770443Z [inf]  drwxr-xr-x 11 www-data www-data 4096 Dec 11 09:03 text
+2026-01-06T06:16:30.980775126Z [inf]  drwxr-xr-x 11 www-data www-data 4096 Dec 11 09:03 theming
+2026-01-06T06:16:30.980779471Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 twofactor_backupcodes
+2026-01-06T06:16:30.980784905Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 twofactor_nextcloud_notification
+2026-01-06T06:16:30.980790333Z [inf]  drwxr-xr-x 11 www-data www-data 4096 Dec 11 09:03 twofactor_totp
+2026-01-06T06:16:30.980796218Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 updatenotification
+2026-01-06T06:16:30.980801641Z [inf]  drwxr-xr-x 11 www-data www-data 4096 Dec 11 09:03 user_ldap
+2026-01-06T06:16:30.980805626Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 user_status
+2026-01-06T06:16:30.980811968Z [inf]  drwxr-xr-x 10 www-data www-data 4096 Dec 11 09:03 viewer
+2026-01-06T06:16:30.980817201Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 weather_status
+2026-01-06T06:16:30.980822715Z [inf]  drwxr-xr-x  7 www-data www-data 4096 Dec 11 09:03 webhook_listeners
+2026-01-06T06:16:30.980827648Z [inf]  drwxr-xr-x  8 www-data www-data 4096 Dec 11 09:03 workflowengine
+2026-01-06T06:16:30.980832590Z [inf]    Contents (top 5):
+2026-01-06T06:16:30.980851442Z [inf]  total 220
+2026-01-06T06:16:30.980857025Z [inf]  drwxr-xr-x 55 www-data www-data 4096 Dec 11 09:01 .
+2026-01-06T06:16:30.980863416Z [inf]  drwxr-xr-x 16 www-data www-data 4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.980869469Z [inf]  drwxr-xr-x 12 www-data www-data 4096 Dec 11 09:03 activity
+2026-01-06T06:16:30.984814616Z [inf]  PRESENT: lib/
+2026-01-06T06:16:30.984821259Z [inf]  total 76
+2026-01-06T06:16:30.984828099Z [inf]  drwxr-xr-x  7 www-data www-data  4096 Dec 11 08:58 .
+2026-01-06T06:16:30.984834814Z [inf]  drwxr-xr-x 16 www-data www-data  4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.984842388Z [inf]  -rw-r--r--  1 www-data www-data 42687 Dec 11 08:58 base.php
+2026-01-06T06:16:30.984849552Z [inf]  drwxr-xr-x  3 www-data www-data  4096 Dec 11 08:58 composer
+2026-01-06T06:16:30.984856046Z [inf]  drwxr-xr-x  2 www-data www-data  4096 Dec 11 08:58 l10n
+2026-01-06T06:16:30.984862353Z [inf]  drwxr-xr-x 79 www-data www-data  4096 Dec 11 08:58 private
+2026-01-06T06:16:30.984868274Z [inf]  drwxr-xr-x 73 www-data www-data  4096 Dec 11 08:58 public
+2026-01-06T06:16:30.984874060Z [inf]  drwxr-xr-x  5 www-data www-data  4096 Dec 11 08:58 unstable
+2026-01-06T06:16:30.984881466Z [inf]  -rw-r--r--  1 www-data www-data   726 Dec 11 08:58 versioncheck.php
+2026-01-06T06:16:30.984888865Z [inf]    Contents (top 5):
+2026-01-06T06:16:30.984895305Z [inf]  total 76
+2026-01-06T06:16:30.984900996Z [inf]  drwxr-xr-x  7 www-data www-data  4096 Dec 11 08:58 .
+2026-01-06T06:16:30.984906706Z [inf]  drwxr-xr-x 16 www-data www-data  4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.984913412Z [inf]  -rw-r--r--  1 www-data www-data 42687 Dec 11 08:58 base.php
+2026-01-06T06:16:30.984922894Z [inf]  drwxr-xr-x  3 www-data www-data  4096 Dec 11 08:58 composer
+2026-01-06T06:16:30.984930258Z [inf]  drwxr-xr-x  2 www-data www-data  4096 Dec 11 08:58 l10n
+2026-01-06T06:16:30.984968391Z [inf]  PRESENT: config/
+2026-01-06T06:16:30.984975660Z [inf]  total 104
+2026-01-06T06:16:30.984981879Z [inf]  drwxr-xr-x  2 www-data www-data  4096 Jan  6 06:16 .
+2026-01-06T06:16:30.984989393Z [inf]  drwxr-xr-x 16 www-data www-data  4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.984995569Z [inf]  -rw-r--r--  1 www-data www-data   665 Dec 11 08:58 .htaccess
+2026-01-06T06:16:30.988154220Z [inf]  -rw-r-----  1 www-data www-data  1198 Jan  6 06:16 config.php
+2026-01-06T06:16:30.988161379Z [inf]  -rw-r--r--  1 www-data www-data 89651 Dec 11 08:58 config.sample.php
+2026-01-06T06:16:30.988167883Z [inf]    Contents (top 5):
+2026-01-06T06:16:30.988175288Z [inf]  total 104
+2026-01-06T06:16:30.988182628Z [inf]  drwxr-xr-x  2 www-data www-data  4096 Jan  6 06:16 .
+2026-01-06T06:16:30.988188360Z [inf]  drwxr-xr-x 16 www-data www-data  4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.988193251Z [inf]  -rw-r--r--  1 www-data www-data   665 Dec 11 08:58 .htaccess
+2026-01-06T06:16:30.988203154Z [inf]  -rw-r-----  1 www-data www-data  1198 Jan  6 06:16 config.php
+2026-01-06T06:16:30.988209078Z [inf]  -rw-r--r--  1 www-data www-data 89651 Dec 11 08:58 config.sample.php
+2026-01-06T06:16:30.988213465Z [inf]  PRESENT: themes/
+2026-01-06T06:16:30.988218350Z [inf]  total 16
+2026-01-06T06:16:30.988222887Z [inf]  drwxr-xr-x  3 www-data www-data 4096 Dec 11 08:58 .
+2026-01-06T06:16:30.988228286Z [inf]  drwxr-xr-x 16 www-data www-data 4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.988234299Z [inf]  -rw-r--r--  1 www-data www-data 1080 Dec 11 08:58 README
+2026-01-06T06:16:30.988240180Z [inf]  drwxr-xr-x  3 www-data www-data 4096 Dec 11 08:58 example
+2026-01-06T06:16:30.988246275Z [inf]    Contents (top 5):
+2026-01-06T06:16:30.988254157Z [inf]  total 16
+2026-01-06T06:16:30.988261314Z [inf]  drwxr-xr-x  3 www-data www-data 4096 Dec 11 08:58 .
+2026-01-06T06:16:30.988268367Z [inf]  drwxr-xr-x 16 www-data www-data 4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.988274677Z [inf]  -rw-r--r--  1 www-data www-data 1080 Dec 11 08:58 README
+2026-01-06T06:16:30.988281066Z [inf]  drwxr-xr-x  3 www-data www-data 4096 Dec 11 08:58 example
+2026-01-06T06:16:30.988288653Z [inf]  MISSING: upgrader/
+2026-01-06T06:16:30.988295022Z [inf]  PRESENT: 3rdparty/
+2026-01-06T06:16:30.988302520Z [inf]  total 408
+2026-01-06T06:16:30.989946104Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 fusonic
+2026-01-06T06:16:30.989952508Z [inf]  drwxr-xr-x 42 www-data www-data   4096 Dec 11 09:03 .
+2026-01-06T06:16:30.989957378Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 giggsey
+2026-01-06T06:16:30.989960047Z [inf]  drwxr-xr-x 16 www-data www-data   4096 Jan  6 06:15 ..
+2026-01-06T06:16:30.989964729Z [inf]  drwxr-xr-x  6 www-data www-data   4096 Dec 11 08:58 guzzlehttp
+2026-01-06T06:16:30.989969456Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:58 .patches
+2026-01-06T06:16:30.989975415Z [inf]  -rw-r--r--  1 www-data www-data    543 Dec 11 08:58 LICENSE INFO
+2026-01-06T06:16:30.989978448Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:58 composer
+2026-01-06T06:16:30.989981978Z [inf]  -rw-r--r--  1 www-data www-data    748 Dec 11 08:58 autoload.php
+2026-01-06T06:16:30.989987913Z [inf]  -rw-r--r--  1 www-data www-data   2454 Dec 11 08:58 composer.json
+2026-01-06T06:16:30.989988918Z [inf]  drwxr-xr-x  4 www-data www-data   4096 Dec 11 08:58 aws
+2026-01-06T06:16:30.989995587Z [inf]  -rw-r--r--  1 www-data www-data 226136 Dec 11 08:58 composer.lock
+2026-01-06T06:16:30.989996188Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 bantu
+2026-01-06T06:16:30.990002016Z [inf]  -rw-r--r--  1 www-data www-data    244 Dec 11 08:58 composer.patches.json
+2026-01-06T06:16:30.990007431Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 brick
+2026-01-06T06:16:30.990010992Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 cweagans
+2026-01-06T06:16:30.990018134Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 deepdiver
+2026-01-06T06:16:30.990023470Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 deepdiver1975
+2026-01-06T06:16:30.990028477Z [inf]  drwxr-xr-x  6 www-data www-data   4096 Dec 11 08:58 doctrine
+2026-01-06T06:16:30.990033650Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 egulias
+2026-01-06T06:16:30.992030760Z [inf]  drwxr-xr-x  5 www-data www-data   4096 Dec 11 08:58 icewind
+2026-01-06T06:16:30.992038294Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 justinrainbow
+2026-01-06T06:16:30.992046285Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 kornrunner
+2026-01-06T06:16:30.992052713Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 laravel
+2026-01-06T06:16:30.992058716Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 lcobucci
+2026-01-06T06:16:30.992540165Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 marc-mabe
+2026-01-06T06:16:30.992553560Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 masterminds
+2026-01-06T06:16:30.992561315Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 mexitek
+2026-01-06T06:16:30.992566903Z [inf]  drwxr-xr-x  4 www-data www-data   4096 Dec 11 08:58 microsoft
+2026-01-06T06:16:30.992571825Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 mlocati
+2026-01-06T06:16:30.992615598Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 mtdowling
+2026-01-06T06:16:30.992622391Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 nextcloud
+2026-01-06T06:16:30.992628716Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 paragonie
+2026-01-06T06:16:30.992633448Z [inf]  drwxr-xr-x  6 www-data www-data   4096 Dec 11 08:58 pear
+2026-01-06T06:16:30.992638376Z [inf]  drwxr-xr-x  5 www-data www-data   4096 Dec 11 08:58 php-http
+2026-01-06T06:16:30.992643469Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 php-opencloud
+2026-01-06T06:16:30.992648740Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 phpseclib
+2026-01-06T06:16:30.992654517Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 pimple
+2026-01-06T06:16:30.992659496Z [inf]  drwxr-xr-x 10 www-data www-data   4096 Dec 11 08:58 psr
+2026-01-06T06:16:30.992664377Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 punic
+2026-01-06T06:16:30.994834498Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 ralouphie
+2026-01-06T06:16:31.921415380Z [inf]  🚀 Installing Nextcloud...
+2026-01-06T06:16:32.824973001Z [inf]  Trace: #0 /var/www/html/lib/private/DB/ConnectionAdapter.php(53): OC\DB\Exceptions\DbalException::wrap(Object(Doctrine\DBAL\Exception\DriverException), '', 'SELECT `version...')
+2026-01-06T06:16:32.824986397Z [inf]  #1 /var/www/html/lib/private/DB/QueryBuilder/QueryBuilder.php(291): OC\DB\ConnectionAdapter->executeQuery('SELECT `version...', Array, Array)
+2026-01-06T06:16:32.824995746Z [inf]  #2 /var/www/html/lib/private/DB/MigrationService.php(177): OC\DB\QueryBuilder\QueryBuilder->executeQuery()
+2026-01-06T06:16:32.825002109Z [inf]  #3 /var/www/html/lib/private/DB/MigrationService.php(252): OC\DB\MigrationService->getMigratedVersions()
+2026-01-06T06:16:32.825021510Z [inf]  #4 /var/www/html/lib/private/DB/MigrationService.php(414): OC\DB\MigrationService->getMigrationsToExecute('latest')
+2026-01-06T06:16:32.825029535Z [inf]  #5 /var/www/html/lib/private/DB/MigrationService.php(391): OC\DB\MigrationService->migrateSchemaOnly('latest')
+2026-01-06T06:16:32.825038534Z [inf]  #6 /var/www/html/lib/private/Setup/AbstractDatabase.php(136): OC\DB\MigrationService->migrate('latest', true)
+2026-01-06T06:16:32.825045644Z [inf]  #7 /var/www/html/lib/private/Setup.php(400): OC\Setup\AbstractDatabase->runMigrations(NULL)
+2026-01-06T06:16:32.825052404Z [inf]  #8 /var/www/html/core/Command/Maintenance/Install.php(82): OC\Setup->install(Array, NULL)
+2026-01-06T06:16:32.825059999Z [inf]  #9 /var/www/html/3rdparty/symfony/console/Command/Command.php(326): OC\Core\Command\Maintenance\Install->execute(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.825067762Z [inf]  #10 /var/www/html/3rdparty/symfony/console/Application.php(1078): Symfony\Component\Console\Command\Command->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.825212857Z [inf]  Error while trying to initialise the database: An exception occurred while executing a query: SQLSTATE[42501]: Insufficient privilege: 7 ERROR:  permission denied for table oc_migrations
+2026-01-06T06:16:32.827617417Z [inf]  #11 /var/www/html/3rdparty/symfony/console/Application.php(324): Symfony\Component\Console\Application->doRunCommand(Object(OC\Core\Command\Maintenance\Install), Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.827622058Z [inf]  #12 /var/www/html/3rdparty/symfony/console/Application.php(175): Symfony\Component\Console\Application->doRun(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.827626642Z [inf]  #13 /var/www/html/lib/private/Console/Application.php(187): Symfony\Component\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.827631167Z [inf]  #14 /var/www/html/console.php(90): OC\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput))
+2026-01-06T06:16:32.827635087Z [inf]  #15 /var/www/html/occ(33): require_once('/var/www/html/c...')
+2026-01-06T06:16:32.827639081Z [inf]  #16 {main}
+2026-01-06T06:16:32.827645420Z [inf]  
+2026-01-06T06:16:32.827650240Z [inf]  Previous: Doctrine\DBAL\Exception\DriverException: An exception occurred while executing a query: SQLSTATE[42501]: Insufficient privilege: 7 ERROR:  permission denied for table oc_migrations
+2026-01-06T06:16:32.827654359Z [inf]  Trace: #0 /var/www/html/3rdparty/doctrine/dbal/src/Connection.php(1976): Doctrine\DBAL\Driver\API\PostgreSQL\ExceptionConverter->convert(Object(Doctrine\DBAL\Driver\PDO\Exception), Object(Doctrine\DBAL\Query))
+2026-01-06T06:16:32.827659165Z [inf]  #1 /var/www/html/3rdparty/doctrine/dbal/src/Connection.php(1918): Doctrine\DBAL\Connection->handleDriverException(Object(Doctrine\DBAL\Driver\PDO\Exception), Object(Doctrine\DBAL\Query))
+2026-01-06T06:16:32.827665519Z [inf]  #2 /var/www/html/3rdparty/doctrine/dbal/src/Connection.php(1111): Doctrine\DBAL\Connection->convertExceptionDuringQuery(Object(Doctrine\DBAL\Driver\PDO\Exception), 'SELECT "version...', Array, Array)
+2026-01-06T06:16:32.828452927Z [inf]  #3 /var/www/html/lib/private/DB/Connection.php(420): Doctrine\DBAL\Connection->executeQuery('SELECT "version...', Array, Array, NULL)
+2026-01-06T06:16:32.828457775Z [inf]  #4 /var/www/html/lib/private/DB/ConnectionAdapter.php(50): OC\DB\Connection->executeQuery('SELECT "version...', Array, Array)
+2026-01-06T06:16:32.828461623Z [inf]  #5 /var/www/html/lib/private/DB/QueryBuilder/QueryBuilder.php(291): OC\DB\ConnectionAdapter->executeQuery('SELECT `version...', Array, Array)
+2026-01-06T06:16:32.828465263Z [inf]  #6 /var/www/html/lib/private/DB/MigrationService.php(177): OC\DB\QueryBuilder\QueryBuilder->executeQuery()
+2026-01-06T06:16:32.828470347Z [inf]  #7 /var/www/html/lib/private/DB/MigrationService.php(252): OC\DB\MigrationService->getMigratedVersions()
+2026-01-06T06:16:32.828475194Z [inf]  #8 /var/www/html/lib/private/DB/MigrationService.php(414): OC\DB\MigrationService->getMigrationsToExecute('latest')
+2026-01-06T06:16:32.828479203Z [inf]  #9 /var/www/html/lib/private/DB/MigrationService.php(391): OC\DB\MigrationService->migrateSchemaOnly('latest')
+2026-01-06T06:16:32.828482663Z [inf]  #10 /var/www/html/lib/private/Setup/AbstractDatabase.php(136): OC\DB\MigrationService->migrate('latest', true)
+2026-01-06T06:16:32.828486182Z [inf]  #11 /var/www/html/lib/private/Setup.php(400): OC\Setup\AbstractDatabase->runMigrations(NULL)
+2026-01-06T06:16:32.828490070Z [inf]  #12 /var/www/html/core/Command/Maintenance/Install.php(82): OC\Setup->install(Array, NULL)
+2026-01-06T06:16:32.828494193Z [inf]  #13 /var/www/html/3rdparty/symfony/console/Command/Command.php(326): OC\Core\Command\Maintenance\Install->execute(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.828499511Z [inf]  #14 /var/www/html/3rdparty/symfony/console/Application.php(1078): Symfony\Component\Console\Command\Command->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.830838253Z [inf]  Trace: #0 /var/www/html/3rdparty/doctrine/dbal/src/Driver/PDO/Statement.php(132): Doctrine\DBAL\Driver\PDO\Exception::new(Object(PDOException))
+2026-01-06T06:16:32.830849742Z [inf]  #1 /var/www/html/3rdparty/doctrine/dbal/src/Connection.php(1104): Doctrine\DBAL\Driver\PDO\Statement->execute()
+2026-01-06T06:16:32.830857811Z [inf]  #2 /var/www/html/lib/private/DB/Connection.php(420): Doctrine\DBAL\Connection->executeQuery('SELECT "version...', Array, Array, NULL)
+2026-01-06T06:16:32.830865616Z [inf]  #3 /var/www/html/lib/private/DB/ConnectionAdapter.php(50): OC\DB\Connection->executeQuery('SELECT "version...', Array, Array)
+2026-01-06T06:16:32.830929316Z [inf]  #15 /var/www/html/3rdparty/symfony/console/Application.php(324): Symfony\Component\Console\Application->doRunCommand(Object(OC\Core\Command\Maintenance\Install), Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.830934992Z [inf]  #16 /var/www/html/3rdparty/symfony/console/Application.php(175): Symfony\Component\Console\Application->doRun(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.830942224Z [inf]  #17 /var/www/html/lib/private/Console/Application.php(187): Symfony\Component\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.830948237Z [inf]  #18 /var/www/html/console.php(90): OC\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput))
+2026-01-06T06:16:32.830953588Z [inf]  #19 /var/www/html/occ(33): require_once('/var/www/html/c...')
+2026-01-06T06:16:32.830960310Z [inf]  #20 {main}
+2026-01-06T06:16:32.830966365Z [inf]  
+2026-01-06T06:16:32.830973034Z [inf]  Previous: Doctrine\DBAL\Driver\PDO\Exception: SQLSTATE[42501]: Insufficient privilege: 7 ERROR:  permission denied for table oc_migrations
+2026-01-06T06:16:32.832801681Z [inf]  #13 /var/www/html/3rdparty/symfony/console/Application.php(1078): Symfony\Component\Console\Command\Command->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.832809388Z [inf]  #14 /var/www/html/3rdparty/symfony/console/Application.php(324): Symfony\Component\Console\Application->doRunCommand(Object(OC\Core\Command\Maintenance\Install), Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.832820384Z [inf]  #4 /var/www/html/lib/private/DB/QueryBuilder/QueryBuilder.php(291): OC\DB\ConnectionAdapter->executeQuery('SELECT `version...', Array, Array)
+2026-01-06T06:16:32.832886417Z [inf]  #5 /var/www/html/lib/private/DB/MigrationService.php(177): OC\DB\QueryBuilder\QueryBuilder->executeQuery()
+2026-01-06T06:16:32.832893259Z [inf]  #6 /var/www/html/lib/private/DB/MigrationService.php(252): OC\DB\MigrationService->getMigratedVersions()
+2026-01-06T06:16:32.832898605Z [inf]  #7 /var/www/html/lib/private/DB/MigrationService.php(414): OC\DB\MigrationService->getMigrationsToExecute('latest')
+2026-01-06T06:16:32.832904550Z [inf]  #8 /var/www/html/lib/private/DB/MigrationService.php(391): OC\DB\MigrationService->migrateSchemaOnly('latest')
+2026-01-06T06:16:32.832910867Z [inf]  #9 /var/www/html/lib/private/Setup/AbstractDatabase.php(136): OC\DB\MigrationService->migrate('latest', true)
+2026-01-06T06:16:32.832916504Z [inf]  #10 /var/www/html/lib/private/Setup.php(400): OC\Setup\AbstractDatabase->runMigrations(NULL)
+2026-01-06T06:16:32.832921750Z [inf]  #11 /var/www/html/core/Command/Maintenance/Install.php(82): OC\Setup->install(Array, NULL)
+2026-01-06T06:16:32.832927201Z [inf]  #12 /var/www/html/3rdparty/symfony/console/Command/Command.php(326): OC\Core\Command\Maintenance\Install->execute(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.835783607Z [inf]  #16 /var/www/html/lib/private/Console/Application.php(187): Symfony\Component\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.835794919Z [inf]  #17 /var/www/html/console.php(90): OC\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput))
+2026-01-06T06:16:32.835802451Z [inf]  #18 /var/www/html/occ(33): require_once('/var/www/html/c...')
+2026-01-06T06:16:32.835808760Z [inf]  #19 {main}
+2026-01-06T06:16:32.835868276Z [inf]  
+2026-01-06T06:16:32.835878899Z [inf]  Previous: PDOException: SQLSTATE[42501]: Insufficient privilege: 7 ERROR:  permission denied for table oc_migrations
+2026-01-06T06:16:32.835886524Z [inf]  Trace: #0 /var/www/html/3rdparty/doctrine/dbal/src/Driver/PDO/Statement.php(130): PDOStatement->execute(NULL)
+2026-01-06T06:16:32.835896719Z [inf]  #1 /var/www/html/3rdparty/doctrine/dbal/src/Connection.php(1104): Doctrine\DBAL\Driver\PDO\Statement->execute()
+2026-01-06T06:16:32.835903839Z [inf]  #2 /var/www/html/lib/private/DB/Connection.php(420): Doctrine\DBAL\Connection->executeQuery('SELECT "version...', Array, Array, NULL)
+2026-01-06T06:16:32.835910926Z [inf]  #3 /var/www/html/lib/private/DB/ConnectionAdapter.php(50): OC\DB\Connection->executeQuery('SELECT "version...', Array, Array)
+2026-01-06T06:16:32.835915597Z [inf]  #4 /var/www/html/lib/private/DB/QueryBuilder/QueryBuilder.php(291): OC\DB\ConnectionAdapter->executeQuery('SELECT `version...', Array, Array)
+2026-01-06T06:16:32.835920691Z [inf]  #5 /var/www/html/lib/private/DB/MigrationService.php(177): OC\DB\QueryBuilder\QueryBuilder->executeQuery()
+2026-01-06T06:16:32.835925337Z [inf]  #6 /var/www/html/lib/private/DB/MigrationService.php(252): OC\DB\MigrationService->getMigratedVersions()
+2026-01-06T06:16:32.835941555Z [inf]  #15 /var/www/html/3rdparty/symfony/console/Application.php(175): Symfony\Component\Console\Application->doRun(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.837603690Z [inf]  #12 /var/www/html/3rdparty/symfony/console/Command/Command.php(326): OC\Core\Command\Maintenance\Install->execute(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.837613013Z [inf]  #13 /var/www/html/3rdparty/symfony/console/Application.php(1078): Symfony\Component\Console\Command\Command->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.837620294Z [inf]  #14 /var/www/html/3rdparty/symfony/console/Application.php(324): Symfony\Component\Console\Application->doRunCommand(Object(OC\Core\Command\Maintenance\Install), Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.837626741Z [inf]  #15 /var/www/html/3rdparty/symfony/console/Application.php(175): Symfony\Component\Console\Application->doRun(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.837632947Z [inf]  #16 /var/www/html/lib/private/Console/Application.php(187): Symfony\Component\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+2026-01-06T06:16:32.837644930Z [inf]  #7 /var/www/html/lib/private/DB/MigrationService.php(414): OC\DB\MigrationService->getMigrationsToExecute('latest')
+2026-01-06T06:16:32.837649185Z [inf]  #8 /var/www/html/lib/private/DB/MigrationService.php(391): OC\DB\MigrationService->migrateSchemaOnly('latest')
+2026-01-06T06:16:32.837653321Z [inf]  #9 /var/www/html/lib/private/Setup/AbstractDatabase.php(136): OC\DB\MigrationService->migrate('latest', true)
+2026-01-06T06:16:32.837657483Z [inf]  #10 /var/www/html/lib/private/Setup.php(400): OC\Setup\AbstractDatabase->runMigrations(NULL)
+2026-01-06T06:16:32.837664890Z [inf]  #11 /var/www/html/core/Command/Maintenance/Install.php(82): OC\Setup->install(Array, NULL)
+2026-01-06T06:16:32.839860213Z [inf]  #17 /var/www/html/console.php(90): OC\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput))
+2026-01-06T06:16:32.839871471Z [inf]  #18 /var/www/html/occ(33): require_once('/var/www/html/c...')
+2026-01-06T06:16:32.839879176Z [inf]  #19 {main}
+2026-01-06T06:16:32.839886521Z [inf]  occ install failed: 1
+2026-01-06T06:16:32.839892982Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:32.844844272Z [err]  
+2026-01-06T06:16:32.861757900Z [err]                                                                     
+2026-01-06T06:16:32.861762950Z [err]    There are no commands defined in the "config:system" namespace.  
+2026-01-06T06:16:32.861770280Z [err]                                                                     
+2026-01-06T06:16:32.861778394Z [err]  
+2026-01-06T06:16:32.877505361Z [inf]  Verifying installation...
+2026-01-06T06:16:33.105239996Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:33.117727199Z [inf]    - installed: false
+2026-01-06T06:16:33.117740981Z [inf]    - version: 32.0.3.2
+2026-01-06T06:16:33.117749626Z [inf]    - versionstring: 32.0.3
+2026-01-06T06:16:33.117756366Z [inf]    - edition: 
+2026-01-06T06:16:33.117763146Z [inf]    - maintenance: false
+2026-01-06T06:16:33.117770389Z [inf]    - needsDbUpgrade: false
+2026-01-06T06:16:33.117776733Z [inf]    - productname: Nextcloud
+2026-01-06T06:16:33.117783190Z [inf]    - extendedSupport: false
+2026-01-06T06:16:33.136707431Z [inf]  ✅ Nextcloud installation completed
+2026-01-06T06:16:33.136717379Z [inf]  🔧 Running fix-warnings script...
+2026-01-06T06:16:33.136726376Z [inf]  🔧 Fixing NextCloud Security & Setup Warnings...
+2026-01-06T06:16:33.136732565Z [inf]  ⚠️  IMPORTANT: This script should only be run AFTER NextCloud setup is complete!
+2026-01-06T06:16:33.136739210Z [inf]  
+2026-01-06T06:16:33.136745934Z [inf]  🔍 Checking NextCloud installation status...
+2026-01-06T06:16:33.956772645Z [inf]    'passwordsalt' => '1qnp9pnPmfdkyoSX1rP4/JP6CQLv4F',
+2026-01-06T06:16:33.956784668Z [inf]    'secret' => 'AwzlryGq1XLS8spGflykvA9SrF4X6soY4JXk06UKrMlOhCte',
+2026-01-06T06:16:33.956794495Z [inf]    'trusted_domains' => 
+2026-01-06T06:16:33.956819932Z [inf]    array (
+2026-01-06T06:16:33.956830972Z [inf]      0 => 'localhost',
+2026-01-06T06:16:33.956851431Z [inf]    ),
+2026-01-06T06:16:33.956861058Z [inf]    'datadirectory' => '/var/www/html/data',
+2026-01-06T06:16:33.956872015Z [inf]    'logfile' => '/var/www/html/data/nextcloud.log',
+2026-01-06T06:16:33.956873887Z [inf]    'dbtype' => 'pgsql',
+2026-01-06T06:16:33.956887509Z [inf]    'version' => '32.0.3.2',
+2026-01-06T06:16:33.956890097Z [inf]    'dbtableprefix' => 'oc_',
+2026-01-06T06:16:33.956960264Z [inf]      'password' => '***',
+2026-01-06T06:16:33.956983574Z [inf]  );
+2026-01-06T06:16:33.956989330Z [inf]      'user' => 'default',
+2026-01-06T06:16:33.956995929Z [inf]  📁 FINAL FILES IN /var/www/html:
+2026-01-06T06:16:33.957021425Z [inf]  total 1260
+2026-01-06T06:16:33.957023232Z [inf]    ),
+2026-01-06T06:16:33.957030785Z [inf]  drwxr-xr-x 16 www-data www-data   4096 Jan  6 06:15 .
+2026-01-06T06:16:33.957039085Z [inf]  drwxrwxr-x  1 www-data root       4096 Dec 30 01:41 ..
+2026-01-06T06:16:33.957050692Z [inf]    'redis' => 
+2026-01-06T06:16:33.957052046Z [inf]  -rw-r--r--  1 www-data www-data   4558 Jan  6 06:15 .htaccess
+2026-01-06T06:16:33.957058145Z [inf]    'dbname' => 'railway',
+2026-01-06T06:16:33.957065483Z [inf]    array (
+2026-01-06T06:16:33.957066162Z [inf]  -rw-r--r--  1 www-data www-data    306 Dec 11 08:58 .user.ini
+2026-01-06T06:16:33.957078839Z [inf]      'host' => 'redis.railway.internal',
+2026-01-06T06:16:33.957079130Z [inf]    'dbhost' => 'postgres.railway.internal:5432',
+2026-01-06T06:16:33.957079460Z [inf]    'overwritehost' => 'engineering.kikaiworks.com',
+2026-01-06T06:16:33.957080089Z [inf]  drwxr-xr-x 42 www-data www-data   4096 Dec 11 09:03 3rdparty
+2026-01-06T06:16:33.957093077Z [inf]  -rw-r--r--  1 www-data www-data  26395 Dec 11 08:58 AUTHORS
+2026-01-06T06:16:33.957093229Z [inf]      'port' => 6379,
+2026-01-06T06:16:33.957097383Z [inf]    'trusted_proxies' => 
+2026-01-06T06:16:33.957098956Z [inf]    'dbuser' => 'oc_admin4',
+2026-01-06T06:16:33.957105619Z [inf]  -rw-r--r--  1 www-data www-data  34520 Dec 11 08:58 COPYING
+2026-01-06T06:16:33.957112087Z [inf]    array (
+2026-01-06T06:16:33.957112813Z [inf]  ❌ NextCloud is not yet installed!
+2026-01-06T06:16:33.957113642Z [inf]    'dbpassword' => '***',
+2026-01-06T06:16:33.957123761Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:58 LICENSES
+2026-01-06T06:16:33.957124723Z [inf]     Please complete the NextCloud setup first:
+2026-01-06T06:16:33.957128217Z [inf]    'installed' => false,
+2026-01-06T06:16:33.957128297Z [inf]      0 => '100.0.0.0/8',
+2026-01-06T06:16:33.957135628Z [inf]  -rw-r--r--  1 www-data www-data  36503 Dec 11 08:58 REUSE.toml
+2026-01-06T06:16:33.957137445Z [inf]     1. Visit your Railway URL
+2026-01-06T06:16:33.957142980Z [inf]    ),
+2026-01-06T06:16:33.957143997Z [inf]    'theme' => '',
+2026-01-06T06:16:33.957149724Z [inf]  drwxr-xr-x 55 www-data www-data   4096 Dec 11 09:01 apps
+2026-01-06T06:16:33.957149745Z [inf]     2. Complete the setup wizard (create admin account)
+2026-01-06T06:16:33.957156546Z [inf]    'memcache.local' => '\\OC\\Memcache\\Redis',
+2026-01-06T06:16:33.957162501Z [inf]  -rw-r--r--  1 www-data www-data   2470 Dec 11 08:58 composer.json
+2026-01-06T06:16:33.957162713Z [inf]     3. Then run this script to fix security warnings
+2026-01-06T06:16:33.957166262Z [inf]    'loglevel' => 2,
+2026-01-06T06:16:33.957172145Z [inf]  
+2026-01-06T06:16:33.957175517Z [inf]  -rw-r--r--  1 www-data www-data   3409 Dec 11 08:58 composer.lock
+2026-01-06T06:16:33.957184362Z [inf]     Current NextCloud status:
+2026-01-06T06:16:33.957185499Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Jan  6 06:16 config
+2026-01-06T06:16:33.957187221Z [inf]    'maintenance' => false,
+2026-01-06T06:16:33.957194630Z [inf]  -rw-r--r--  1 www-data www-data   3814 Dec 11 08:58 console.php
+2026-01-06T06:16:33.957202012Z [inf]    'overwrite.cli.url' => 'https://engineering.kikaiworks.com',
+2026-01-06T06:16:33.957207170Z [inf]  drwxr-xr-x 25 www-data www-data   4096 Dec 11 09:03 core
+2026-01-06T06:16:33.957214133Z [inf]    'overwriteprotocol' => 'https',
+2026-01-06T06:16:33.957218135Z [inf]    - installed: false
+2026-01-06T06:16:33.957225398Z [inf]    - version: 32.0.3.2
+2026-01-06T06:16:33.957231928Z [inf]    - versionstring: 32.0.3
+2026-01-06T06:16:33.957238582Z [inf]    - edition: 
+2026-01-06T06:16:33.957246324Z [inf]    - maintenance: false
+2026-01-06T06:16:33.957252875Z [inf]    - needsDbUpgrade: false
+2026-01-06T06:16:33.957259125Z [inf]    - productname: Nextcloud
+2026-01-06T06:16:33.957268285Z [inf]    - extendedSupport: false
+2026-01-06T06:16:33.957277585Z [inf]  fix-warnings.sh completed with warnings or errors
+2026-01-06T06:16:33.957283144Z [inf]  === DIAGNOSTIC LOGGING START ===
+2026-01-06T06:16:33.957287784Z [inf]  🔍 FINAL ENV VARS (masked):
+2026-01-06T06:16:33.957294053Z [inf]    POSTGRES: host=postgres.railway.internal, port=5432, user=postgres, db=railway
+2026-01-06T06:16:33.957303685Z [inf]    REDIS: host=redis.railway.internal, port=6379
+2026-01-06T06:16:33.957308641Z [inf]    TRUSTED_DOMAINS: engineering.kikaiworks.com localhost engineering.kikaiworks.com
+2026-01-06T06:16:33.957313993Z [inf]    OVERWRITE: host=engineering.kikaiworks.com, protocol=https
+2026-01-06T06:16:33.957319117Z [inf]  📄 CONFIG.PHP CONTENT (secrets masked):
+2026-01-06T06:16:33.957325920Z [inf]  <?php
+2026-01-06T06:16:33.957331074Z [inf]  $CONFIG = array (
+2026-01-06T06:16:33.957335986Z [inf]    'instanceid' => 'LIISFEQNzPieN52QTXCc74tjS0l7m23zh6+OYguK/oI=',
+2026-01-06T06:16:33.957510585Z [inf]  -rw-r--r--  1 www-data www-data   8233 Dec 11 08:58 cron.php
+2026-01-06T06:16:33.957515057Z [inf]  drwxrwx---  4 www-data root       4096 Jan  6 06:15 data
+2026-01-06T06:16:33.957519583Z [inf]  drwxr-xr-x  2 www-data www-data  36864 Dec 11 08:58 dist
+2026-01-06T06:16:33.957523881Z [inf]  -rw-r--r--  1 www-data www-data    331 Dec 11 08:58 index.html
+2026-01-06T06:16:33.957527994Z [inf]  -rw-r--r--  1 www-data www-data   3695 Dec 11 08:58 index.php
+2026-01-06T06:16:33.960878791Z [inf]  drwxr-xr-x  7 www-data www-data   4096 Dec 11 08:58 lib
+2026-01-06T06:16:33.960891200Z [inf]  drwxr-xr-x  2 www-data www-data  16384 Jan  6 06:13 lost+found
+2026-01-06T06:16:33.960902092Z [inf]  -rw-r--r--  1 www-data www-data    596 Dec 11 08:58 occ
+2026-01-06T06:16:33.960907318Z [inf]   public | oc_accounts                 | table | oc_admin
+2026-01-06T06:16:33.960912421Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:58 ocs
+2026-01-06T06:16:33.960921147Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:58 ocs-provider
+2026-01-06T06:16:33.960923919Z [inf]   public | oc_accounts_data            | table | oc_admin
+2026-01-06T06:16:33.960929606Z [inf]  -rw-r--r--  1 www-data www-data 991558 Dec 11 08:58 package-lock.json
+2026-01-06T06:16:33.960934685Z [inf]   public | oc_activity                 | table | oc_admin
+2026-01-06T06:16:33.960938230Z [inf]  -rw-r--r--  1 www-data www-data   7239 Dec 11 08:58 package.json
+2026-01-06T06:16:33.960945115Z [inf]   public | oc_activity_mq              | table | oc_admin
+2026-01-06T06:16:33.960950216Z [inf]  -rw-r--r--  1 www-data www-data   3059 Dec 11 08:58 public.php
+2026-01-06T06:16:33.960953592Z [inf]  --------------------------------------------------------------------------------------------------------------------
+2026-01-06T06:16:33.960957114Z [inf]   public | oc_addressbookchanges       | table | oc_admin
+2026-01-06T06:16:33.960961102Z [inf]  -rw-r--r--  1 www-data www-data   4760 Dec 11 08:58 remote.php
+2026-01-06T06:16:33.960970918Z [inf]   public | oc_addressbooks             | table | oc_admin
+2026-01-06T06:16:33.960974975Z [inf]   PostgreSQL 17.7 (Debian 17.7-3.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-01-06T06:16:33.960974983Z [inf]  drwxr-xr-x  4 www-data www-data   4096 Dec 11 08:58 resources
+2026-01-06T06:16:33.960980893Z [inf]   public | oc_appconfig                | table | oc_admin
+2026-01-06T06:16:33.960986738Z [inf]  -rw-r--r--  1 www-data www-data     26 Dec 11 08:58 robots.txt
+2026-01-06T06:16:33.960994587Z [inf]   public | oc_appconfig_ex             | table | oc_admin
+2026-01-06T06:16:33.960996035Z [inf]  -rw-r--r--  1 www-data www-data   1490 Dec 11 08:58 status.php
+2026-01-06T06:16:33.961003519Z [inf]  drwxr-xr-x  3 www-data www-data   4096 Dec 11 08:58 themes
+2026-01-06T06:16:33.961027661Z [inf]  drwxr-xr-x  2 www-data www-data   4096 Dec 11 08:59 updater
+2026-01-06T06:16:33.961035845Z [inf]  -rw-r--r--  1 www-data www-data    446 Dec 11 09:03 version.php
+2026-01-06T06:16:33.961080531Z [inf]   public | oc_collres_accesscache      | table | oc_admin
+2026-01-06T06:16:33.961091724Z [inf]   public | oc_collres_collections      | table | oc_admin
+2026-01-06T06:16:33.961099305Z [inf]   public | oc_collres_resources        | table | oc_admin
+2026-01-06T06:16:33.961105578Z [inf]   public | oc_comments                 | table | oc_admin
+2026-01-06T06:16:33.961119455Z [inf]   public | oc_calendar_resources       | table | oc_admin
+2026-01-06T06:16:33.961128380Z [inf]   public | oc_calendar_resources_md    | table | oc_admin
+2026-01-06T06:16:33.961135257Z [inf]  (1 row)
+2026-01-06T06:16:33.961139572Z [inf]   public | oc_calendar_rooms           | table | oc_admin
+2026-01-06T06:16:33.961149906Z [inf]  
+2026-01-06T06:16:33.961151951Z [inf]   public | oc_calendar_rooms_md        | table | oc_admin
+2026-01-06T06:16:33.961164417Z [inf]  📋 POSTGRES TABLES REVIEW:
+2026-01-06T06:16:33.961168538Z [inf]   public | oc_calendarchanges          | table | oc_admin
+2026-01-06T06:16:33.961174336Z [inf]                      List of relations
+2026-01-06T06:16:33.961182508Z [inf]   Schema |            Name             | Type  |  Owner   
+2026-01-06T06:16:33.961190287Z [inf]  --------+-----------------------------+-------+----------
+2026-01-06T06:16:33.961204780Z [inf]   public | oc_authorized_groups        | table | oc_admin
+2026-01-06T06:16:33.961218640Z [inf]   public | oc_authtoken                | table | oc_admin
+2026-01-06T06:16:33.961221158Z [inf]   public | oc_circles_event            | table | oc_admin
+2026-01-06T06:16:33.961232616Z [inf]   public | oc_bruteforce_attempts      | table | oc_admin
+2026-01-06T06:16:33.961233034Z [inf]   public | oc_circles_member           | table | oc_admin
+2026-01-06T06:16:33.961244915Z [inf]   public | oc_calendar_invitations     | table | oc_admin
+2026-01-06T06:16:33.961246098Z [inf]   public | oc_circles_membership       | table | oc_admin
+2026-01-06T06:16:33.961255480Z [inf]   public | oc_calendar_reminders       | table | oc_admin
+2026-01-06T06:16:33.961277509Z [inf]   public | oc_calendarsubscriptions    | table | oc_admin
+2026-01-06T06:16:33.961287762Z [inf]   public | oc_cards                    | table | oc_admin
+2026-01-06T06:16:33.961306493Z [inf]   public | oc_circles_remote           | table | oc_admin
+2026-01-06T06:16:33.961315169Z [inf]   public | oc_circles_share_lock       | table | oc_admin
+2026-01-06T06:16:33.961317698Z [inf]   public | oc_circles_mount            | table | oc_admin
+2026-01-06T06:16:33.961319725Z [inf]   public | oc_cards_properties         | table | oc_admin
+2026-01-06T06:16:33.961330764Z [inf]   public | oc_circles_token            | table | oc_admin
+2026-01-06T06:16:33.961330851Z [inf]   public | oc_circles_circle           | table | oc_admin
+2026-01-06T06:16:33.961330901Z [inf]   public | oc_circles_mountpoint       | table | oc_admin
+2026-01-06T06:16:33.961331011Z [inf]   public | oc_comments_read_markers    | table | oc_admin
+2026-01-06T06:16:33.961341927Z [inf]   public | oc_dav_absence              | table | oc_admin
+2026-01-06T06:16:33.961348330Z [inf]   public | oc_dav_cal_proxy            | table | oc_admin
+2026-01-06T06:16:33.961355734Z [inf]   public | oc_dav_shares               | table | oc_admin
+2026-01-06T06:16:33.961360396Z [inf]   public | oc_direct_edit              | table | oc_admin
+2026-01-06T06:16:33.961368583Z [inf]  📁 CONFIG DIR:
+2026-01-06T06:16:33.961369736Z [inf]   public | oc_directlink               | table | oc_admin
+2026-01-06T06:16:33.961377627Z [inf]   public | oc_ex_apps                  | table | oc_admin
+2026-01-06T06:16:33.961383672Z [inf]   public | oc_ex_apps_daemons          | table | oc_admin
+2026-01-06T06:16:33.961389000Z [inf]   public | oc_ex_apps_routes           | table | oc_admin
+2026-01-06T06:16:33.961393874Z [inf]   public | oc_ex_deploy_options        | table | oc_admin
+2026-01-06T06:16:33.961398809Z [inf]   public | oc_ex_occ_commands          | table | oc_admin
+2026-01-06T06:16:33.961403384Z [inf]  total 104
+2026-01-06T06:16:33.961408840Z [inf]   public | oc_ex_settings_forms        | table | oc_admin
+2026-01-06T06:16:33.961416144Z [inf]  drwxr-xr-x  2 www-data www-data  4096 Jan  6 06:16 .
+2026-01-06T06:16:33.961420724Z [inf]   public | oc_ex_task_processing       | table | oc_admin
+2026-01-06T06:16:33.961429736Z [inf]  drwxr-xr-x 16 www-data www-data  4096 Jan  6 06:15 ..
+2026-01-06T06:16:33.961429811Z [inf]   public | oc_ex_ui_files_actions      | table | oc_admin
+2026-01-06T06:16:33.961438046Z [inf]   public | oc_ex_ui_scripts            | table | oc_admin
+2026-01-06T06:16:33.961443260Z [inf]  -rw-r--r--  1 www-data www-data   665 Dec 11 08:58 .htaccess
+2026-01-06T06:16:33.961447065Z [inf]   public | oc_ex_ui_states             | table | oc_admin
+2026-01-06T06:16:33.961453832Z [inf]   public | oc_ex_ui_styles             | table | oc_admin
+2026-01-06T06:16:33.961460698Z [inf]  -rw-r-----  1 www-data www-data  1110 Jan  6 06:16 config.php
+2026-01-06T06:16:33.961465215Z [inf]   public | oc_calendarobjects          | table | oc_admin
+2026-01-06T06:16:33.961470035Z [inf]  -rw-r--r--  1 www-data www-data 89651 Dec 11 08:58 config.sample.php
+2026-01-06T06:16:33.961475083Z [inf]   public | oc_calendarobjects_props    | table | oc_admin
+2026-01-06T06:16:33.961478227Z [inf]  📁 DATA DIR:
+2026-01-06T06:16:33.961482279Z [inf]   public | oc_calendars                | table | oc_admin
+2026-01-06T06:16:33.961486022Z [inf]  total 24
+2026-01-06T06:16:33.961493318Z [inf]   public | oc_calendars_federated      | table | oc_admin
+2026-01-06T06:16:33.961494903Z [inf]  drwxrwx---  4 www-data root     4096 Jan  6 06:15 .
+2026-01-06T06:16:33.961502557Z [inf]  drwxr-xr-x 16 www-data www-data 4096 Jan  6 06:15 ..
+2026-01-06T06:16:33.961509582Z [inf]  -rw-r--r--  1 www-data root      542 Jan  6 06:16 .htaccess
+2026-01-06T06:16:33.961516069Z [inf]  -rw-r--r--  1 www-data root       52 Jan  6 06:15 .ncdata
+2026-01-06T06:16:33.961522470Z [inf]  drwxr-xr-x  4 www-data root     4096 Jan  6 06:15 appdata_3xOJrjomk1VN9XLGvFZhEVH7xwhpytzmoXYth2fY0HY=
+2026-01-06T06:16:33.961529529Z [inf]  -rw-r--r--  1 www-data root        0 Jan  6 06:16 index.html
+2026-01-06T06:16:33.961535780Z [inf]  drwxr-xr-x  3 www-data root     4096 Jan  6 06:15 kikaiworksadmin
+2026-01-06T06:16:33.961544381Z [inf]  -rw-r--r--  1 www-data root        0 Jan  6 06:15 nextcloud.log
+2026-01-06T06:16:33.961551279Z [inf]  🗄️ TESTING POSTGRES CONNECTION:
+2026-01-06T06:16:33.961558698Z [inf]  You are connected to database "railway" as user "postgres" on host "postgres.railway.internal" (address "fd12:a830:2a99:1:9000:4c:284f:becd") at port "5432".
+2026-01-06T06:16:33.961564877Z [inf]  SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, compression: off, ALPN: postgresql)
+2026-01-06T06:16:33.961572067Z [inf]                                                        version                                                       
+2026-01-06T06:16:33.962513799Z [inf]   public | oc_ex_ui_top_menu           | table | oc_admin
+2026-01-06T06:16:33.962523543Z [inf]   public | oc_federated_invites        | table | oc_admin
+2026-01-06T06:16:33.962530412Z [inf]   public | oc_federated_reshares       | table | oc_admin
+2026-01-06T06:16:33.962537351Z [inf]   public | oc_file_locks               | table | oc_admin
+2026-01-06T06:16:33.962544151Z [inf]   public | oc_filecache                | table | oc_admin
+2026-01-06T06:16:33.962550665Z [inf]   public | oc_filecache_extended       | table | oc_admin
+2026-01-06T06:16:33.962772535Z [inf]   public | oc_files_metadata           | table | oc_admin
+2026-01-06T06:16:33.962780700Z [inf]   public | oc_files_metadata_index     | table | oc_admin
+2026-01-06T06:16:33.962788566Z [inf]   public | oc_files_reminders          | table | oc_admin
+2026-01-06T06:16:33.962799239Z [inf]   public | oc_files_trash              | table | oc_admin
+2026-01-06T06:16:34.063878462Z [inf]  PONG
+2026-01-06T06:16:34.263624203Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:34.280997836Z [inf]    - installed: false
+2026-01-06T06:16:34.281072626Z [inf]    - version: 32.0.3.2
+2026-01-06T06:16:34.281084120Z [inf]    - versionstring: 32.0.3
+2026-01-06T06:16:34.281090288Z [inf]    - edition: 
+2026-01-06T06:16:34.281095753Z [inf]    - maintenance: false
+2026-01-06T06:16:34.281108462Z [inf]    - needsDbUpgrade: false
+2026-01-06T06:16:34.281115334Z [inf]    - productname: Nextcloud
+2026-01-06T06:16:34.281120479Z [inf]    - extendedSupport: false
+2026-01-06T06:16:34.873593911Z [err]    There are no commands defined in the "db" namespace.  
+2026-01-06T06:16:34.873606603Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:34.873614854Z [err]  
+2026-01-06T06:16:34.873623520Z [err]                                                          
+2026-01-06T06:16:34.873630042Z [err]                                                          
+2026-01-06T06:16:34.873637755Z [err]    There are no commands defined in the "config" namespace.  
+2026-01-06T06:16:34.873642191Z [err]  
+2026-01-06T06:16:34.873646173Z [inf]  📋 SYSTEM CONFIG (first 20 lines):
+2026-01-06T06:16:34.873651523Z [err]                                                              
+2026-01-06T06:16:34.873653450Z [err]                                                              
+2026-01-06T06:16:34.873659070Z [inf]  occ db:check failed: 1
+2026-01-06T06:16:34.873663980Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:34.873675232Z [err]  
+2026-01-06T06:16:34.873677395Z [err]  
+2026-01-06T06:16:34.873687898Z [inf]  🔍 INSTALLED APPS (first 10):
+2026-01-06T06:16:34.974364336Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:34.984537473Z [err]  
+2026-01-06T06:16:34.992803646Z [err]                                                           
+2026-01-06T06:16:34.992810342Z [err]    There are no commands defined in the "app" namespace.  
+2026-01-06T06:16:34.992817030Z [err]                                                           
+2026-01-06T06:16:34.992823750Z [err]  
+2026-01-06T06:16:35.008907080Z [inf]  🔍 BACKGROUND JOBS MODE:
+2026-01-06T06:16:35.197769648Z [err]  Nextcloud is not installed - only a limited number of commands are available
+2026-01-06T06:16:35.212843419Z [err]  
+2026-01-06T06:16:35.216826382Z [err]                                                                      
+2026-01-06T06:16:35.216840413Z [err]    There are no commands defined in the "background-job" namespace.  
+2026-01-06T06:16:35.216849195Z [err]                                                                      
+2026-01-06T06:16:35.216857000Z [err]  
+2026-01-06T06:16:35.234825171Z [inf]  occ background-job:mode failed: 1
+2026-01-06T06:16:35.234832244Z [inf]  🐛 CURRENT PROCESSES (relevant):
+2026-01-06T06:16:35.242091145Z [inf]  root         1  1.5  0.0   4200  2796 ?        Ss   06:16   0:00 /bin/bash /usr/local/bin/custom-entrypoint.sh apache2-foreground
+2026-01-06T06:16:35.242098678Z [inf]  root       153  0.0  0.0   3508  1636 ?        S    06:16   0:00 grep -E (apache|php|supervisord|cron|postgres|redis)
+2026-01-06T06:16:35.242105927Z [inf]  📊 DISK USAGE (root):
+2026-01-06T06:16:35.242114046Z [inf]  Filesystem      Size  Used Avail Use% Mounted on
+2026-01-06T06:16:35.242121241Z [inf]  overlay         3.1T  1.3T  1.9T  40% /
+2026-01-06T06:16:35.242128338Z [inf]  📊 APACHE LOGS (last 10 lines if exist):
+2026-01-06T06:16:35.242135650Z [inf]  No Apache error log or empty
+2026-01-06T06:16:35.242142572Z [inf]  📊 APACHE ACCESS LOGS (last 10 if exist):
+2026-01-06T06:16:35.242149974Z [inf]  No Apache access log or empty
+2026-01-06T06:16:35.242157099Z [inf]  🔍 NEXTCLOUD LOG (last 10 lines if exists):
+2026-01-06T06:16:35.242163386Z [inf]  🔍 SUPERVISOR LOG (if exists):
+2026-01-06T06:16:35.242174049Z [inf]  No supervisor log or empty
+2026-01-06T06:16:35.242180757Z [inf]  === DIAGNOSTIC LOGGING END ===
+2026-01-06T06:16:35.242187895Z [err]  /usr/local/bin/custom-entrypoint.sh: line 396: syntax error near unexpected token `else'
+2026-01-06T06:16:50.465077190Z [err]  Railway rate limit of 500 logs/sec reached for replica, update your application to reduce the logging rate. Messages dropped: 70

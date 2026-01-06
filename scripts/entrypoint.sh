@@ -281,6 +281,27 @@ echo "=== EXPECTED FILES CHECK END ==="
 
 cd /var/www/html || echo "Failed to cd to /var/www/html"
 
+# Pre-install: If existing tables, reassign ownership to postgres
+echo "🔍 Pre-install: Checking for existing Nextcloud tables..."
+TABLE_COUNT=$(psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name LIKE 'oc_%';" 2>/dev/null || echo "0")
+if [ "$TABLE_COUNT" -gt 0 ]; then
+    echo "Existing tables found ($TABLE_COUNT). Reassigning ownership to postgres..."
+    export PGPASSWORD="${POSTGRES_PASSWORD}"
+    psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "
+DO \$\$
+BEGIN
+  FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'oc_%') LOOP
+    EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO postgres';
+  END LOOP;
+END
+\$\$;
+" || echo "Ownership reassignment warning"
+    unset PGPASSWORD
+    echo "✅ Tables reassigned to postgres"
+else
+    echo "No existing Nextcloud tables found"
+fi
+
 # Install Nextcloud if not already installed
 if [ -f occ ]; then
     echo "⚙️ Checking installation status..."
