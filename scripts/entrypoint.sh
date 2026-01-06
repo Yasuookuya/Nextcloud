@@ -250,10 +250,18 @@ if [ ! -f /var/www/html/occ ]; then
     else
         echo "📥 No backup found - downloading Nextcloud 32.0.3..."
         cd /var/www/html
+        echo "🔍 Starting curl download..."
         curl -L -o nextcloud.tar.bz2 https://download.nextcloud.com/server/releases/nextcloud-32.0.3.tar.bz2 || echo "Download failed"
         if [ -f nextcloud.tar.bz2 ]; then
-            tar -xjf nextcloud.tar.bz2 --strip-components=1 || echo "Extract failed"
+            echo "✅ Download succeeded - file size:"
+            ls -lh nextcloud.tar.bz2 || echo "ls tar failed"
+            echo "🔍 Starting tar extract..."
+            tar -xjf nextcloud.tar.bz2 --strip-components=1 || echo "Extract failed - check error above"
             rm nextcloud.tar.bz2
+            echo "🔍 Post-extract ls top-level:"
+            ls -la /var/www/html/ || echo "ls post-extract failed"
+            echo "🔍 Post-extract find occ:"
+            find /var/www/html -name "occ" 2>/dev/null || echo "occ not found post-extract"
             chown -R www-data:www-data /var/www/html
             find /var/www/html -type f -exec chmod 644 {} \; 2>/dev/null || true
             find /var/www/html -type d -exec chmod 755 {} \; 2>/dev/null || true
@@ -282,6 +290,50 @@ find /var/www/html -type d 2>/dev/null | head -15 || echo "find dirs failed"
 echo "🔍 POST-RESTORE: Sizes of key dirs/files:"
 du -sh /var/www/html/* 2>/dev/null | head -10 || echo "du failed"
 echo "=== POST-RESTORE END ==="
+
+echo "=== EXPECTED FILES CHECK ==="
+
+# Expected Nextcloud files/dirs (from docs)
+EXPECTED_FILES=(
+    "index.php"
+    "occ"
+    ".htaccess"
+    "version.php"
+    "core/"
+    "apps/"
+    "lib/"
+    "config/"
+    "themes/"
+    "upgrader/"
+    "3rdparty/"
+    "ocs/"
+    "remote.php"
+    "status.php"
+    "public.php"
+    "cron.php"
+    "core/img/"
+    "apps/files/"
+    "lib/private/"
+    "config/config.php"
+)
+
+for file in "${EXPECTED_FILES[@]}"; do
+    if [ -e "/var/www/html/$file" ]; then
+        echo "PRESENT: $file"
+        ls -la "/var/www/html/$file" 2>/dev/null || echo "ls $file failed"
+        if [ -f "/var/www/html/$file" ]; then
+            head -5 "/var/www/html/$file" 2>/dev/null || echo "head $file failed"
+        fi
+        if [ -d "/var/www/html/$file" ]; then
+            echo "  Contents (top 5):"
+            ls -la "/var/www/html/$file/" 2>/dev/null | head -6 || echo "ls dir failed"
+        fi
+    else
+        echo "MISSING: $file"
+    fi
+done
+
+echo "=== EXPECTED FILES CHECK END ==="
 
 cd /var/www/html || echo "Failed to cd to /var/www/html"
 
