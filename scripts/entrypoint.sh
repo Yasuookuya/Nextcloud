@@ -93,11 +93,16 @@ echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
     # Create full config.php if admin credentials are provided
     if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then
         echo "✅ Admin credentials provided - creating full config.php"
+        rm -f /var/www/html/config/config.php
         mkdir -p /var/www/html/config
         # Generate secrets
         INSTANCEID=$(head -c32 /dev/urandom | base64)
         PASSWORDSALT=$(head -c32 /dev/urandom | base64)
         SECRET=$(head -c48 /dev/urandom | base64)
+
+        # Build trusted_domains list dynamically (sed-based, no loop)
+        ALL_DOMAINS="${NEXTCLOUD_TRUSTED_DOMAINS} localhost ${RAILWAY_PUBLIC_DOMAIN}"
+        TRUSTED_DOMAINS_LIST=$(echo "$ALL_DOMAINS" | tr ' ' '\n' | sed "s/^/'/;s/$/', /" | sort -u | tr '\n' ' ' | sed 's/ , $//')
 
         cat > /var/www/html/config/config.php << 'EOF'
 <?php
@@ -107,9 +112,7 @@ $CONFIG = array (
   'secret' => 'SECRET_PLACEHOLDER',
   'trusted_domains' => 
   array (
-    0 => 'localhost',
-    1 => 'RAILWAY_PUBLIC_DOMAIN_PLACEHOLDER',
-    2 => 'engineering.kikaiworks.com',
+    TRUSTED_DOMAINS_PLACEHOLDER
   ),
   'datadirectory' => 'NEXTCLOUD_DATA_DIR_PLACEHOLDER',
   'dbtype' => 'pgsql',
@@ -137,10 +140,29 @@ $CONFIG = array (
     'password' => 'REDIS_PASSWORD_PLACEHOLDER',
     'user' => 'default',
   ),
+  'logfile' => '/var/www/html/data/nextcloud.log',
 );
-
-$CONFIG['logfile'] = '/var/www/html/data/nextcloud.log';
 EOF
+
+        # Substitute placeholders
+        sed -i "s|INSTANCEID_PLACEHOLDER|${INSTANCEID}|g" /var/www/html/config/config.php
+        sed -i "s|PASSWORDSALT_PLACEHOLDER|${PASSWORDSALT}|g" /var/www/html/config/config.php
+        sed -i "s|SECRET_PLACEHOLDER|${SECRET}|g" /var/www/html/config/config.php
+        sed -i "s|RAILWAY_PUBLIC_DOMAIN_PLACEHOLDER|${RAILWAY_PUBLIC_DOMAIN}|g" /var/www/html/config/config.php
+        sed -i "s|NEXTCLOUD_DATA_DIR_PLACEHOLDER|${NEXTCLOUD_DATA_DIR}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_DB_PLACEHOLDER|${POSTGRES_DB}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_HOST_PLACEHOLDER|${POSTGRES_HOST}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_PORT_PLACEHOLDER|${POSTGRES_PORT}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_USER_PLACEHOLDER|${POSTGRES_USER}|g" /var/www/html/config/config.php
+        sed -i "s|POSTGRES_PASSWORD_PLACEHOLDER|${POSTGRES_PASSWORD}|g" /var/www/html/config/config.php
+        sed -i "s|REDIS_HOST_PLACEHOLDER|${REDIS_HOST}|g" /var/www/html/config/config.php
+        sed -i "s|REDIS_PORT_PLACEHOLDER|${REDIS_PORT}|g" /var/www/html/config/config.php
+        sed -i "s|'password' => 'REDIS_PASSWORD_PLACEHOLDER',|'password' => '${REDIS_PASSWORD}',|g" /var/www/html/config/config.php
+        sed -i "s|TRUSTED_DOMAINS_PLACEHOLDER|    0 => ${TRUSTED_DOMAINS_LIST}|g" /var/www/html/config/config.php
+
+        chown www-data:www-data /var/www/html/config/config.php
+        chmod 640 /var/www/html/config/config.php
+        echo "✅ Config.php created with all settings"
 
         # Substitute placeholders
         sed -i "s|INSTANCEID_PLACEHOLDER|${INSTANCEID}|g" /var/www/html/config/config.php
@@ -289,12 +311,15 @@ if [ "$TABLE_COUNT" -gt 0 ]; then
     export PGPASSWORD="${POSTGRES_PASSWORD}"
     psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "
 DO \$\$
+DECLARE r record;
 BEGIN
   FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'oc_%') LOOP
     EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO postgres';
   END LOOP;
 END
 \$\$;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;
 " || echo "Ownership reassignment warning"
     unset PGPASSWORD
     echo "✅ Tables reassigned to postgres"
@@ -307,6 +332,7 @@ if [ -f occ ]; then
     echo "⚙️ Checking installation status..."
     if ! php occ status 2>/dev/null | grep -q "installed: true"; then
         echo "🚀 Installing Nextcloud..."
+        INSTALL_EXIT=0
         php occ maintenance:install --no-interaction \
             --database pgsql \
             --database-host "${POSTGRES_HOST}:${POSTGRES_PORT}" \
@@ -314,7 +340,33 @@ if [ -f occ ]; then
             --database-user "${POSTGRES_USER}" \
             --database-pass "${POSTGRES_PASSWORD}" \
             --admin-user "${NEXTCLOUD_ADMIN_USER}" \
-            --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || echo "occ install failed: $?"
+            --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || INSTALL_EXIT=$?
+
+        if [ $INSTALL_EXIT -ne 0 ]; then
+            echo "⚠️ Initial install failed - creating dedicated oc_admin user and retrying..."
+            export PGPASSWORD="${POSTGRES_PASSWORD}"
+            psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "
+CREATE USER IF NOT EXISTS oc_admin WITH PASSWORD '${POSTGRES_PASSWORD}';
+GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO oc_admin;
+ALTER DATABASE ${POSTGRES_DB} OWNER TO oc_admin;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO oc_admin;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO oc_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO oc_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO oc_admin;
+" || echo "User creation warning"
+            unset PGPASSWORD
+
+            # Retry with oc_admin
+            php occ maintenance:install --no-interaction \
+                --database pgsql \
+                --database-host "${POSTGRES_HOST}:${POSTGRES_PORT}" \
+                --database-name "${POSTGRES_DB}" \
+                --database-user "oc_admin" \
+                --database-pass "${POSTGRES_PASSWORD}" \
+                --admin-user "${NEXTCLOUD_ADMIN_USER}" \
+                --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || echo "Retry install failed: $?"
+        fi
+
         php occ config:system:set installed --value true || true
 
         # Verify installation immediately
@@ -326,9 +378,13 @@ if [ -f occ ]; then
         echo "✅ Nextcloud already installed"
     fi
 
-    # Run security and setup fixes
-    echo "🔧 Running fix-warnings script..."
-    /usr/local/bin/fix-warnings.sh || echo "fix-warnings.sh completed with warnings or errors"
+    # Run security and setup fixes only if installed
+    if php occ status 2>/dev/null | grep -q "installed: true"; then
+        echo "🔧 Running fix-warnings script..."
+        /usr/local/bin/fix-warnings.sh || echo "fix-warnings.sh completed with warnings or errors"
+    else
+        echo "⚠️ Skipping fix-warnings: Nextcloud not fully installed"
+    fi
 fi
 
 # Now run deferred diagnostics after installation
@@ -414,9 +470,6 @@ else
 fi
 
 echo "=== DIAGNOSTIC LOGGING END ==="
-else
-    echo "❌ occ still not found after restore - deployment cannot proceed fully"
-fi
 
 # Forward to original NextCloud entrypoint
 echo "🔧 Fixing Apache MPM runtime..."
