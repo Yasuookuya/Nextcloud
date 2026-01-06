@@ -154,6 +154,8 @@ $CONFIG = array (
   'trusted_proxies' => 
   array (
     0 => '0.0.0.0/0',
+    1 => '100.64.0.0/10',
+    2 => '100.0.0.0/8',
   ),
   'memcache.local' => '\\OC\\Memcache\\Redis',
   'redis' => 
@@ -164,6 +166,8 @@ $CONFIG = array (
     'user' => 'default',
   ),
   'logfile' => '/var/www/html/data/nextcloud.log',
+  'dbtableprefix' => 'kkws_',
+  'maintenance_window_start' => 2,
 );
 EOF
 

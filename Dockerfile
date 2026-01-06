@@ -23,9 +23,10 @@ COPY config/php.ini /usr/local/etc/php/conf.d/nextcloud.ini
 # Copy Apache configurations
 COPY config/security.conf /etc/apache2/conf-available/security.conf
 COPY config/apache-security.conf /etc/apache2/conf-available/apache-security.conf
+COPY config/apache-nextcloud.conf /etc/apache2/conf-available/nextcloud.conf
 
     # Enable Apache configurations and modules
-    RUN a2enconf security apache-security && \
+    RUN a2enconf security apache-security nextcloud && \
         a2enmod rewrite headers env dir mime && \
         # Enable PHP module (version may vary)
         (a2enmod php8.3 || a2enmod php || echo "PHP module detection will be handled in entrypoint")
