@@ -201,19 +201,16 @@ redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" info serv
 # Nextcloud OCC Diagnostics
 echo "⚙️ NEXTCLOUD OCC DIAGNOSTICS:"
 cd /var/www/html || echo "cd /var/www/html failed"
-if [ -f occ ]; then
-    php occ status || echo "occ status failed: $?"
-    php occ maintenance:mode || echo "occ maintenance:mode failed: $?"
-    php occ db:check || echo "occ db:check failed: $?"
+if [ -f /var/www/html/occ ]; then
+    php /var/www/html/occ status || echo "occ status failed: $?"
+    php /var/www/html/occ maintenance:mode || echo "occ maintenance:mode failed: $?"
+    php /var/www/html/occ db:check || echo "occ db:check failed: $?"
     echo "📋 SYSTEM CONFIG (first 20 lines):"
-    php occ config:list system | head -20 || echo "occ config:list failed: $?"
+    php /var/www/html/occ config:list system | head -20 || echo "occ config:list failed: $?"
     echo "🔍 INSTALLED APPS (first 10):"
-    php occ app:list | head -10 || echo "occ app:list failed: $?"
+    php /var/www/html/occ app:list | head -10 || echo "occ app:list failed: $?"
     echo "🔍 BACKGROUND JOBS MODE:"
-    php occ background-job:mode || echo "occ background-job:mode failed: $?"
-else
-    echo "❌ occ file not found in /var/www/html"
-fi
+    php /var/www/html/occ background-job
 
 # Processes, Disk, and Logs
 echo "🐛 CURRENT PROCESSES (relevant):"
