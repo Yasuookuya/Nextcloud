@@ -8,31 +8,53 @@ echo "🐛 DEBUG: All running scripts:"
 ps aux | grep -E "(entrypoint|fix-warnings)" || echo "No matching processes found"
 
 # Debug: Print all environment variables starting with POSTGRES or REDIS
-echo "🔍 Debug: Environment variables:"
-env | grep -E "^(POSTGRES|REDIS.*|RAILWAY|PG|NEXTCLOUD|PHP)" | sort
+echo "🔍 DIAGNOSTIC: Environment variables:"
+env | grep -E "^(POSTGRES|REDIS.*|RAILWAY|PG|NEXTCLOUD|PHP|SSL)" | sort
 
 # Also check for any database-related variables
-echo "🔍 Database-related variables:"
-env | grep -iE "(database|db|host)" | sort
+echo "🔍 DIAGNOSTIC: Database-related variables:"
+env | grep -iE "(database|db|host|ssl)" | sort
+
+# Check for SSL certificates
+echo "🔍 DIAGNOSTIC: Checking for SSL certificates..."
+if [ -n "$SSL_CERT_FILE" ] && [ -f "$SSL_CERT_FILE" ]; then
+    echo "✅ SSL certificate file found at: $SSL_CERT_FILE"
+    ls -la "$SSL_CERT_FILE"
+    chmod 644 "$SSL_CERT_FILE" 2>/dev/null || echo "⚠️ Could not set SSL cert permissions"
+else
+    echo "ℹ️ No SSL_CERT_FILE found or file missing"
+fi
+
+if [ -n "$SSL_KEY_FILE" ] && [ -f "$SSL_KEY_FILE" ]; then
+    echo "✅ SSL key file found at: $SSL_KEY_FILE"
+    ls -la "$SSL_KEY_FILE"
+    chmod 600 "$SSL_KEY_FILE" 2>/dev/null || echo "⚠️ Could not set SSL key permissions"
+else
+    echo "ℹ️ No SSL_KEY_FILE found or file missing"
+fi
 
 # Check for environment variables - we need at least some PostgreSQL config
 # Check for Railway's PG* variables OR POSTGRES_* variables OR DATABASE_URL
+echo "🔍 DIAGNOSTIC: Checking PostgreSQL configuration..."
 if [ -z "$POSTGRES_HOST" ] && [ -z "$DATABASE_URL" ] && [ -z "$POSTGRES_USER" ] && [ -z "$PGHOST" ] && [ -z "$PGUSER" ]; then
     echo "❌ No PostgreSQL configuration found!"
     echo "Set either individual POSTGRES_* variables, PG* variables, or DATABASE_URL"
     echo "Available environment variables:"
     env | grep -E "^(PG|POSTGRES|DATABASE)" | sort
     exit 1
+else
+    echo "✅ PostgreSQL configuration detected"
 fi
 
 # If DATABASE_URL is provided, parse it
 if [ -n "$DATABASE_URL" ] && [ -z "$POSTGRES_HOST" ]; then
-    echo "📊 Parsing DATABASE_URL..."
+    echo "📊 DIAGNOSTIC: Parsing DATABASE_URL..."
     export POSTGRES_HOST=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:[^@]*@\([^:]*\):.*|\1|p')
     export POSTGRES_PORT=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:[^@]*@[^:]*:\([0-9]*\)/.*|\1|p')
     export POSTGRES_USER=$(echo $DATABASE_URL | sed -n 's|postgresql://\([^:]*\):.*|\1|p')
     export POSTGRES_PASSWORD=$(echo $DATABASE_URL | sed -n 's|postgresql://[^:]*:\([^@]*\)@.*|\1|p')
     export POSTGRES_DB=$(echo $DATABASE_URL | sed -n 's|.*/\([^?]*\).*|\1|p')
+    echo "✅ Parsed DATABASE_URL: ${POSTGRES_USER}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
 fi
 
 # Use Railway's standard PG* variables if POSTGRES_* aren't set
@@ -66,6 +88,7 @@ export PHP_UPLOAD_LIMIT=${PHP_UPLOAD_LIMIT:-2G}
 
 # Configure Apache for Railway's PORT
 export PORT=${PORT:-80}
+echo "🔍 DIAGNOSTIC: Configuring Apache for port: $PORT"
 echo "Listen $PORT" > /etc/apache2/ports.conf
 echo "✅ Apache configured for port: $PORT"
 
@@ -92,7 +115,7 @@ echo "  PHP Upload Limit: ${PHP_UPLOAD_LIMIT}"
 
     # Create full config.php if admin credentials are provided
     if [ -n "${NEXTCLOUD_ADMIN_USER}" ] && [ -n "${NEXTCLOUD_ADMIN_PASSWORD}" ]; then
-        echo "✅ Admin credentials provided - creating full config.php"
+        echo "🔍 DIAGNOSTIC: Admin credentials provided - creating full config.php"
         rm -f /var/www/html/config/config.php
         mkdir -p /var/www/html/config
         # Generate secrets
@@ -159,10 +182,6 @@ EOF
         sed -i "s|REDIS_PORT_PLACEHOLDER|${REDIS_PORT}|g" /var/www/html/config/config.php
         sed -i "s|'password' => 'REDIS_PASSWORD_PLACEHOLDER',|'password' => '${REDIS_PASSWORD}',|g" /var/www/html/config/config.php
         sed -i "s|TRUSTED_DOMAINS_PLACEHOLDER|    0 => ${TRUSTED_DOMAINS_LIST}|g" /var/www/html/config/config.php
-
-        chown www-data:www-data /var/www/html/config/config.php
-        chmod 640 /var/www/html/config/config.php
-        echo "✅ Config.php created with all settings"
 
         # Substitute placeholders
         sed -i "s|INSTANCEID_PLACEHOLDER|${INSTANCEID}|g" /var/www/html/config/config.php
@@ -303,36 +322,35 @@ echo "=== EXPECTED FILES CHECK END ==="
 
 cd /var/www/html || echo "Failed to cd to /var/www/html"
 
-# Pre-install: If existing tables, reassign ownership to postgres
-echo "🔍 Pre-install: Checking for existing Nextcloud tables..."
+# Pre-install: Test database connection and check for existing tables
+echo "🔍 DIAGNOSTIC: Testing database connection..."
+export PGPASSWORD="${POSTGRES_PASSWORD}"
+if psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "\conninfo" >/dev/null 2>&1; then
+    echo "✅ Database connection successful"
+else
+    echo "❌ Database connection failed - check credentials and network"
+    unset PGPASSWORD
+    exit 1
+fi
+
+echo "🔍 DIAGNOSTIC: Checking for existing Nextcloud tables..."
 TABLE_COUNT=$(psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_name LIKE 'oc_%';" 2>/dev/null || echo "0")
 if [ "$TABLE_COUNT" -gt 0 ]; then
-    echo "Existing tables found ($TABLE_COUNT). Reassigning ownership to postgres..."
-    export PGPASSWORD="${POSTGRES_PASSWORD}"
-    psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "
-DO \$\$
-DECLARE r record;
-BEGIN
-  FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'oc_%') LOOP
-    EXECUTE 'ALTER TABLE ' || quote_ident(r.tablename) || ' OWNER TO postgres';
-  END LOOP;
-END
-\$\$;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;
-" || echo "Ownership reassignment warning"
-    unset PGPASSWORD
-    echo "✅ Tables reassigned to postgres"
+    echo "✅ Existing tables found ($TABLE_COUNT). Using postgres user directly (no ownership change needed)."
 else
-    echo "No existing Nextcloud tables found"
+    echo "ℹ️ No existing Nextcloud tables found"
 fi
+unset PGPASSWORD
 
 # Install Nextcloud if not already installed
 if [ -f occ ]; then
-    echo "⚙️ Checking installation status..."
+    echo "⚙️ DIAGNOSTIC: Checking installation status..."
     if ! php occ status 2>/dev/null | grep -q "installed: true"; then
-        echo "🚀 Installing Nextcloud..."
+        echo "🚀 DIAGNOSTIC: Nextcloud not installed, proceeding with installation using postgres user..."
+
+        # Install directly with postgres user (no oc_admin creation)
         INSTALL_EXIT=0
+        echo "🔍 DIAGNOSTIC: Running maintenance:install with postgres user..."
         php occ maintenance:install --no-interaction \
             --database pgsql \
             --database-host "${POSTGRES_HOST}:${POSTGRES_PORT}" \
@@ -343,35 +361,21 @@ if [ -f occ ]; then
             --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || INSTALL_EXIT=$?
 
         if [ $INSTALL_EXIT -ne 0 ]; then
-            echo "⚠️ Initial install failed - creating dedicated oc_admin user and retrying..."
+            echo "❌ Installation failed with exit code $INSTALL_EXIT"
+            echo "🔍 DIAGNOSTIC: Installation command output above, checking database permissions..."
             export PGPASSWORD="${POSTGRES_PASSWORD}"
-            psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "
-CREATE USER IF NOT EXISTS oc_admin WITH PASSWORD '${POSTGRES_PASSWORD}';
-GRANT ALL PRIVILEGES ON DATABASE ${POSTGRES_DB} TO oc_admin;
-ALTER DATABASE ${POSTGRES_DB} OWNER TO oc_admin;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO oc_admin;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO oc_admin;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO oc_admin;
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO oc_admin;
-" || echo "User creation warning"
+            psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "\l" | grep "${POSTGRES_DB}" || echo "Database list failed"
+            psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "\du ${POSTGRES_USER}" || echo "User privileges check failed"
             unset PGPASSWORD
-
-            # Retry with oc_admin
-            php occ maintenance:install --no-interaction \
-                --database pgsql \
-                --database-host "${POSTGRES_HOST}:${POSTGRES_PORT}" \
-                --database-name "${POSTGRES_DB}" \
-                --database-user "oc_admin" \
-                --database-pass "${POSTGRES_PASSWORD}" \
-                --admin-user "${NEXTCLOUD_ADMIN_USER}" \
-                --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || echo "Retry install failed: $?"
+            exit 1
         fi
 
-        php occ config:system:set installed --value true || true
+        echo "✅ Installation command completed successfully"
+        php occ config:system:set installed --value true || echo "⚠️ Could not set installed flag"
 
         # Verify installation immediately
-        echo "Verifying installation..."
-        php occ status || echo "Post-install status check warning"
+        echo "🔍 DIAGNOSTIC: Verifying installation..."
+        php occ status || echo "⚠️ Post-install status check failed"
 
         echo "✅ Nextcloud installation completed"
     else
@@ -380,15 +384,15 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO oc_admin;
 
     # Run security and setup fixes only if installed
     if php occ status 2>/dev/null | grep -q "installed: true"; then
-        echo "🔧 Running fix-warnings script..."
-        /usr/local/bin/fix-warnings.sh || echo "fix-warnings.sh completed with warnings or errors"
+        echo "🔧 DIAGNOSTIC: Nextcloud installed, running fix-warnings script..."
+        /usr/local/bin/fix-warnings.sh || echo "⚠️ fix-warnings.sh completed with warnings or errors"
     else
         echo "⚠️ Skipping fix-warnings: Nextcloud not fully installed"
     fi
 fi
 
 # Now run deferred diagnostics after installation
-echo "=== DIAGNOSTIC LOGGING START ==="
+echo "🔍 DIAGNOSTIC: Starting comprehensive post-installation diagnostics..."
 
 # Environment and Config Dump (masked)
 echo "🔍 FINAL ENV VARS (masked):"
@@ -469,10 +473,10 @@ else
   echo "No supervisor log or empty"
 fi
 
-echo "=== DIAGNOSTIC LOGGING END ==="
+echo "🔍 DIAGNOSTIC: Comprehensive diagnostics completed"
 
 # Forward to original NextCloud entrypoint
-echo "🔧 Fixing Apache MPM runtime..."
+echo "🔧 DIAGNOSTIC: Preparing Apache configuration..."
 # Comment out conflicting MPM LoadModule lines in all conf
 find /etc/apache2 -name "*.conf" -o -name "*.load" | xargs sed -i '/LoadModule.*mpm_\(event\|worker\)_module/ s/^/#/'
 # Remove conflicting MPM files (real or symlink)
@@ -482,8 +486,13 @@ ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mp
 ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
 apache2ctl configtest || echo "Apache configtest warning - continuing"
 
-echo "🐛 DEBUG: About to start supervisord"
-echo "🐛 DEBUG: Command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
-echo "🐛 DEBUG: Current working directory: $(pwd)"
+echo "🔍 DIAGNOSTIC: Final configuration complete, starting supervisord..."
+echo "📊 Command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
+echo "📊 Working directory: $(pwd)"
+echo "📊 Environment summary:"
+echo "  - PostgreSQL: ${POSTGRES_USER}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}"
+echo "  - Redis: ${REDIS_HOST}:${REDIS_PORT}"
+echo "  - Domain: ${RAILWAY_PUBLIC_DOMAIN:-not set}"
+echo "  - Port: ${PORT}"
 
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
