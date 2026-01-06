@@ -156,66 +156,6 @@ EOF
         chown www-data:www-data /var/www/html/config/config.php
         chmod 640 /var/www/html/config/config.php
         echo "✅ Config.php created with all settings"
-
-        # Diagnostics and Installation
-        echo "🔍 Starting diagnostics and installation..."
-
-        # Fix permissions
-        echo "🔍 Fixing permissions..."
-        mkdir -p /var/www/html/data /var/www/html/config
-        chown -R www-data:www-data /var/www/html/data /var/www/html/config
-        chmod -R 755 /var/www/html/data /var/www/html/config
-        ls -la /var/www/html/config /var/www/html/data 2>/dev/null || echo "Data dir initialized"
-
-        # Test Postgres connection
-        echo "🔍 Testing Postgres connection..."
-        if PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "SELECT version();" >/dev/null 2>&1; then
-            echo "✅ Postgres connected successfully"
-            PGPASSWORD="${POSTGRES_PASSWORD}" psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "\dt" 2>&1 | head -5 || echo "No tables or access issue"
-        else
-            echo "❌ Postgres connection failed!"
-            exit 1
-        fi
-
-        # Test Redis connection
-        echo "🔍 Testing Redis connection..."
-        if timeout 5 redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" ping 2>&1 | grep -q "PONG"; then
-            echo "✅ Redis responding with PONG"
-        else
-            echo "❌ Redis connection failed!"
-            exit 1
-        fi
-
-        # Check Nextcloud status and install/upgrade
-        cd /var/www/html
-        echo "🔍 Checking Nextcloud installation status..."
-        STATUS_OUTPUT=$(su www-data -s /bin/bash -c "php occ status --output=json 2>&1" || echo '{"installed":false}')
-        echo "$STATUS_OUTPUT"
-        if echo "$STATUS_OUTPUT" | grep -q '"installed":true'; then
-            echo "🔧 Nextcloud already installed, running upgrade..."
-            su www-data -s /bin/bash -c "php occ maintenance:upgrade --no-interaction 2>&1" || echo "Upgrade completed or no changes needed"
-        else
-            echo "🔧 Installing Nextcloud..."
-            su www-data -s /bin/bash -c "php occ maintenance:install \
-                --database=pgsql --database-host='${POSTGRES_HOST}:${POSTGRES_PORT}' \
-                --database-name='${POSTGRES_DB}' --database-user='${POSTGRES_USER}' \
-                --database-pass='${POSTGRES_PASSWORD}' \
-                --admin-user='${NEXTCLOUD_ADMIN_USER}' --admin-pass='${NEXTCLOUD_ADMIN_PASSWORD}' \
-                --data-dir='${NEXTCLOUD_DATA_DIR}' --no-interaction 2>&1" || { echo "❌ Installation failed!"; exit 1; }
-            echo "✅ Installation completed"
-        fi
-
-        # Additional diagnostics
-        echo "🔍 Running Nextcloud check..."
-        su www-data -s /bin/bash -c "php occ check 2>&1" || echo "Check completed"
-
-        # Update htaccess for pretty URLs
-        echo "🔍 Updating .htaccess for pretty URLs..."
-        su www-data -s /bin/bash -c "php occ maintenance:update:htaccess 2>&1" || echo "Htaccess updated or no changes"
-
-        # Sanitized config preview
-        echo "🔍 Generated config.php key sections:"
-        sed 's/dbpassword => '\''[^'\'']*'\''/dbpassword => [REDACTED]/g' /var/www/html/config/config.php | grep -E "(dbtype|dbhost|dbname|dbuser|trusted_domains|datadirectory|installed|redis|overwrite)" || echo "Config sections not found"
 else
     echo "✅ No admin credentials - NextCloud setup wizard will be used"
 fi
@@ -231,7 +171,6 @@ ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mp
 ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
 apache2ctl configtest || echo "Apache configtest warning - continuing"
 
-echo "✅ Diagnostics and installation complete"
 echo "🐛 DEBUG: About to start supervisord"
 echo "🐛 DEBUG: Command: /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf"
 echo "🐛 DEBUG: Current working directory: $(pwd)"
