@@ -206,7 +206,6 @@ cd /var/www/html || echo "cd /var/www/html failed"
 if [ -f /var/www/html/occ ]; then
     echo "✅ OCC file found - running diagnostics:"
     php /var/www/html/occ status || echo "occ status failed: $?"
-    php /var/www/html/occ maintenance:mode || echo "occ maintenance:mode failed: $?"
     php /var/www/html/occ db:check || echo "occ db:check failed: $?"
     echo "📋 SYSTEM CONFIG (first 20 lines):"
     php /var/www/html/occ config:list system | head -20 || echo "occ config:list failed: $?"
