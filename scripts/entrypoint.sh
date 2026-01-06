@@ -211,6 +211,7 @@ if [ -f /var/www/html/occ ]; then
     php /var/www/html/occ app:list | head -10 || echo "occ app:list failed: $?"
     echo "🔍 BACKGROUND JOBS MODE:"
     php /var/www/html/occ background-job:mode || echo "occ background-job:mode failed: $?"
+fi
 
 # Processes, Disk, and Logs
 echo "🐛 CURRENT PROCESSES (relevant):"
