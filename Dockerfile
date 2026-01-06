@@ -46,7 +46,11 @@ RUN mkdir -p /var/log/supervisor && \
     chown -R www-data:www-data /var/www/html && \
     find /var/www/html -type f -exec chmod 644 {} \; && \
     find /var/www/html -type d -exec chmod 755 {} \; && \
-    chmod +x /usr/local/bin/custom-entrypoint.sh
+    chmod +x /usr/local/bin/custom-entrypoint.sh && \
+    # Backup Nextcloud files to /tmp for volume mount override
+    mkdir -p /tmp/nextcloud-backup && \
+    cp -r /var/www/html/* /tmp/nextcloud-backup/ && \
+    chown -R www-data:www-data /tmp/nextcloud-backup
 
 # Expose HTTP port (Railway expects PORT=80)
 EXPOSE 80

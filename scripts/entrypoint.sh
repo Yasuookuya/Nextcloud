@@ -225,6 +225,51 @@ tail -n 10 /var/log/supervisor/supervisord.log 2>/dev/null || echo "No superviso
 
 echo "=== DIAGNOSTIC LOGGING END ==="
 
+# Restore Nextcloud files if missing due to volume mount
+if [ ! -f /var/www/html/occ ]; then
+    echo "🔄 Restoring Nextcloud files from /tmp backup..."
+    if [ -d /tmp/nextcloud-backup ]; then
+        cp -r /tmp/nextcloud-backup/* /var/www/html/ || echo "Copy from backup failed"
+        chown -R www-data:www-data /var/www/html
+        find /var/www/html -type f -exec chmod 644 {} \; 2>/dev/null || true
+        find /var/www/html -type d -exec chmod 755 {} \; 2>/dev/null || true
+        echo "✅ Files restored from backup"
+    else
+        echo "❌ No backup found in /tmp - files cannot be restored"
+    fi
+else
+    echo "✅ Nextcloud files already present (occ found)"
+fi
+
+cd /var/www/html || echo "Failed to cd to /var/www/html"
+
+# Install Nextcloud if not already installed
+if [ -f occ ]; then
+    echo "⚙️ Checking installation status..."
+    if ! php occ status 2>/dev/null | grep -q "installed: true"; then
+        echo "🚀 Installing Nextcloud..."
+        php occ maintenance:mode --on || echo "Maintenance on failed"
+        php occ install --no-interaction \
+            --database pgsql \
+            --database-host "${POSTGRES_HOST}:${POSTGRES_PORT}" \
+            --database-name "${POSTGRES_DB}" \
+            --database-user "${POSTGRES_USER}" \
+            --database-pass "${POSTGRES_PASSWORD}" \
+            --admin-user "${NEXTCLOUD_ADMIN_USER}" \
+            --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || echo "occ install failed: $?"
+        php occ maintenance:mode --off || echo "Maintenance off failed"
+        echo "✅ Nextcloud installation completed"
+    else
+        echo "✅ Nextcloud already installed"
+    fi
+
+    # Run security and setup fixes
+    echo "🔧 Running fix-warnings script..."
+    /usr/local/bin/fix-warnings.sh || echo "fix-warnings.sh completed with warnings or errors"
+else
+    echo "❌ occ still not found after restore - deployment cannot proceed fully"
+fi
+
 # Forward to original NextCloud entrypoint
 echo "🔧 Fixing Apache MPM runtime..."
 # Comment out conflicting MPM LoadModule lines in all conf
