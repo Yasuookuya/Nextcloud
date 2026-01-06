@@ -115,7 +115,7 @@ $CONFIG = array (
   'dbtype' => 'pgsql',
   'version' => '32.0.3.2',
   'dbname' => 'POSTGRES_DB_PLACEHOLDER',
-  'dbhost' => 'POSTGRES_HOST_PLACEHOLDER:POSTGRES_PORT_PLACEHOLDER?sslmode=disable',
+  'dbhost' => 'POSTGRES_HOST_PLACEHOLDER:POSTGRES_PORT_PLACEHOLDER',
   'dbuser' => 'POSTGRES_USER_PLACEHOLDER',
   'dbpassword' => 'POSTGRES_PASSWORD_PLACEHOLDER',
   'installed' => false,
@@ -187,7 +187,6 @@ ls -la /var/www/html/data/ 2>/dev/null || echo "Data dir not present or empty"
 
 # Postgres Connection Tests
 echo "🗄️ TESTING POSTGRES CONNECTION:"
-export PGSSLMODE=disable
 export PGPASSWORD="${POSTGRES_PASSWORD}"
 psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "\conninfo" || echo "Postgres conninfo failed: $?"
 psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "SELECT version();" || echo "Postgres version query failed: $?"
@@ -377,30 +376,27 @@ if [ -f occ ]; then
             --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || echo "occ install failed: $?"
         php occ config:system:set installed --value true || true
 
-        # Ensure data directory exists and is owned by www-data
-        mkdir -p /var/www/html/data
-        chown -R www-data:www-data /var/www/html/data
-        chmod 750 /var/www/html/data
-
-        # Confirm installation
-        if php occ status | grep -q "installed: true"; then
-            echo "✅ Nextcloud installation confirmed"
-        else
-            echo "⚠️ Installation completed but status check failed - check logs"
-        fi
+        # Reassign DB ownership to postgres
+        export PGPASSWORD="${POSTGRES_PASSWORD}"
+        psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "
+DO \$\$
+BEGIN
+  EXECUTE 'REASSIGN OWNED BY oc_admin TO postgres';
+  EXECUTE 'DROP OWNED BY oc_admin';
+  EXECUTE 'DROP USER IF EXISTS oc_admin';
+END
+\$\$;
+" || true
+        unset PGPASSWORD
 
         echo "✅ Nextcloud installation completed"
     else
         echo "✅ Nextcloud already installed"
     fi
 
-    # Run security and setup fixes (conditional on successful status)
+    # Run security and setup fixes
     echo "🔧 Running fix-warnings script..."
-    if php occ status 2>/dev/null | grep -q "installed: true"; then
-        /usr/local/bin/fix-warnings.sh || echo "fix-warnings.sh completed with warnings or errors"
-    else
-        echo "⚠️ Skipping fix-warnings.sh due to installation status issues"
-    fi
+    /usr/local/bin/fix-warnings.sh || echo "fix-warnings.sh completed with warnings or errors"
 else
     echo "❌ occ still not found after restore - deployment cannot proceed fully"
 fi
