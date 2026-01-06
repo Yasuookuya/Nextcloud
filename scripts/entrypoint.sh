@@ -225,6 +225,19 @@ tail -n 10 /var/log/supervisor/supervisord.log 2>/dev/null || echo "No superviso
 
 echo "=== DIAGNOSTIC LOGGING END ==="
 
+echo "=== PRE-RESTORE FILE CHECK ==="
+
+# Pre-restore: Check volume-mounted state
+echo "🔍 PRE-RESTORE: Recursive file search (top 50 files):"
+find /var/www/html -type f 2>/dev/null | head -50 || echo "find failed"
+echo "🔍 PRE-RESTORE: Key Nextcloud files/dirs in /var/www/html:"
+ls -la /var/www/html/ 2>/dev/null | grep -E "(occ|index\.php|core|apps|lib|config)" || echo "No key files found"
+echo "🔍 PRE-RESTORE: Search for occ anywhere:"
+find /var/www/html -name "occ" 2>/dev/null || echo "occ not found anywhere"
+echo "🔍 PRE-RESTORE: index.php content preview (if exists):"
+if [ -f /var/www/html/index.php ]; then head -20 /var/www/html/index.php; else echo "index.php missing"; fi
+echo "=== PRE-RESTORE END ==="
+
 # Restore Nextcloud files if missing due to volume mount
 if [ ! -f /var/www/html/occ ]; then
     echo "🔄 Restoring Nextcloud files from /tmp backup..."
@@ -240,6 +253,23 @@ if [ ! -f /var/www/html/occ ]; then
 else
     echo "✅ Nextcloud files already present (occ found)"
 fi
+
+echo "=== POST-RESTORE FILE CHECK ==="
+
+# Post-restore: Verify files and paths
+echo "🔍 POST-RESTORE: Full top-level ls /var/www/html:"
+ls -la /var/www/html/ 2>/dev/null || echo "ls post-restore failed"
+echo "🔍 POST-RESTORE: Search for occ post-restore:"
+find /var/www/html -name "occ" 2>/dev/null || echo "occ still not found"
+echo "🔍 POST-RESTORE: occ content preview (if exists):"
+if [ -f /var/www/html/occ ]; then head -10 /var/www/html/occ; else echo "occ missing post-restore"; fi
+echo "🔍 POST-RESTORE: index.php content preview:"
+if [ -f /var/www/html/index.php ]; then head -10 /var/www/html/index.php; else echo "index.php missing"; fi
+echo "🔍 POST-RESTORE: Dir structure (top dirs):"
+find /var/www/html -type d 2>/dev/null | head -15 || echo "find dirs failed"
+echo "🔍 POST-RESTORE: Sizes of key dirs/files:"
+du -sh /var/www/html/* 2>/dev/null | head -10 || echo "du failed"
+echo "=== POST-RESTORE END ==="
 
 cd /var/www/html || echo "Failed to cd to /var/www/html"
 
