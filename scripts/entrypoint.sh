@@ -190,7 +190,9 @@ echo "🗄️ TESTING POSTGRES CONNECTION:"
 export PGPASSWORD="${POSTGRES_PASSWORD}"
 psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "\conninfo" || echo "Postgres conninfo failed: $?"
 psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "SELECT version();" || echo "Postgres version query failed: $?"
+echo "📋 POSTGRES TABLES REVIEW:"
 psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "\dt" || echo "Postgres list tables failed: $?"
+psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public';" || echo "Postgres table count failed: $?"
 unset PGPASSWORD
 
 # Redis Connection Tests
@@ -202,6 +204,7 @@ redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" info serv
 echo "⚙️ NEXTCLOUD OCC DIAGNOSTICS:"
 cd /var/www/html || echo "cd /var/www/html failed"
 if [ -f /var/www/html/occ ]; then
+    echo "✅ OCC file found - running diagnostics:"
     php /var/www/html/occ status || echo "occ status failed: $?"
     php /var/www/html/occ maintenance:mode || echo "occ maintenance:mode failed: $?"
     php /var/www/html/occ db:check || echo "occ db:check failed: $?"
@@ -211,6 +214,8 @@ if [ -f /var/www/html/occ ]; then
     php /var/www/html/occ app:list | head -10 || echo "occ app:list failed: $?"
     echo "🔍 BACKGROUND JOBS MODE:"
     php /var/www/html/occ background-job:mode || echo "occ background-job:mode failed: $?"
+else
+    echo "❌ OCC file not found - Nextcloud files need to be downloaded"
 fi
 
 # Processes, Disk, and Logs
@@ -219,13 +224,29 @@ ps aux | grep -E "(apache|php|supervisord|cron|postgres|redis)" || echo "ps grep
 echo "📊 DISK USAGE (root):"
 df -h / || echo "df failed"
 echo "📊 APACHE LOGS (last 10 lines if exist):"
-tail -n 10 /var/log/apache2/error.log 2>/dev/null || echo "No Apache error log or empty"
+if [ -f /var/log/apache2/error.log ] && [ -r /var/log/apache2/error.log ]; then
+  tail -n 10 /var/log/apache2/error.log 2>/dev/null || echo "Tail failed"
+else
+  echo "No Apache error log or empty"
+fi
 echo "📊 APACHE ACCESS LOGS (last 10 if exist):"
-tail -n 10 /var/log/apache2/access.log 2>/dev/null || echo "No Apache access log or empty"
+if [ -f /var/log/apache2/access.log ] && [ -r /var/log/apache2/access.log ]; then
+  tail -n 10 /var/log/apache2/access.log 2>/dev/null || echo "Tail failed"
+else
+  echo "No Apache access log or empty"
+fi
 echo "🔍 NEXTCLOUD LOG (last 10 lines if exists):"
-tail -n 10 /var/www/html/data/nextcloud.log 2>/dev/null || echo "No nextcloud.log or empty"
+if [ -f /var/www/html/data/nextcloud.log ] && [ -r /var/www/html/data/nextcloud.log ]; then
+  tail -n 10 /var/www/html/data/nextcloud.log 2>/dev/null || echo "Tail failed"
+else
+  echo "No nextcloud.log or empty"
+fi
 echo "🔍 SUPERVISOR LOG (if exists):"
-tail -n 10 /var/log/supervisor/supervisord.log 2>/dev/null || echo "No supervisor log or empty"
+if [ -f /var/log/supervisor/supervisord.log ] && [ -r /var/log/supervisor/supervisord.log ]; then
+  tail -n 10 /var/log/supervisor/supervisord.log 2>/dev/null || echo "Tail failed"
+else
+  echo "No supervisor log or empty"
+fi
 
 echo "=== DIAGNOSTIC LOGGING END ==="
 
