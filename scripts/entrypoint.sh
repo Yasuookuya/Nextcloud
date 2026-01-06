@@ -153,7 +153,7 @@ $CONFIG = array (
   'overwritehost' => 'RAILWAY_PUBLIC_DOMAIN_PLACEHOLDER',
   'trusted_proxies' => 
   array (
-    0 => '100.0.0.0/8',
+    0 => '0.0.0.0/0',
   ),
   'memcache.local' => '\\OC\\Memcache\\Redis',
   'redis' => 
