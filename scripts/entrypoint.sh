@@ -118,7 +118,7 @@ $CONFIG = array (
   'dbhost' => 'POSTGRES_HOST_PLACEHOLDER:POSTGRES_PORT_PLACEHOLDER',
   'dbuser' => 'POSTGRES_USER_PLACEHOLDER',
   'dbpassword' => 'POSTGRES_PASSWORD_PLACEHOLDER',
-  'installed' => true,
+  'installed' => false,
   'theme' => '',
   'loglevel' => 2,
   'maintenance' => false,
@@ -153,6 +153,12 @@ EOF
         sed -i "s|POSTGRES_PORT_PLACEHOLDER|${POSTGRES_PORT}|g" /var/www/html/config/config.php
         sed -i "s|POSTGRES_USER_PLACEHOLDER|${POSTGRES_USER}|g" /var/www/html/config/config.php
         sed -i "s|POSTGRES_PASSWORD_PLACEHOLDER|${POSTGRES_PASSWORD}|g" /var/www/html/config/config.php
+
+        # Substitute Redis placeholders
+        sed -i "s|REDIS_HOST_PLACEHOLDER|${REDIS_HOST}|g" /var/www/html/config/config.php
+        sed -i "s|REDIS_PORT_PLACEHOLDER|${REDIS_PORT}|g" /var/www/html/config/config.php
+        sed -i "s|'password' => 'REDIS_PASSWORD_PLACEHOLDER',|'password' => '${REDIS_PASSWORD}',|g" /var/www/html/config/config.php
+
         chown www-data:www-data /var/www/html/config/config.php
         chmod 640 /var/www/html/config/config.php
         echo "✅ Config.php created with all settings"
@@ -351,6 +357,21 @@ if [ -f occ ]; then
             --database-pass "${POSTGRES_PASSWORD}" \
             --admin-user "${NEXTCLOUD_ADMIN_USER}" \
             --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || echo "occ install failed: $?"
+        php occ config:system:set installed --value true || true
+
+        # Reassign DB ownership to postgres
+        export PGPASSWORD="${POSTGRES_PASSWORD}"
+        psql -h "${POSTGRES_HOST}" -p "${POSTGRES_PORT}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -w -c "
+DO \$\$
+BEGIN
+  EXECUTE 'REASSIGN OWNED BY oc_admin TO postgres';
+  EXECUTE 'DROP OWNED BY oc_admin';
+  EXECUTE 'DROP USER IF EXISTS oc_admin';
+END
+\$\$;
+" || true
+        unset PGPASSWORD
+
         php occ maintenance:mode --off || echo "Maintenance off failed"
         echo "✅ Nextcloud installation completed"
     else

@@ -49,7 +49,7 @@ RUN mkdir -p /var/log/supervisor && \
     chmod +x /usr/local/bin/custom-entrypoint.sh && \
     # Backup Nextcloud files to /tmp for volume mount override
     mkdir -p /tmp/nextcloud-backup && \
-    cp -r /var/www/html/* /tmp/nextcloud-backup/ 2>/dev/null || true && \
+    cp -a /var/www/html/. /tmp/nextcloud-backup/ 2>/dev/null || true && \
     chown -R www-data:www-data /tmp/nextcloud-backup 2>/dev/null || true
 
 # Expose HTTP port (Railway expects PORT=80)
