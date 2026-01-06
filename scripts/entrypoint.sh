@@ -202,21 +202,21 @@ redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" ping || e
 redis-cli -h "${REDIS_HOST}" -p "${REDIS_PORT}" -a "${REDIS_PASSWORD}" info server | head -10 || echo "Redis info failed: $?"
 
 # Nextcloud OCC Diagnostics
-    echo "⚙️ NEXTCLOUD OCC DIAGNOSTICS:"
-    cd /var/www/html || echo "cd /var/www/html failed"
-    if [ -f /var/www/html/occ ]; then
-        echo "✅ OCC file found - running diagnostics:"
-        (command -v sudo >/dev/null 2>&1 && sudo -u www-data php /var/www/html/occ status || runuser -u www-data -- php /var/www/html/occ status || php /var/www/html/occ status) || echo "occ status failed: $?"
-        (command -v sudo >/dev/null 2>&1 && sudo -u www-data php /var/www/html/occ db:check || runuser -u www-data -- php /var/www/html/occ db:check || php /var/www/html/occ db:check) || echo "occ db:check failed: $?"
-        echo "📋 SYSTEM CONFIG (first 20 lines):"
-        (command -v sudo >/dev/null 2>&1 && sudo -u www-data php /var/www/html/occ config:list system || runuser -u www-data -- php /var/www/html/occ config:list system || php /var/www/html/occ config:list system) | head -20 || echo "occ config:list failed: $?"
-        echo "🔍 INSTALLED APPS (first 10):"
-        (command -v sudo >/dev/null 2>&1 && sudo -u www-data php /var/www/html/occ app:list || runuser -u www-data -- php /var/www/html/occ app:list || php /var/www/html/occ app:list) | head -10 || echo "occ app:list failed: $?"
-        echo "🔍 BACKGROUND JOBS MODE:"
-        (command -v sudo >/dev/null 2>&1 && sudo -u www-data php /var/www/html/occ background-job:mode || runuser -u www-data -- php /var/www/html/occ background-job:mode || php /var/www/html/occ background-job:mode) || echo "occ background-job:mode failed: $?"
-    else
-        echo "❌ OCC file not found - Nextcloud files need to be downloaded"
-    fi
+echo "⚙️ NEXTCLOUD OCC DIAGNOSTICS:"
+cd /var/www/html || echo "cd /var/www/html failed"
+if [ -f /var/www/html/occ ]; then
+    echo "✅ OCC file found - running diagnostics:"
+    php /var/www/html/occ status || echo "occ status failed: $?"
+    php /var/www/html/occ db:check || echo "occ db:check failed: $?"
+    echo "📋 SYSTEM CONFIG (first 20 lines):"
+    php /var/www/html/occ config:list system | head -20 || echo "occ config:list failed: $?"
+    echo "🔍 INSTALLED APPS (first 10):"
+    php /var/www/html/occ app:list | head -10 || echo "occ app:list failed: $?"
+    echo "🔍 BACKGROUND JOBS MODE:"
+    php /var/www/html/occ background-job:mode || echo "occ background-job:mode failed: $?"
+else
+    echo "❌ OCC file not found - Nextcloud files need to be downloaded"
+fi
 
 # Processes, Disk, and Logs
 echo "🐛 CURRENT PROCESSES (relevant):"
@@ -365,17 +365,17 @@ cd /var/www/html || echo "Failed to cd to /var/www/html"
 # Install Nextcloud if not already installed
 if [ -f occ ]; then
     echo "⚙️ Checking installation status..."
-    if ! su www-data -s /bin/bash -c "php occ status" 2>/dev/null | grep -q "installed: true"; then
+    if ! php occ status 2>/dev/null | grep -q "installed: true"; then
         echo "🚀 Installing Nextcloud..."
-        su www-data -s /bin/bash -c "php occ maintenance:install --no-interaction \
+        php occ maintenance:install --no-interaction \
             --database pgsql \
-            --database-host \"${POSTGRES_HOST}:${POSTGRES_PORT}\" \
-            --database-name \"${POSTGRES_DB}\" \
-            --database-user \"${POSTGRES_USER}\" \
-            --database-pass \"${POSTGRES_PASSWORD}\" \
-            --admin-user \"${NEXTCLOUD_ADMIN_USER}\" \
-            --admin-pass \"${NEXTCLOUD_ADMIN_PASSWORD}\"" || echo "occ install failed: $?"
-        su www-data -s /bin/bash -c "php occ config:system:set installed --value true" || true
+            --database-host "${POSTGRES_HOST}:${POSTGRES_PORT}" \
+            --database-name "${POSTGRES_DB}" \
+            --database-user "${POSTGRES_USER}" \
+            --database-pass "${POSTGRES_PASSWORD}" \
+            --admin-user "${NEXTCLOUD_ADMIN_USER}" \
+            --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}" || echo "occ install failed: $?"
+        php occ config:system:set installed --value true || true
 
         # Ensure data directory exists and is owned by www-data
         mkdir -p /var/www/html/data
@@ -383,7 +383,7 @@ if [ -f occ ]; then
         chmod 750 /var/www/html/data
 
         # Confirm installation
-        if su www-data -s /bin/bash -c "php occ status" | grep -q "installed: true"; then
+        if php occ status | grep -q "installed: true"; then
             echo "✅ Nextcloud installation confirmed"
         else
             echo "⚠️ Installation completed but status check failed - check logs"
@@ -396,7 +396,7 @@ if [ -f occ ]; then
 
     # Run security and setup fixes (conditional on successful status)
     echo "🔧 Running fix-warnings script..."
-    if su www-data -s /bin/bash -c "php occ status" 2>/dev/null | grep -q "installed: true"; then
+    if php occ status 2>/dev/null | grep -q "installed: true"; then
         /usr/local/bin/fix-warnings.sh || echo "fix-warnings.sh completed with warnings or errors"
     else
         echo "⚠️ Skipping fix-warnings.sh due to installation status issues"
