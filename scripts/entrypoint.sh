@@ -241,14 +241,26 @@ echo "=== PRE-RESTORE END ==="
 # Restore Nextcloud files if missing due to volume mount
 if [ ! -f /var/www/html/occ ]; then
     echo "🔄 Restoring Nextcloud files from /tmp backup..."
-    if [ -d /tmp/nextcloud-backup ]; then
+    if [ -d /tmp/nextcloud-backup ] && [ "$(ls -A /tmp/nextcloud-backup)" ]; then
         cp -r /tmp/nextcloud-backup/* /var/www/html/ || echo "Copy from backup failed"
         chown -R www-data:www-data /var/www/html
         find /var/www/html -type f -exec chmod 644 {} \; 2>/dev/null || true
         find /var/www/html -type d -exec chmod 755 {} \; 2>/dev/null || true
         echo "✅ Files restored from backup"
     else
-        echo "❌ No backup found in /tmp - files cannot be restored"
+        echo "📥 No backup found - downloading Nextcloud 32.0.3..."
+        cd /var/www/html
+        curl -L -o nextcloud.tar.bz2 https://download.nextcloud.com/server/releases/nextcloud-32.0.3.tar.bz2 || echo "Download failed"
+        if [ -f nextcloud.tar.bz2 ]; then
+            tar -xjf nextcloud.tar.bz2 --strip-components=1 || echo "Extract failed"
+            rm nextcloud.tar.bz2
+            chown -R www-data:www-data /var/www/html
+            find /var/www/html -type f -exec chmod 644 {} \; 2>/dev/null || true
+            find /var/www/html -type d -exec chmod 755 {} \; 2>/dev/null || true
+            echo "✅ Files downloaded and extracted"
+        else
+            echo "❌ Download failed - files cannot be restored"
+        fi
     fi
 else
     echo "✅ Nextcloud files already present (occ found)"
