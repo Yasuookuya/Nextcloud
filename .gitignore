@@ -14,3 +14,4 @@
 /manual-install/compose.yaml
 /manual-install/.env
 .env
+ \[conflicted\].env
